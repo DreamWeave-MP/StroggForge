@@ -106,7 +106,7 @@ runs:
           ~/.cargo/registry
           ~/.cargo/git
           target
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
     - name: Build Release
       shell: bash
@@ -120,16 +120,16 @@ runs:
       run: |
         BINARY_NAME="${{ inputs.binary_name }}${{ steps.os_check.outputs.suffix }}"
         cosign sign-blob -y "./target/release/$BINARY_NAME" \
-          --bundle "${{ github.event.repository.name }}-${{ runner.os }}.bundle"
+          --bundle "${{ github.event.repository.name }}-${{ runner.os }}-${{ runner.arch }}.bundle"
 
     - name: Create Archive
       shell: bash
       run: |
         BINARY_NAME="${{ inputs.binary_name }}${{ steps.os_check.outputs.suffix }}"
-        ARCHIVE_NAME="${{ runner.os }}-${{ github.event.repository.name }}.zip"
+        ARCHIVE_NAME="${{ runner.os }}-${{ runner.arch }}-${{ github.event.repository.name }}.zip"
         
         7z a -tzip "$ARCHIVE_NAME" \
-          "${{ github.event.repository.name }}-${{ runner.os }}.bundle" \
+          "${{ github.event.repository.name }}-${{ runner.os }}-${{ runner.arch }}.bundle" \
           "./target/release/$BINARY_NAME"
         
         IFS=',' read -ra FILES <<< "${{ inputs.include_files }}"
@@ -146,7 +146,7 @@ runs:
       with:
         tag_name: ${{ steps.cleanup.outputs.release_name }}
         prerelease: ${{ github.ref_type != 'tag' }}
-        files: ${{ runner.os }}-${{ github.event.repository.name }}.zip
+        files: ${{ runner.os }}-${{ runner.arch }}-${{ github.event.repository.name }}.zip
 
     - name: VirusTotal Scan
       uses: crazy-max/ghaction-virustotal@v4
