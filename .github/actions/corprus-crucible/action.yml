@@ -91,6 +91,19 @@ runs:
           echo "Binary suffix: '' (${{ runner.os }} detected)"
         fi
 
+    - name: Determine Build Context
+      id: context
+      shell: bash
+      run: |
+        # Auto-detect: if binary_name is a directory, build there
+        if [ -d "${{ inputs.binary_name }}" ]; then
+          BUILD_DIR="${{ inputs.binary_name }}"
+        else
+          BUILD_DIR="."
+        fi
+
+        echo "build_dir=$BUILD_DIR" >> $GITHUB_OUTPUT
+
     # Build steps
     - name: Setup Rust
       uses: dtolnay/rust-toolchain@stable
@@ -106,7 +119,7 @@ runs:
 
     - name: Build Release
       shell: bash
-      run: cargo build --release
+      run: cargo build --release --manifest-path ${{ steps.context.outputs.build_dir }}/Cargo.toml
 
     - name: Install Cosign
       uses: sigstore/cosign-installer@main
@@ -115,8 +128,8 @@ runs:
       shell: bash
       run: |
         BINARY_NAME="${{ inputs.binary_name }}${{ steps.os_check.outputs.suffix }}"
-        cosign sign-blob -y "./target/release/$BINARY_NAME" \
-          --bundle "${{ github.event.repository.name }}-${{ runner.os }}-${{ runner.arch }}.bundle"
+        cosign sign-blob -y "${{ steps.context.outputs.build_dir }}/target/release/$BINARY_NAME" \
+          --bundle "${{ inputs.binary_name }}-${{ runner.os }}-${{ runner.arch }}.bundle"
 
     - name: Create Archive
       shell: bash
@@ -125,13 +138,13 @@ runs:
         ARCHIVE_NAME="${{ inputs.binary_name}}-${{ runner.os }}-${{ runner.arch }}.zip"
         
         7z a -tzip "$ARCHIVE_NAME" \
-          "${{ github.event.repository.name }}-${{ runner.os }}-${{ runner.arch }}.bundle" \
-          "./target/release/$BINARY_NAME"
+          "${{ inputs.binary_name }}-${{ runner.os }}-${{ runner.arch }}.bundle" \
+          "${{ steps.context.outputs.build_dir }}/target/release/$BINARY_NAME"
         
         IFS=',' read -ra FILES <<< "${{ inputs.include_files }}"
         for file in "${FILES[@]}"; do
           if [ -f "$file" ]; then
-            7z u -tzip "$ARCHIVE_NAME" "$file"
+            7z u -tzip "$ARCHIVE_NAME" ${{ steps.context.outputs.build_dir }}/"$file"
           fi
         done
 
@@ -149,4 +162,4 @@ runs:
       with:
         update_release_body: true
         vt_api_key: ${{ inputs.vt_api_key }}
-        files: ./target/release/${{ inputs.binary_name }}${{ steps.os_check.outputs.suffix }}
+        files: ${{ steps.context.outputs.build_dir }}/target/release/${{ inputs.binary_name }}${{ steps.os_check.outputs.suffix }}
