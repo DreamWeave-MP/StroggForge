@@ -68,6 +68,8 @@ runs:
                 # Delete old release
                 gh release delete development --yes 2>/dev/null || echo "Delete failed (maybe already gone)"
                 sleep 2
+                gh api -X DELETE repos/${{ github.repository }}/git/refs/tags/development 2>/dev/null || echo "There was a tag here. It's gone now."
+                sleep 2
 
                 # Create new release with our workflow ID
                 echo "Creating new release for this workflow..."
