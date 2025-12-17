@@ -145,8 +145,8 @@ runs:
         
         IFS=',' read -ra FILES <<< "${{ inputs.include_files }}"
         for file in "${FILES[@]}"; do
-          if [ -f "$file" ]; then
-            7z u -tzip "$ARCHIVE_NAME" ${{ steps.context.outputs.build_dir }}/"$file"
+          if [ -f "${{ steps.context.outputs.build_dir }}/$file" ]; then
+            7z u -tzip "$ARCHIVE_NAME" "${{ steps.context.outputs.build_dir }}/$file"
           fi
         done
 
