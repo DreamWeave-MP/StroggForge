@@ -147,6 +147,41 @@ runs:
           fi
         done
 
+    - name: VirusTotal Scan
+      uses: crazy-max/ghaction-virustotal@v4
+      with:
+        update_release_body: true
+        vt_api_key: ${{ inputs.vt_api_key }}
+        files: ${{ steps.context.outputs.build_dir }}/target/release/${{ inputs.binary_name }}${{ steps.os_check.outputs.suffix }}
+
+    - name: Format VirusTotal Links
+      id: format_vt_links
+      shell: bash
+      run: |
+        # Extract just the filename for display
+        FILENAME="${{ inputs.binary_name }}-${{ runner.os }}-${{ runner.arch }}"
+
+        # The vt_scan outputs.analysis is like "filename=https://virustotal.com/..."
+        # Parse it to create markdown links
+        if [ -n "${{ steps.vt_scan.outputs.analysis }}" ]; then
+          # Convert "filename=url,filename2=url2" to markdown
+          ANALYSIS_TEXT=""
+          IFS=',' read -ra ENTRIES <<< "${{ steps.vt_scan.outputs.analysis }}"
+
+          for entry in "${ENTRIES[@]}"; do
+            IFS='=' read -r file url <<< "$entry"
+            ANALYSIS_TEXT="${ANALYSIS_TEXT}- **${file}**: [VirusTotal Analysis](${url})"$'\n'
+          done
+
+          echo "vt_analysis<<EOF" >> $GITHUB_OUTPUT
+          echo "## 🔍 VirusTotal Scan Results" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "$ANALYSIS_TEXT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        else
+          echo "vt_analysis=" >> $GITHUB_OUTPUT
+        fi
+
     - name: Upload to GitHub Release
       uses: softprops/action-gh-release@v2
       env:
@@ -155,10 +190,7 @@ runs:
         tag_name: ${{ steps.cleanup.outputs.release_name }}
         prerelease: ${{ github.ref_type != 'tag' }}
         files: ${{ inputs.binary_name }}-${{ runner.os }}-${{ runner.arch }}.zip
+        append_body: true
+        body: |
+          ${{ steps.format_vt_links.outputs.vt_analysis }}
 
-    - name: VirusTotal Scan
-      uses: crazy-max/ghaction-virustotal@v4
-      with:
-        update_release_body: true
-        vt_api_key: ${{ inputs.vt_api_key }}
-        files: ${{ steps.context.outputs.build_dir }}/target/release/${{ inputs.binary_name }}${{ steps.os_check.outputs.suffix }}
