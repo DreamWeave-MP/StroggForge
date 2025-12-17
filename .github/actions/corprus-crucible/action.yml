@@ -42,9 +42,16 @@ runs:
 
     - name: Setup Release Environment
       id: cleanup
+
       shell: bash
+
       env:
         GH_TOKEN: ${{ inputs.github_token }}
+
+      concurrency:
+        group: ci-${{ github.ref }}
+        cancel-in-progress: false
+
       run: |
         if [[ "${{ github.ref }}" == refs/tags/* ]]; then
           echo "Using tag: ${{ github.ref_name }}"
@@ -57,7 +64,7 @@ runs:
           release_id=$(gh release list --limit 100 | grep "development" | awk '{print $1}' | head -1)
           if [ -n "$release_id" ]; then
             echo "Deleting existing development release: $release_id"
-          #   gh release delete "$release_id" --yes
+            gh release delete "$release_id" --yes
           fi
         fi
 
