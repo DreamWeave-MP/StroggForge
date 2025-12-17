@@ -78,7 +78,7 @@ runs:
                 --method PATCH \
                 -H "Accept: application/vnd.github+json" \
                 -H "X-GitHub-Api-Version: 2022-11-28" \
-                /repos/OWNER/REPO/releases/RELEASE_ID \
+                /repos/${{ github.repository }}/releases/${release_id} \
                 -f 'tag_name=development' -f 'target_commitish=main' -f 'name=v1.0.0' -f 'body=' -F "draft=false" -F "prerelease=true" \
                 && echo "Cleared release description"
             fi
