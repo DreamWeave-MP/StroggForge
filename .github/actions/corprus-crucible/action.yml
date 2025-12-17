@@ -40,28 +40,26 @@ runs:
           echo "✅ VirusTotal API key is set"
         fi
 
-    # - name: Setup Release Environment
-    #   id: cleanup
-    #   shell: bash
-    #   env:
-    #     GH_TOKEN: ${{ inputs.github_token }}
-    #   run: |
-    #     if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-    #       echo "Using tag: ${{ github.ref_name }}"
-    #       echo "release_name=${{ github.ref_name }}" >> $GITHUB_OUTPUT
-    #     else
-    #       echo "Setting up development release..."
-    #       gh release list --limit 5
-    #       gh auth status
-    #       echo "release_name=development" >> $GITHUB_OUTPUT
-    #
-    #       # Delete existing development release if it exists
-    #       release_id=$(gh release list --limit 100 | grep "development" | awk '{print $1}' | head -1)
-    #       if [ -n "$release_id" ]; then
-    #         echo "Deleting existing development release: $release_id"
-    #         gh release delete "$release_id" --yes
-    #       fi
-    #     fi
+    - name: Setup Release Environment
+      id: cleanup
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+      run: |
+        if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+          echo "Using tag: ${{ github.ref_name }}"
+          echo "release_name=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+        else
+          echo "Setting up development release..."
+          echo "release_name=development" >> $GITHUB_OUTPUT
+
+          # Delete existing development release if it exists
+          # release_id=$(gh release list --limit 100 | grep "development" | awk '{print $1}' | head -1)
+          # if [ -n "$release_id" ]; then
+          #   echo "Deleting existing development release: $release_id"
+          #   gh release delete "$release_id" --yes
+          # fi
+        fi
 
     # Determine OS and set binary suffix
     - name: Determine Binary Suffix
