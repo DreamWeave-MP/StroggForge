@@ -44,50 +44,34 @@ runs:
       run: |
         if [[ "${{ github.ref }}" == refs/tags/* ]]; then
           echo "release_name=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          echo "release_exists=false" >> $GITHUB_OUTPUT  # Tagged = fresh
         else
           echo "release_name=development" >> $GITHUB_OUTPUT
-          
-          TODAY=$(date +%Y-%m-%d)
-          
-          # Get development release info with JSON
-          release_info=$(gh api repos/${{ github.repository }}/releases \
-            --jq '.[] | select(.name == "development" or .tag_name == "development") | {id: .id, created: .created_at, tag_name: .tag_name}' 2>/dev/null || echo "{}")
-          
-          if [ "$release_info" != "{}" ]; then
-            release_id=$(echo "$release_info" | jq -r '.id')
-            created_date=$(echo "$release_info" | jq -r '.created' | cut -d'T' -f1)
-            tag_name=$(echo "$release_info" | jq -r '.tag_name')
-            
-            echo "Found development release: ID=$release_id, Created=$created_date"
-            
-            if [ "$created_date" != "$TODAY" ]; then
-              echo "Release is stale (not from today). Deleting..."
-              
-              # Delete the release
+
+          if [[ "${{ runner.os }}" == "Windows" ]] && [[ "${{ runner.arch }}" == "X64" ]]; then
+            echo "Handling release coordination on windows x64 job . . ."
+
+            release_info=$(gh api repos/${{ github.repository }}/releases \
+              --jq '.[] | select(.name == "development" or .tag_name == "development") | {id: .id, created: .created_at}' 2>/dev/null || echo "{}")
+
+            if [ "$release_info" != "{}" ]; then
+              release_id=$(echo "$release_info" | jq -r '.id')
+
+              echo "Deleting existing development release: $release_id"
               gh release delete "$release_id" --yes 2>/dev/null || true
-              
-              # Also delete the tag if it exists
               gh api -X DELETE repos/${{ github.repository }}/git/refs/tags/development 2>/dev/null || true
-              
-              echo "Deleted stale development release and tag"
+
+              echo "release_exists=false" >> $GITHUB_OUTPUT
             else
-              echo "Release is from today ($TODAY), keeping it"
-
-              # https://cli.github.com/manual/gh_api
-              gh api \
-                --method PATCH \
-                -H "Accept: application/vnd.github+json" \
-                -H "X-GitHub-Api-Version: 2022-11-28" \
-                repos/${{ github.repository }}/releases/${release_id} \
-                -f 'tag_name=development' -f 'target_commitish=main' -f 'name=development' -f 'body=' -F "draft=false" -F "prerelease=true" \
-                && echo "Cleared release description"
+              echo "No existing release to delete"
+              echo "release_exists=false" >> $GITHUB_OUTPUT
             fi
-          else
-            echo "No existing development release found"
-          fi
-        fi
 
-    # Determine OS and set binary suffix
+            # Create fresh release
+            gh release create development --prerelease --generate-notes 2>/dev/null || true
+          fi
+        fi    # Determine OS and set binary suffix
+
     - name: Determine Binary Suffix
       id: os_check
       shell: bash
@@ -188,26 +172,6 @@ runs:
           echo "vt_analysis=" >> $GITHUB_OUTPUT
         fi
 
-    - name: Check If Release Exists
-      id: check_release
-      shell: bash
-      env:
-        GH_TOKEN: ${{ inputs.github_token }}
-      run: |
-        # Only check for development releases
-        if [[ "${{ steps.cleanup.outputs.release_name }}" == "development" ]]; then
-          if gh release view "development" >/dev/null 2>&1; then
-            echo "release_exists=true" >> $GITHUB_OUTPUT
-            echo "Development release exists"
-          else
-            echo "release_exists=false" >> $GITHUB_OUTPUT
-            echo "Development release does not exist"
-          fi
-        else
-          echo "release_exists=false" >> $GITHUB_OUTPUT
-          echo "Tagged release - will generate notes"
-        fi
-
     - name: Upload to GitHub Release
       uses: softprops/action-gh-release@v2
       env:
@@ -216,7 +180,6 @@ runs:
         tag_name: ${{ steps.cleanup.outputs.release_name }}
         prerelease: ${{ github.ref_type != 'tag' }}
         files: ${{ inputs.binary_name }}-${{ runner.os }}-${{ runner.arch }}.zip
-        generate_release_notes: ${{ steps.check_release.outputs.release_exists == false }}
         append_body: true
         body: |
           ${{ steps.format_vt_links.outputs.vt_analysis }}
