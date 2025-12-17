@@ -137,10 +137,9 @@ runs:
         BINARY_NAME="${{ inputs.binary_name }}${{ steps.os_check.outputs.suffix }}"
         ARCHIVE_NAME="${{ inputs.binary_name}}-${{ runner.os }}-${{ runner.arch }}.zip"
         
-        mv "${{ steps.context.outputs.build_dir }}/target/release/$BINARY_NAME" .
+        7z a -tzip "$ARCHIVE_NAME" -r "${{ inputs.binary_name }}-${{ runner.os }}-${{ runner.arch }}.bundle"
+          "./${{ steps.context.outputs.build_dir }}/target/release/$BINARY_NAME"
         
-        7z a -tzip "$ARCHIVE_NAME" "${{ inputs.binary_name }}-${{ runner.os }}-${{ runner.arch }}.bundle" "$BINARY_NAME"
-
         IFS=',' read -ra FILES <<< "${{ inputs.include_files }}"
         for file in "${FILES[@]}"; do
           if [ -f "$file" ]; then
