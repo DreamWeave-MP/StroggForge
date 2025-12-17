@@ -9,10 +9,6 @@ inputs:
     description: 'Additional files to include in archives (comma-separated)'
     required: false
     default: 'Readme.md,LICENSE'
-  rust_toolchain:
-    description: 'Rust toolchain to use'
-    required: false
-    default: 'stable'
   vt_api_key:
     description: 'VirusTotal API key (REQUIRED)'
     required: true
