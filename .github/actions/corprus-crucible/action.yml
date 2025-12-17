@@ -39,7 +39,10 @@ runs:
     - name: Ensure fresh development release exists
       shell: bash
       run: |
-        # Stagger jobs to reduce collisions
+        if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+          exit 0
+        fi
+
         sleep $((RANDOM % 15))
 
         WORKFLOW_ID="${{ github.run_id }}"
