@@ -1,0 +1,137 @@
+name: 'Corprus Crucible'
+description: 'Strogg manufacturing system for Rust binaries - builds, signs, and scans releases'
+
+inputs:
+  binary_name:
+    description: 'Name of the binary (without platform suffix)'
+    required: true
+  include_files:
+    description: 'Additional files to include in archives (comma-separated)'
+    required: false
+    default: 'Readme.md,LICENSE'
+  rust_toolchain:
+    description: 'Rust toolchain to use'
+    required: false
+    default: 'stable'
+  vt_api_key:
+    description: 'VirusTotal API key (REQUIRED)'
+    required: true
+
+outputs:
+  release_name:
+    description: 'Name of the release (tag or development)'
+    value: ${{ steps.cleanup.outputs.release_name }}
+
+runs:
+  using: composite
+  steps:
+    # Validate required VirusTotal API key
+    - name: Validate VirusTotal API Key
+      shell: bash
+      run: |
+        if [ -z "${{ inputs.vt_api_key }}" ]; then
+          echo "::error::VirusTotal API key is required!"
+          echo "Please provide vt_api_key input to this action"
+          exit 1
+        elif [ ${#{{ inputs.vt_api_key }}} -lt 20 ]; then
+          echo "::warning::VirusTotal API key seems short (${#{{ inputs.vt_api_key }}} chars)"
+          echo "Typical VirusTotal API keys are 64 characters"
+        else
+          echo "✅ VirusTotal API key is set"
+        fi
+
+    # Cleanup and release setup
+    - name: Setup Release Environment
+      id: cleanup
+      shell: bash
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+          echo "Using tag: ${{ github.ref_name }}"
+          echo "release_name=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+        else
+          echo "Setting up development release..."
+          echo "release_name=development" >> $GITHUB_OUTPUT
+          
+          # Delete existing development release if it exists
+          release_id=$(gh release list --limit 100 | grep "development" | awk '{print $1}' | head -1)
+          if [ -n "$release_id" ]; then
+            echo "Deleting existing development release: $release_id"
+            gh release delete "$release_id" --yes
+          fi
+        fi
+
+    # Determine OS and set binary suffix
+    - name: Determine Binary Suffix
+      id: os_check
+      shell: bash
+      run: |
+        if [[ "${{ runner.os }}" == "Windows" ]]; then
+          echo "suffix=.exe" >> $GITHUB_OUTPUT
+          echo "Binary suffix: '.exe' (Windows detected)"
+        else
+          echo "suffix=" >> $GITHUB_OUTPUT
+          echo "Binary suffix: '' (${{ runner.os }} detected)"
+        fi
+
+    # Build steps
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@${{ inputs.rust_toolchain }}
+      shell: bash
+
+    - name: ⚡ Cache Dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Build Release
+      shell: bash
+      run: cargo build --release
+
+    - name: Install Cosign
+      uses: sigstore/cosign-installer@main
+
+    - name: Sign Binary
+      shell: bash
+      run: |
+        BINARY_NAME="${{ inputs.binary_name }}${{ steps.os_check.outputs.suffix }}"
+        cosign sign-blob -y "./target/release/$BINARY_NAME" \
+          --bundle "${{ github.event.repository.name }}-${{ runner.os }}.bundle"
+
+    - name: Create Archive
+      shell: bash
+      run: |
+        BINARY_NAME="${{ inputs.binary_name }}${{ steps.os_check.outputs.suffix }}"
+        ARCHIVE_NAME="${{ runner.os }}-${{ github.event.repository.name }}.zip"
+        
+        7z a -tzip "$ARCHIVE_NAME" \
+          "${{ github.event.repository.name }}-${{ runner.os }}.bundle" \
+          "./target/release/$BINARY_NAME"
+        
+        IFS=',' read -ra FILES <<< "${{ inputs.include_files }}"
+        for file in "${FILES[@]}"; do
+          if [ -f "$file" ]; then
+            7z u -tzip "$ARCHIVE_NAME" "$file"
+          fi
+        done
+
+    - name: Upload to GitHub Release
+      uses: softprops/action-gh-release@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.cleanup.outputs.release_name }}
+        prerelease: ${{ github.ref_type != 'tag' }}
+        files: ${{ runner.os }}-${{ github.event.repository.name }}.zip
+
+    - name: VirusTotal Scan
+      uses: crazy-max/ghaction-virustotal@v4
+      with:
+        update_release_body: true
+        vt_api_key: ${{ inputs.vt_api_key }}
+        files: ./target/release/${{ inputs.binary_name }}${{ steps.os_check.outputs.suffix }}
