@@ -174,7 +174,7 @@ runs:
 
           for entry in "${ENTRIES[@]}"; do
             IFS='=' read -r file url <<< "$entry"
-            ANALYSIS_TEXT="${ANALYSIS_TEXT}- [${{FILENAME}} on VirusTotal](${url})"$'\n'
+            ANALYSIS_TEXT="${ANALYSIS_TEXT}- [${ FILENAME } on VirusTotal](${url})"$'\n'
           done
 
           echo "vt_analysis=${ ANALYSIS_TEXT }" >> $GITHUB_OUTPUT
