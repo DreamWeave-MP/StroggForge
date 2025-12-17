@@ -38,6 +38,8 @@ runs:
 
     - name: Ensure fresh development release exists
       shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
       run: |
         if [[ "${{ github.ref }}" == refs/tags/* ]]; then
           exit 0
@@ -109,8 +111,6 @@ runs:
     - name: Setup Release Environment
       id: cleanup
       shell: bash
-      env:
-        GH_TOKEN: ${{ inputs.github_token }}
       run: |
         if [[ "${{ github.ref }}" == refs/tags/* ]]; then
           echo "release_name=${{ github.ref_name }}" >> $GITHUB_OUTPUT
