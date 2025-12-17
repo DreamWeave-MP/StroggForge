@@ -16,6 +16,9 @@ inputs:
   vt_api_key:
     description: 'VirusTotal API key (REQUIRED)'
     required: true
+  github_token:
+    description: 'GitHub Token (REQUIRED)'
+    required: true
 
 outputs:
   release_name:
@@ -40,12 +43,11 @@ runs:
           echo "✅ VirusTotal API key is set"
         fi
 
-    # Cleanup and release setup
     - name: Setup Release Environment
       id: cleanup
       shell: bash
       env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ inputs.github_token }}
       run: |
         if [[ "${{ github.ref }}" == refs/tags/* ]]; then
           echo "Using tag: ${{ github.ref_name }}"
@@ -78,7 +80,6 @@ runs:
     # Build steps
     - name: Setup Rust
       uses: dtolnay/rust-toolchain@${{ inputs.rust_toolchain }}
-      shell: bash
 
     - name: ⚡ Cache Dependencies
       uses: actions/cache@v4
@@ -123,7 +124,7 @@ runs:
     - name: Upload to GitHub Release
       uses: softprops/action-gh-release@v2
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ inputs.github_token }}
       with:
         tag_name: ${{ steps.cleanup.outputs.release_name }}
         prerelease: ${{ github.ref_type != 'tag' }}
