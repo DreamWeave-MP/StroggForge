@@ -51,6 +51,7 @@ runs:
           echo "release_name=${{ github.ref_name }}" >> $GITHUB_OUTPUT
         else
           echo "Setting up development release..."
+          gh release list --limit 5
           echo "release_name=development" >> $GITHUB_OUTPUT
           
           # Delete existing development release if it exists
