@@ -44,7 +44,7 @@ runs:
       id: cleanup
       shell: bash
       env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ inputs.github_token }}
       run: |
         if [[ "${{ github.ref }}" == refs/tags/* ]]; then
           echo "release_name=${{ github.ref_name }}" >> $GITHUB_OUTPUT
