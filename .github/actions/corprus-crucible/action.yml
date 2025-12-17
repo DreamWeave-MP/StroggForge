@@ -174,7 +174,7 @@ runs:
 
           for entry in "${ENTRIES[@]}"; do
             IFS='=' read -r file url <<< "$entry"
-            ANALYSIS_TEXT="${ANALYSIS_TEXT}- **${file}**: [VirusTotal Analysis](${url})"$'\n'
+            ANALYSIS_TEXT="${ANALYSIS_TEXT}- [${{FILENAME}} on VirusTotal](${url})"$'\n'
           done
 
           echo "vt_analysis<<EOF" >> $GITHUB_OUTPUT
@@ -194,6 +194,7 @@ runs:
         tag_name: ${{ steps.cleanup.outputs.release_name }}
         prerelease: ${{ github.ref_type != 'tag' }}
         files: ${{ inputs.binary_name }}-${{ runner.os }}-${{ runner.arch }}.zip
+        generate_release_notes: true
         append_body: true
         body: |
           ${{ steps.format_vt_links.outputs.vt_analysis }}
