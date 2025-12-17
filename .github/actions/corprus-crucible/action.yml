@@ -73,8 +73,14 @@ runs:
             else
               echo "Release is from today ($TODAY), keeping it"
 
-              gh api -X PATCH repos/${{ github.repository }}/releases/tags/development -f body="" 2>/dev/null || true
-              echo "Cleared release description"
+              # https://cli.github.com/manual/gh_api
+              gh api \
+                --method PATCH \
+                -H "Accept: application/vnd.github+json" \
+                -H "X-GitHub-Api-Version: 2022-11-28" \
+                /repos/OWNER/REPO/releases/RELEASE_ID \
+                -f 'tag_name=development' -f 'target_commitish=main' -f 'name=v1.0.0' -f 'body=' -F "draft=false" -F "prerelease=true" \
+                && echo "Cleared release description"
             fi
           else
             echo "No existing development release found"
