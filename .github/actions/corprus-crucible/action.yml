@@ -182,6 +182,26 @@ runs:
           echo "vt_analysis=" >> $GITHUB_OUTPUT
         fi
 
+    - name: Check If Release Exists
+      id: check_release
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+      run: |
+        # Only check for development releases
+        if [[ "${{ steps.cleanup.outputs.release_name }}" == "development" ]]; then
+          if gh release view "development" >/dev/null 2>&1; then
+            echo "release_exists=true" >> $GITHUB_OUTPUT
+            echo "Development release exists"
+          else
+            echo "release_exists=false" >> $GITHUB_OUTPUT
+            echo "Development release does not exist"
+          fi
+        else
+          echo "release_exists=false" >> $GITHUB_OUTPUT
+          echo "Tagged release - will generate notes"
+        fi
+
     - name: Upload to GitHub Release
       uses: softprops/action-gh-release@v2
       env:
@@ -190,7 +210,7 @@ runs:
         tag_name: ${{ steps.cleanup.outputs.release_name }}
         prerelease: ${{ github.ref_type != 'tag' }}
         files: ${{ inputs.binary_name }}-${{ runner.os }}-${{ runner.arch }}.zip
-        generate_release_notes: true
+        generate_release_notes: ${{ steps.check_release.outputs.release_exists == false }}
         append_body: true
         body: |
           ${{ steps.format_vt_links.outputs.vt_analysis }}
