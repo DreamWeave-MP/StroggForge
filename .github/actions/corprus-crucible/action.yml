@@ -122,7 +122,7 @@ runs:
       shell: bash
       run: |
         BINARY_NAME="${{ inputs.binary_name }}${{ steps.os_check.outputs.suffix }}"
-        ARCHIVE_NAME="${{ runner.os }}-${{ runner.arch }}-${{ github.event.repository.name }}.zip"
+        ARCHIVE_NAME="${{ inputs.binary_name}}-${{ runner.os }}-${{ runner.arch }}.zip"
         
         7z a -tzip "$ARCHIVE_NAME" \
           "${{ github.event.repository.name }}-${{ runner.os }}-${{ runner.arch }}.bundle" \
@@ -142,7 +142,7 @@ runs:
       with:
         tag_name: ${{ steps.cleanup.outputs.release_name }}
         prerelease: ${{ github.ref_type != 'tag' }}
-        files: ${{ runner.os }}-${{ runner.arch }}-${{ github.event.repository.name }}.zip
+        files: ${{ inputs.binary_name }}-${{ runner.os }}-${{ runner.arch }}.zip
 
     - name: VirusTotal Scan
       uses: crazy-max/ghaction-virustotal@v4
