@@ -36,9 +36,6 @@ runs:
           echo "::error::VirusTotal API key is required!"
           echo "Please provide vt_api_key input to this action"
           exit 1
-        elif [ ${#{{ inputs.vt_api_key }}} -lt 20 ]; then
-          echo "::warning::VirusTotal API key seems short (${#{{ inputs.vt_api_key }}} chars)"
-          echo "Typical VirusTotal API keys are 64 characters"
         else
           echo "✅ VirusTotal API key is set"
         fi
