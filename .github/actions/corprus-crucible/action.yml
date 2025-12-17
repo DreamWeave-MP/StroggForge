@@ -151,6 +151,7 @@ runs:
         done
 
     - name: VirusTotal Scan
+      id: vt_scan
       uses: crazy-max/ghaction-virustotal@v4
       with:
         update_release_body: true
