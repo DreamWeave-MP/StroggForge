@@ -72,6 +72,9 @@ runs:
               echo "Deleted stale development release and tag"
             else
               echo "Release is from today ($TODAY), keeping it"
+
+              gh api -X PATCH repos/${{ github.repository }}/releases/tags/development -f body="" 2>/dev/null || true
+              echo "Cleared release description"
             fi
           else
             echo "No existing development release found"
