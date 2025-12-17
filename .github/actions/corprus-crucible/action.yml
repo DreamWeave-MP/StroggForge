@@ -42,29 +42,43 @@ runs:
 
     - name: Setup Release Environment
       id: cleanup
-
       shell: bash
-
       env:
-        GH_TOKEN: ${{ inputs.github_token }}
-
-      concurrency:
-        group: ci-${{ github.ref }}
-        cancel-in-progress: false
-
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-          echo "Using tag: ${{ github.ref_name }}"
           echo "release_name=${{ github.ref_name }}" >> $GITHUB_OUTPUT
         else
-          echo "Setting up development release..."
           echo "release_name=development" >> $GITHUB_OUTPUT
-
-          # Delete existing development release if it exists
-          release_id=$(gh release list --limit 100 | grep "development" | awk '{print $1}' | head -1)
-          if [ -n "$release_id" ]; then
-            echo "Deleting existing development release: $release_id"
-            gh release delete "$release_id" --yes
+          
+          TODAY=$(date +%Y-%m-%d)
+          
+          # Get development release info with JSON
+          release_info=$(gh api repos/${{ github.repository }}/releases \
+            --jq '.[] | select(.name == "development" or .tag_name == "development") | {id: .id, created: .created_at, tag_name: .tag_name}' 2>/dev/null || echo "{}")
+          
+          if [ "$release_info" != "{}" ]; then
+            release_id=$(echo "$release_info" | jq -r '.id')
+            created_date=$(echo "$release_info" | jq -r '.created' | cut -d'T' -f1)
+            tag_name=$(echo "$release_info" | jq -r '.tag_name')
+            
+            echo "Found development release: ID=$release_id, Created=$created_date"
+            
+            if [ "$created_date" != "$TODAY" ]; then
+              echo "Release is stale (not from today). Deleting..."
+              
+              # Delete the release
+              gh release delete "$release_id" --yes 2>/dev/null || true
+              
+              # Also delete the tag if it exists
+              gh api -X DELETE repos/${{ github.repository }}/git/refs/tags/development 2>/dev/null || true
+              
+              echo "Deleted stale development release and tag"
+            else
+              echo "Release is from today ($TODAY), keeping it"
+            fi
+          else
+            echo "No existing development release found"
           fi
         fi
 
