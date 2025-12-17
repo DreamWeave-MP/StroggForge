@@ -52,6 +52,7 @@ runs:
         else
           echo "Setting up development release..."
           gh release list --limit 5
+          gh auth status
           echo "release_name=development" >> $GITHUB_OUTPUT
           
           # Delete existing development release if it exists
