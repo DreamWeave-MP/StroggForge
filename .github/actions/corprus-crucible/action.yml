@@ -54,11 +54,11 @@ runs:
           echo "release_name=development" >> $GITHUB_OUTPUT
 
           # Delete existing development release if it exists
-          # release_id=$(gh release list --limit 100 | grep "development" | awk '{print $1}' | head -1)
-          # if [ -n "$release_id" ]; then
-          #   echo "Deleting existing development release: $release_id"
+          release_id=$(gh release list --limit 100 | grep "development" | awk '{print $1}' | head -1)
+          if [ -n "$release_id" ]; then
+            echo "Deleting existing development release: $release_id"
           #   gh release delete "$release_id" --yes
-          # fi
+          fi
         fi
 
     # Determine OS and set binary suffix
