@@ -178,15 +178,22 @@ runs:
         BINARY_NAME="${{ inputs.binary_name }}${{ steps.os_check.outputs.suffix }}"
         ARCHIVE_NAME="${{ inputs.binary_name}}-${{ runner.os }}-${{ runner.arch }}.zip"
         
-        7z a -tzip "$ARCHIVE_NAME" -r "${{ inputs.binary_name }}-${{ runner.os }}-${{ runner.arch }}.bundle" \
+        INCLUDE_FILES=(
           "./${{ steps.context.outputs.build_dir }}/target/release/$BINARY_NAME"
+          "${{ inputs.binary_name }}-${{ runner.os }}-${{ runner.arch }}.bundle"
+        )
         
-        IFS=',' read -ra FILES <<< "${{ inputs.include_files }}"
-        for file in "${FILES[@]}"; do
-          if [ -f "${{ steps.context.outputs.build_dir }}/$file" ]; then
-            7z u -tzip -r "$ARCHIVE_NAME" "./${{ steps.context.outputs.build_dir }}/$file"
-          fi
-        done
+        if [ -n "${{ inputs.include_files }}" ]; then
+          IFS=',' read -ra USER_FILES <<< "${{ inputs.include_files }}"
+          for file in "${USER_FILES[@]}"; do
+            if [ -f "./${{ steps.context.outputs.build_dir }}/$file" ]; then
+              INCLUDE_FILES+=("./${{ steps.context.outputs.build_dir }}/$file")
+            fi
+          done
+        fi
+
+        # Create archive with all files at once
+        7z a -tzip "$ARCHIVE_NAME" "${INCLUDE_FILES[@]}"
 
     - name: VirusTotal Scan
       id: vt_scan
