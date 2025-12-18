@@ -162,7 +162,7 @@ runs:
 
     - name: Build Release
       shell: bash
-      run: cargo build --release --manifest-path ${{ steps.context.outputs.build_dir }}/Cargo.toml
+      run: cargo test --all-targets --all-features --manifest-path ${{ steps.context.outputs.build_dir }}/Cargo.toml -- --show-output && cargo build --release --manifest-path ${{ steps.context.outputs.build_dir }}/Cargo.toml
 
     - name: Install Cosign
       if: github.event_name != 'pull_request'
