@@ -247,3 +247,11 @@ runs:
         body: |
           ${{ steps.format_vt_links.outputs.vt_analysis }}
 
+    - name: Upload artifact (for PRs)
+      if: github.event_name == 'pull_request'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.binary_name }}-${{ runner.os }}-${{ runner.arch }}
+        path: ./${{ steps.context.outputs.build_dir }}/target/release/${{ inputs.binary_name }}${{ steps.os_check.outputs.suffix }}
+        retention-days: 7
+
