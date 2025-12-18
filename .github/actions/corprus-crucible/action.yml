@@ -111,6 +111,7 @@ runs:
         exit 1
 
     - name: Setup Release Environment
+      if: github.event_name != 'pull_request'
       id: cleanup
       shell: bash
       run: |
@@ -151,6 +152,7 @@ runs:
 
     - name: ⚡ Cache Dependencies
       uses: actions/cache@v4
+      if: github.event_name != 'pull_request'
       with:
         path: |
           ~/.cargo/registry
@@ -163,10 +165,12 @@ runs:
       run: cargo build --release --manifest-path ${{ steps.context.outputs.build_dir }}/Cargo.toml
 
     - name: Install Cosign
+      if: github.event_name != 'pull_request'
       uses: sigstore/cosign-installer@main
 
     - name: Sign Binary
       shell: bash
+      if: github.event_name != 'pull_request'
       run: |
         BINARY_NAME="${{ inputs.binary_name }}${{ steps.os_check.outputs.suffix }}"
         cosign sign-blob -y "${{ steps.context.outputs.build_dir }}/target/release/$BINARY_NAME" \
@@ -174,6 +178,7 @@ runs:
 
     - name: Create Archive
       shell: bash
+      if: github.event_name != 'pull_request'
       run: |
         BINARY_NAME="${{ inputs.binary_name }}${{ steps.os_check.outputs.suffix }}"
         ARCHIVE_NAME="${{ inputs.binary_name}}-${{ runner.os }}-${{ runner.arch }}.zip"
@@ -196,6 +201,7 @@ runs:
         7z a -tzip "$ARCHIVE_NAME" "${INCLUDE_FILES[@]}"
 
     - name: VirusTotal Scan
+      if: github.event_name != 'pull_request'
       id: vt_scan
       uses: crazy-max/ghaction-virustotal@v4
       with:
@@ -204,6 +210,7 @@ runs:
         files: ${{ steps.context.outputs.build_dir }}/target/release/${{ inputs.binary_name }}${{ steps.os_check.outputs.suffix }}
 
     - name: Format VirusTotal Links
+      if: github.event_name != 'pull_request'
       id: format_vt_links
       shell: bash
       run: |
@@ -228,6 +235,7 @@ runs:
         fi
 
     - name: Upload to GitHub Release
+      if: github.event_name != 'pull_request'
       uses: softprops/action-gh-release@v2
       env:
         GITHUB_TOKEN: ${{ inputs.github_token }}
