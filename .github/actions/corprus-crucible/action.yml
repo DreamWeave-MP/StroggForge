@@ -242,6 +242,7 @@ runs:
       with:
         tag_name: ${{ steps.cleanup.outputs.release_name }}
         prerelease: ${{ github.ref_type != 'tag' }}
+        generate_release_notes: ${{ github.ref_type == 'tag' }}
         files: ${{ inputs.binary_name }}-${{ runner.os }}-${{ runner.arch }}.zip
         append_body: true
         body: |
