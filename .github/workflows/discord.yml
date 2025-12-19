@@ -3,11 +3,11 @@ name: DreamWeave Webhook
 on:
   workflow_call:
     inputs:
-      webhook_secret_name:
+      webhook_url:
         required: false
         type: string
-        default: DW_TOOLS_CHANNEL_WEBHOOK
-      avatar-url:
+        default: ""
+      avatar_url:
         required: false
         type: string
         default: "https://avatars.githubusercontent.com/u/138459727?s=400&u=827e40e3dd9c110c15b3bff26eec0144841e657d&v=4"
@@ -65,12 +65,18 @@ jobs:
             echo "footer_text=${{ inputs.footer_text }}" >> $GITHUB_OUTPUT
           fi
 
+          if [[ -z "${{ inputs.webhook_url}}" ]]; then
+            echo "webhook_url=${{ inputs.webhook_url }}"
+          else
+            echo "webhook_url=${{ secrets.DW_TOOLS_CHANNEL_WEBHOOK }}"
+          fi
+
       - name: Discord Webhook Action
         uses: tsickert/discord-webhook@v7.0.0
         with:
           username: DreamWeave
-          webhook-url: ${{ secrets[inputs.webhook_secret_name] }}
-          avatar-url: ${{ inputs.avatar-url }}
+          webhook-url: ${{ steps.format.outputs.webhook_url }}
+          avatar-url: ${{ inputs.avatar_url }}
           embed-title: ${{ steps.format.outputs.title }}
           embed-description: ${{ steps.format.outputs.description }}
           embed-footer-text: ${{ steps.format.outputs.footer_text }}
