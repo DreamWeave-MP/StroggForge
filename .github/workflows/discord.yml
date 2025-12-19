@@ -2,6 +2,10 @@ name: DreamWeave Webhook
 
 on:
   workflow_call:
+    secrets:
+      WEBHOOK_URL:
+        required: true
+
     inputs:
       webhook_url:
         required: false
@@ -65,17 +69,11 @@ jobs:
             echo "footer_text=${{ inputs.footer_text }}" >> $GITHUB_OUTPUT
           fi
 
-          if [[ -z "${{ inputs.webhook_url}}" ]]; then
-            echo "webhook_url=${{ inputs.webhook_url }}"
-          else
-            echo "webhook_url=${{ secrets.DW_TOOLS_CHANNEL_WEBHOOK }}"
-          fi
-
       - name: Discord Webhook Action
         uses: tsickert/discord-webhook@v7.0.0
         with:
           username: DreamWeave
-          webhook-url: ${{ steps.format.outputs.webhook_url }}
+          webhook-url: ${{ secrets.WEBHOOK_URL }}
           avatar-url: ${{ inputs.avatar_url }}
           embed-title: ${{ steps.format.outputs.title }}
           embed-description: ${{ steps.format.outputs.description }}
