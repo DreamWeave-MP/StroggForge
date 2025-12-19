@@ -53,6 +53,10 @@ runs:
       env:
         GH_TOKEN: ${{ inputs.github_token }}
       run: |
+        if [[ "${{ steps.cleanup.outputs.release_name }}" != "development" ]]; then
+          exit 0
+        fi
+
         sleep $((RANDOM % 15))
 
         WORKFLOW_ID="${{ github.run_id }}"
