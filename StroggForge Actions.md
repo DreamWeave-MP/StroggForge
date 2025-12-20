@@ -1,3 +1,7 @@
+layout: page
+title: "StroggForge Actions"
+permalink: /StroggForge-Actions
+
 [Home](Readme.md)  
 
 # StroggForge Actions
