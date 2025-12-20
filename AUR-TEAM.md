@@ -8,11 +8,13 @@ Dave Corley
 [GitHub](https://github.com/magicaldave)  
 [GitLab](https://gitlab.com/magicaldave1)  
 [NexusMods](https://www.nexusmods.com/profile/S3ctorOMW)  
+corleycomputerrepair at protonmail dot ch
   
 Settyness  
 [AUR](https://aur.archlinux.org/account/settyness)  
 [GitHub](https://github.com/Settyness)  
 [GitLab](https://gitlab.com/Settyness)  
+Settyness at gmail dot com
   
 DreamWeave's AUR Packages:  
 [MOMW Tools Pack](https://aur.archlinux.org/packages/momw-tools-pack)  
