@@ -1,4 +1,5 @@
 [Home](Readme.md)
+[AUR Team on DreamWeave](https://github.com/orgs/DreamWeave-MP/teams/aur)
 
 # DreamWeave AUR Maintainership
 

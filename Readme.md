@@ -6,4 +6,5 @@ Custom actions are built here which are used to sign and ship our applications.
 Additionally, one may also find information relating to the DreamWeave organizational hierarchy and a map of DreamWeave repositories and distribution facilities.
 `DreamWeave Map.drawio` and `DreamWeave Map.png` both describe the layout of DreamWeave's various repositories, external sources, and distribution platforms our applications and dependencies pipe out to.
 
-# [AUR Team](./AUR-TEAM.md)
+# [AUR Packages and Maintainers](./AUR-TEAM.md)
+# [DreamWeave Applications](./DreamWeave%20Applications.md)
