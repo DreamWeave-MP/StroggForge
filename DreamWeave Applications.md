@@ -1,4 +1,4 @@
-[Home](Readme.md)
+# [Home](Readme.md)
 
 - [MotherJungle](https://github.com/DreamWeave-MP/motherJungle): Various command-line utilities developed for DreamWeave's Starwind projects
 - [S3LightFixes](https://github.com/DreamWeave-MP/S3LightFixes): The ultimate light-tweaking utility for OpenMW
