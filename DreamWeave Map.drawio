@@ -1,0 +1,297 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36" version="29.2.7">
+  <diagram name="Page-1" id="t9pe5qrhH8Ijv1GETB1G">
+    <mxGraphModel dx="1743" dy="1079" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-110" edge="1" parent="1" source="5o3BBkYnGzBQc0h1pU-S-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.75;entryDx=0;entryDy=0;" target="5o3BBkYnGzBQc0h1pU-S-13">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#76608a;fontColor=#ffffff;strokeColor=#432D57;" value="Sixth-House-Mod-Cache" vertex="1">
+          <mxGeometry height="60" width="150" x="880" y="760" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-109" edge="1" parent="1" source="5o3BBkYnGzBQc0h1pU-S-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="5o3BBkYnGzBQc0h1pU-S-1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-5" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#6d8764;fontColor=#ffffff;strokeColor=#3A5431;" value="&lt;font style=&quot;font-size: 10px;&quot;&gt;DW-High-End-Resources&lt;/font&gt;" vertex="1">
+          <mxGeometry height="40" width="120" x="270" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-106" edge="1" parent="1" source="5o3BBkYnGzBQc0h1pU-S-8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="5o3BBkYnGzBQc0h1pU-S-1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2095" y="890" />
+              <mxPoint x="1020" y="890" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-8" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#647687;fontColor=#ffffff;strokeColor=#314354;" value="DW-Tools" vertex="1">
+          <mxGeometry height="40" width="110" x="2040" y="820" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-10" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#a0522d;fontColor=#ffffff;strokeColor=#6D1F00;" value="GitHub&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;Also a distribution platform.&lt;/font&gt;" vertex="1">
+          <mxGeometry height="40" width="120" x="1560" y="820" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-111" edge="1" parent="1" source="5o3BBkYnGzBQc0h1pU-S-13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=1;entryDx=0;entryDy=0;" target="5o3BBkYnGzBQc0h1pU-S-10">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="520" y="910" />
+              <mxPoint x="1590" y="910" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-13" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f0a30a;fontColor=#000000;strokeColor=#BD7000;" value="DreamWeave-Web" vertex="1">
+          <mxGeometry height="40" width="120" x="490" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-107" edge="1" parent="1" source="5o3BBkYnGzBQc0h1pU-S-15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0;entryDx=0;entryDy=0;" target="5o3BBkYnGzBQc0h1pU-S-5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-15" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fad7ac;strokeColor=#b46504;" value="Wareya-Shaders" vertex="1">
+          <mxGeometry height="40" width="120" x="40" y="380" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-108" edge="1" parent="1" source="5o3BBkYnGzBQc0h1pU-S-17" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=1;entryDx=0;entryDy=0;" target="5o3BBkYnGzBQc0h1pU-S-5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-17" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#b0e3e6;strokeColor=#0e8088;" value="RedFortune.de" vertex="1">
+          <mxGeometry height="40" width="120" x="40" y="430" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-93" edge="1" parent="1" source="5o3BBkYnGzBQc0h1pU-S-19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" target="5o3BBkYnGzBQc0h1pU-S-10">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1200" y="745" />
+              <mxPoint x="1650" y="745" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-94" edge="1" parent="1" source="5o3BBkYnGzBQc0h1pU-S-19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;" target="5o3BBkYnGzBQc0h1pU-S-23">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-95" edge="1" parent="1" source="5o3BBkYnGzBQc0h1pU-S-19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;" target="5o3BBkYnGzBQc0h1pU-S-21">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-19" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fad9d5;strokeColor=#ae4132;" value="S3LightFixes" vertex="1">
+          <mxGeometry height="30" width="120" x="1080" y="730" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-21" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#cdeb8b;strokeColor=#36393d;" value="MOMW-Tools" vertex="1">
+          <mxGeometry height="40" width="120" x="1880" y="820" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-23" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffcccc;strokeColor=#36393d;" value="AUR" vertex="1">
+          <mxGeometry height="40" width="120" x="1720" y="820" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-80" edge="1" parent="1" source="5o3BBkYnGzBQc0h1pU-S-25" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="5o3BBkYnGzBQc0h1pU-S-23">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-25" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f9f7ed;strokeColor=#36393d;" value="MOMW-Tools-Git" vertex="1">
+          <mxGeometry height="40" width="120" x="1720" y="520" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-88" edge="1" parent="1" source="5o3BBkYnGzBQc0h1pU-S-27" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;" target="5o3BBkYnGzBQc0h1pU-S-61">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-89" edge="1" parent="1" source="5o3BBkYnGzBQc0h1pU-S-27" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" target="5o3BBkYnGzBQc0h1pU-S-10">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1200" y="695" />
+              <mxPoint x="1590" y="695" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-90" edge="1" parent="1" source="5o3BBkYnGzBQc0h1pU-S-27" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" target="5o3BBkYnGzBQc0h1pU-S-23">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-91" edge="1" parent="1" source="5o3BBkYnGzBQc0h1pU-S-27" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" target="5o3BBkYnGzBQc0h1pU-S-21">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-92" edge="1" parent="1" source="5o3BBkYnGzBQc0h1pU-S-27" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;" target="5o3BBkYnGzBQc0h1pU-S-8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-104" edge="1" parent="1" source="5o3BBkYnGzBQc0h1pU-S-27" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;" target="5o3BBkYnGzBQc0h1pU-S-103">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-27" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#6a00ff;strokeColor=#3700CC;fontColor=#ffffff;" value="VFSTool" vertex="1">
+          <mxGeometry height="30" width="120" x="1080" y="680" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-102" edge="1" parent="1" source="5o3BBkYnGzBQc0h1pU-S-33" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="5o3BBkYnGzBQc0h1pU-S-8">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1200" y="620" />
+              <mxPoint x="2095" y="620" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-33" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#0050ef;fontColor=#ffffff;strokeColor=#001DBC;" value="TES3CMD&lt;div&gt;&lt;font style=&quot;font-size: 6px;&quot;&gt;We don&#39;t have an AUR package for this one.&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="50" width="120" x="1080" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-126" edge="1" parent="1" source="5o3BBkYnGzBQc0h1pU-S-38" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;" target="5o3BBkYnGzBQc0h1pU-S-23">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1880" y="680" />
+              <mxPoint x="1840" y="680" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-38" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#008a00;fontColor=#ffffff;strokeColor=#005700;" value="GroundCoverify-git&lt;div&gt;&lt;font style=&quot;font-size: 6px;&quot;&gt;Really need to replace this one.&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="40" width="120" x="1880" y="520" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-42" edge="1" parent="1" source="5o3BBkYnGzBQc0h1pU-S-40" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="5o3BBkYnGzBQc0h1pU-S-41">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-40" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#6a00ff;fontColor=#ffffff;strokeColor=#3700CC;" value="Makron" vertex="1">
+          <mxGeometry height="60" width="120" x="1000" y="1240" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-41" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#0050ef;fontColor=#ffffff;strokeColor=#001DBC;" value="Starwind-Builder" vertex="1">
+          <mxGeometry height="60" width="120" x="1000" y="1040" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-44" parent="1" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;" value="&lt;h1 style=&quot;margin-top: 0px;&quot;&gt;Container Distribution&lt;/h1&gt;&lt;p&gt;Workflows &amp;amp; Docker containers distributed through the DreamWeave ecosystem&lt;/p&gt;" vertex="1">
+          <mxGeometry height="80" width="280" x="960" y="950" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-45" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="StroggForge" vertex="1">
+          <mxGeometry height="60" width="120" x="1410" y="1320" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-46" parent="1" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;" value="&lt;h1 style=&quot;margin-top: 0px;&quot;&gt;StroggForge&lt;/h1&gt;&lt;p&gt;The StroggForge is DreamWeave&#39;s centralized location for hosting GitHub Actions and organiztional SOPs.&lt;/p&gt;" vertex="1">
+          <mxGeometry height="120" width="180" x="1380" y="1190" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-101" edge="1" parent="1" source="5o3BBkYnGzBQc0h1pU-S-47" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" target="5o3BBkYnGzBQc0h1pU-S-8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-47" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" value="TES3Merge&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;Post that PKGBUILD!&lt;/font&gt;" vertex="1">
+          <mxGeometry height="40" width="120" x="1080" y="780" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-51" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;font style=&quot;font-size: 10px;&quot;&gt;Makron contains every possible tool you might want for OpenMW modding.&lt;/font&gt;&lt;div&gt;&lt;font style=&quot;font-size: 10px;&quot;&gt;- TES3Merge&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font style=&quot;font-size: 10px;&quot;&gt;- DeltaPlugin&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font style=&quot;font-size: 10px;&quot;&gt;- TES3CMD&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font style=&quot;font-size: 10px;&quot;&gt;- Merge_to_master&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font style=&quot;font-size: 10px;&quot;&gt;- Tes3conv&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font style=&quot;font-size: 10px;&quot;&gt;- S3LightFixes&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font style=&quot;font-size: 10px;&quot;&gt;- Habasi&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font style=&quot;font-size: 10px;&quot;&gt;- Jobasha&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font style=&quot;font-size: 10px;&quot;&gt;- KTools&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font style=&quot;font-size: 10px;&quot;&gt;- T3CRC&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font style=&quot;font-size: 10px;&quot;&gt;- Morrobroom&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font style=&quot;font-size: 10px;&quot;&gt;- merchantIndexGrabber&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="200" width="210" x="955" y="1300" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-52" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="DreamWeave uses the Starwind-Builder workflow to distribute the Starwind Merged Plugin Project, Starwind Community Patch Project, and provide a fully-automated patching workflow for Starwind." vertex="1">
+          <mxGeometry height="140" width="190" x="790" y="1040" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-53" parent="1" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;" value="&lt;h1 style=&quot;margin-top: 0px;&quot;&gt;Dependencies&lt;/h1&gt;&lt;p&gt;DreamWeave provides various rust crates which are used by its own apps and the wider public!&lt;/p&gt;" vertex="1">
+          <mxGeometry height="120" width="180" x="960" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-115" edge="1" parent="1" source="5o3BBkYnGzBQc0h1pU-S-54" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=1;entryDx=0;entryDy=0;" target="5o3BBkYnGzBQc0h1pU-S-19">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1030" y="280" />
+              <mxPoint x="1030" y="760" />
+            </Array>
+            <mxPoint x="1080" y="770" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-129" edge="1" parent="1" source="5o3BBkYnGzBQc0h1pU-S-54" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.25;exitDx=0;exitDy=0;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1030" y="280" />
+              <mxPoint x="1030" y="710" />
+              <mxPoint x="1080" y="710" />
+            </Array>
+            <mxPoint x="1080" y="710" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-132" edge="1" parent="1" source="5o3BBkYnGzBQc0h1pU-S-54" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=1;entryDx=0;entryDy=0;" target="5o3BBkYnGzBQc0h1pU-S-66">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1030" y="280" />
+              <mxPoint x="1030" y="660" />
+            </Array>
+            <mxPoint x="1060" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-54" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="vfstool_lib" vertex="1">
+          <mxGeometry height="40" width="120" x="1120" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-117" edge="1" parent="1" source="5o3BBkYnGzBQc0h1pU-S-55" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.25;exitDx=0;exitDy=0;" target="5o3BBkYnGzBQc0h1pU-S-27">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1060" y="330" />
+              <mxPoint x="1060" y="691" />
+            </Array>
+            <mxPoint x="1070" y="720" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-130" edge="1" parent="1" source="5o3BBkYnGzBQc0h1pU-S-55" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;" target="5o3BBkYnGzBQc0h1pU-S-66">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1060" y="330" />
+              <mxPoint x="1060" y="630" />
+            </Array>
+            <mxPoint x="1060" y="630" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-131" edge="1" parent="1" source="5o3BBkYnGzBQc0h1pU-S-55" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.25;exitDx=0;exitDy=0;" target="5o3BBkYnGzBQc0h1pU-S-19">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1060" y="330" />
+              <mxPoint x="1060" y="730" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-55" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="openmw-config" vertex="1">
+          <mxGeometry height="40" width="120" x="1120" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-61" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="Crates.io" vertex="1">
+          <mxGeometry height="40" width="120" x="1400" y="820" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-66" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" value="Morrobroom" vertex="1">
+          <mxGeometry height="30" width="120" x="1080" y="630" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-75" parent="1" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;" value="&lt;h1 style=&quot;margin-top: 0px;&quot;&gt;Websites&lt;/h1&gt;&lt;p&gt;DreamWeave&#39;s web infrastructure for delivering modlists and documentation&lt;/p&gt;" vertex="1">
+          <mxGeometry height="120" width="180" x="480" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-78" parent="1" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;" value="&lt;h1 style=&quot;margin-top: 0px;&quot;&gt;Outbound Distribution Platforms&lt;/h1&gt;&lt;p&gt;All the various places you can find DreamWeave.&lt;/p&gt;" vertex="1">
+          <mxGeometry height="140" width="180" x="1890" y="910" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-82" parent="1" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;" value="&lt;h1 style=&quot;margin-top: 0px;&quot;&gt;DreamWeave Apps&lt;/h1&gt;&lt;div&gt;Apps actually developed and hosted by DreamWeave&lt;/div&gt;" vertex="1">
+          <mxGeometry height="120" width="180" x="1240" y="470" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-83" parent="1" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;" value="&lt;h1 style=&quot;margin-top: 0px;&quot;&gt;External Sources&lt;/h1&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;Other repositories, hosting platforms, etc.&lt;/div&gt;" vertex="1">
+          <mxGeometry height="140" width="180" x="10" y="230" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-96" edge="1" parent="1" source="5o3BBkYnGzBQc0h1pU-S-19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.145;entryY=0.039;entryDx=0;entryDy=0;entryPerimeter=0;" target="5o3BBkYnGzBQc0h1pU-S-8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-97" edge="1" parent="1" source="5o3BBkYnGzBQc0h1pU-S-47" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.165;entryY=-0.021;entryDx=0;entryDy=0;entryPerimeter=0;" target="5o3BBkYnGzBQc0h1pU-S-10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-99" edge="1" parent="1" source="5o3BBkYnGzBQc0h1pU-S-66" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.344;entryY=0.112;entryDx=0;entryDy=0;entryPerimeter=0;" target="5o3BBkYnGzBQc0h1pU-S-10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-103" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="NexusMods" vertex="1">
+          <mxGeometry height="40" width="120" x="2200" y="820" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-105" edge="1" parent="1" source="5o3BBkYnGzBQc0h1pU-S-19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.157;entryY=0.053;entryDx=0;entryDy=0;entryPerimeter=0;" target="5o3BBkYnGzBQc0h1pU-S-103">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-120" edge="1" parent="1" source="5o3BBkYnGzBQc0h1pU-S-41" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.39;entryY=0.947;entryDx=0;entryDy=0;entryPerimeter=0;" target="5o3BBkYnGzBQc0h1pU-S-10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-122" edge="1" parent="1" source="5o3BBkYnGzBQc0h1pU-S-121" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="5o3BBkYnGzBQc0h1pU-S-10">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="420" y="930" />
+              <mxPoint x="1620" y="930" />
+            </Array>
+            <mxPoint x="1620" y="860" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-121" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="Effective-OpenMW-Lua" vertex="1">
+          <mxGeometry height="40" width="160" x="280" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-123" parent="1" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;" value="&lt;h1 style=&quot;margin-top: 0px;&quot;&gt;DreamWeave Mods&lt;/h1&gt;&lt;p&gt;Mostly tes3mp mods at this time, DreamWeave&#39;s modding ecosystem also hosts original creations you can find in the org.&lt;/p&gt;" vertex="1">
+          <mxGeometry height="120" width="270" x="2250" y="960" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-124" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" value="DreamMounts" vertex="1">
+          <mxGeometry height="40" width="120" x="2390" y="1090" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-125" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="DreamDice" vertex="1">
+          <mxGeometry height="40" width="120" x="2390" y="1150" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-127" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="delta-plugin-git" vertex="1">
+          <mxGeometry height="40" width="120" x="1560" y="520" as="geometry" />
+        </mxCell>
+        <mxCell id="5o3BBkYnGzBQc0h1pU-S-128" edge="1" parent="1" source="5o3BBkYnGzBQc0h1pU-S-127" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0.13;entryY=0.05;entryDx=0;entryDy=0;entryPerimeter=0;" target="5o3BBkYnGzBQc0h1pU-S-23">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1680" y="680" />
+              <mxPoint x="1736" y="680" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
