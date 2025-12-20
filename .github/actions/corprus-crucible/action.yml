@@ -18,6 +18,10 @@ inputs:
   release_name:
     description: 'Name of the release (tag or development)'
     required: true
+  # cargo_token:
+  #   description: 'If provided, the token is used to publish the target app to crates.io'
+  #   required: false
+  #   default: ''
 
 runs:
   using: composite
@@ -76,6 +80,11 @@ runs:
     - name: Build Release
       shell: bash
       run: cargo test --all-targets --all-features --manifest-path ${{ steps.context.outputs.build_dir }}/Cargo.toml -- --show-output && cargo build --release --manifest-path ${{ steps.context.outputs.build_dir }}/Cargo.toml
+
+    # - name: Cargo Publish
+    #   if: ${{ inputs.cargo_token }} != '' && ${{ inputs.release_name }} != 'development'
+    #   shell: bash
+    #   run: cargo publish --manifest-path ${{ steps.context.outputs.build_dir }}/Cargo.toml --token ${{ inputs.cargo_token }}
 
     - name: Install Cosign
       if: github.event_name != 'pull_request'
