@@ -44,6 +44,7 @@ To update DW-Tools:
 1. Grab the release link out of the created issue and update the build script with the listed `sha256` for each release variant.
 1. Just copy the shas and remove the `sha256:` bit at the front.
 1. Make sure you got the archive names right.
+1. Push the tag and call it a day. Oh, wait, you need to update `Resources`, too . . .
 
 ## [DreamWeave-High-End-Resources](https://github.com/DreamWeave-MP/dreamweave-high-end-resources)
 
@@ -52,7 +53,7 @@ Additionally, wareya's shaders can potentially break between OpenMW versions.
 ***ALWAYS*** test the contents of this repository before updating it.
 
 1. Make sure it actually works. That means at *least* the water and PBR shaders.
-2. Grab the build sha and date of the latest OpenMW build available at: https://redfortune.de/openmw/nightly/?C=M;O=D
+2. Grab the build sha and date of the latest OpenMW build available at [RedFortune.de](https://redfortune.de/openmw/nightly/?C=M;O=D)
 3. Write both the build sha and date into [get-dev-resources](https://github.com/DreamWeave-MP/dreamweave-high-end-resources/blob/main/get-dev-resources) in the variables `ref` and `date`
 4. Check [get-stable-resources](https://github.com/DreamWeave-MP/dreamweave-high-end-resources/blob/main/get-stable-resources) and make sure the latest stable OpenMW version there is correct.
 
