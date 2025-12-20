@@ -1,0 +1,16 @@
+remote_theme: pages-themes/hacker@v0.2.0
+title: StroggForge Actions
+show_downloads: false
+description: Welcome to DreamWeave's publishing and organization hub.
+
+layout: page
+permalink: /DreamWeave%20Applications
+
+layout: page
+permalink: /StroggForge%20Actions
+
+layout: page
+permalink: /Release%20Planning
+
+layout: page
+permalink: /AUR-TEAM
