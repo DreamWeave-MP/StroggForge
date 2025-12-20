@@ -8,6 +8,7 @@ Additionally, one may also find information relating to the DreamWeave organizat
 
 If you're being onboarded, or looking for something you can't find, start here.
 
-## [AUR Packages and Maintainers](./AUR-TEAM.md)
+## [StroggForge Actions](./StroggForge%20Actions.md)
 ## [DreamWeave Applications](./DreamWeave%20Applications.md)
 ## [Release Planning](./Release%20Planning.md)
+## [AUR Packages and Maintainers](./AUR-TEAM.md)
