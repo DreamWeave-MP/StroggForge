@@ -46,6 +46,12 @@ on:
         default: true
         description: "Generate a CHANGELOG.md from git history and upload it to the release."
 
+      generate_benchmarks:
+        type: boolean
+        required: false
+        default: false
+        description: "Run cargo bench, generate BENCHMARKS.md from Criterion output, and upload it to the release."
+
 jobs:
   # Ensure any previously-existing releases are deleted,
   # And create a new one with auto-generated changelog & workflow ID
@@ -246,6 +252,40 @@ jobs:
         with:
           tag_name: ${{ needs.release_cleanup.outputs.release_name }}
           files: CHANGELOG.md
+
+  # Run cargo bench, generate BENCHMARKS.md from Criterion output, and upload to the release.
+  benchmarks:
+    if: inputs.generate_benchmarks && github.event_name != 'pull_request'
+    needs: [release_cleanup]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: DreamWeave-MP/StroggForge
+          ref: v6
+          path: .stroggforge
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Run Benchmarks
+        run: cargo bench
+      - name: Generate Benchmark Docs
+        run: python3 .stroggforge/.github/scripts/gen_benchmarks.py
+      - name: Upload Benchmark Docs to Release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ needs.release_cleanup.outputs.release_name }}
+          files: BENCHMARKS.md
 
   # Build, test, sign, package, & release Rust apps on macOS and Windows
   release:
