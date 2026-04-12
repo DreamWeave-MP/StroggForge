@@ -78,6 +78,15 @@ jobs:
       - name: Run Tests
         run: cargo test --workspace --all-targets --all-features -- --show-output
 
+  # Check formatting. Blocks release.
+  fmt:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check Formatting
+        run: cargo fmt --all --check
+
   # Run Clippy at pedantic level. Blocks release.
   clippy:
     runs-on: ubuntu-22.04
@@ -93,6 +102,15 @@ jobs:
           key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Run Clippy
         run: cargo clippy --workspace --all-targets --all-features -- -W clippy::pedantic -D warnings
+
+  # Scan Cargo.lock against the RustSec advisory database. Informational — does not block release.
+  audit:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: rustsec/audit-check@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   # Verify each crate would be publishable to crates.io. Informational — does not block release.
   publish-dry-run:
@@ -289,7 +307,7 @@ jobs:
 
   # Build, test, sign, package, & release Rust apps on macOS and Windows
   release:
-    needs: [release_cleanup, test, clippy]
+    needs: [release_cleanup, test, clippy, fmt]
 
     strategy:
       matrix:
@@ -315,7 +333,7 @@ jobs:
   # Build, test, sign, package, & release Rust apps on Linux.
   # Runs inside AlmaLinux 8 (glibc 2.28) for maximum distribution compatibility.
   release-linux:
-    needs: [release_cleanup, test, clippy]
+    needs: [release_cleanup, test, clippy, fmt]
 
     strategy:
       matrix:
