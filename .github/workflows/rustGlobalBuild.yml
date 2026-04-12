@@ -28,6 +28,18 @@ on:
         required: false
         default: corleycomputerrepair@protonmail.ch
 
+      publish_docs:
+        type: boolean
+        required: false
+        default: true
+        description: "Build cargo doc and deploy to GitHub Pages. Disable if the project uses its own SSG."
+
+      cargo_publish:
+        type: boolean
+        required: false
+        default: true
+        description: "Publish to crates.io on tagged releases; run a dry-run on all other pushes. Requires CARGO_REGISTRY_TOKEN secret."
+
 jobs:
   # Ensure any previously-existing releases are deleted,
   # And create a new one with auto-generated changelog & workflow ID
@@ -35,9 +47,134 @@ jobs:
     uses: DreamWeave-MP/StroggForge/.github/workflows/createRelease.yml@v6
     secrets: inherit
 
+  # Run the full test suite on all platforms. Blocks release.
+  test:
+    strategy:
+      matrix:
+        os: [macos-latest, macos-15-intel, ubuntu-22.04, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Run Tests
+        run: cargo test --workspace --all-targets --all-features -- --show-output
+
+  # Run Clippy at pedantic level. Blocks release.
+  clippy:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Run Clippy
+        run: cargo clippy --workspace --all-targets --all-features -- -W clippy::pedantic -D warnings
+
+  # Verify each crate would be publishable to crates.io. Informational — does not block release.
+  publish-dry-run:
+    if: inputs.cargo_publish && github.ref_type != 'tag'
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        app_names: ${{ fromJson(inputs.binary_names) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Publish Dry Run
+        run: |
+          if [ -d "${{ matrix.app_names }}" ]; then
+            cargo publish --dry-run --manifest-path ${{ matrix.app_names }}/Cargo.toml
+          else
+            cargo publish --dry-run
+          fi
+
+  # Publish each crate to crates.io on tagged releases, after all release builds succeed.
+  publish:
+    if: inputs.cargo_publish && github.ref_type == 'tag'
+    needs: [release, release-linux]
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        app_names: ${{ fromJson(inputs.binary_names) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Publish to crates.io
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          if [ -d "${{ matrix.app_names }}" ]; then
+            cargo publish --manifest-path ${{ matrix.app_names }}/Cargo.toml
+          else
+            cargo publish
+          fi
+
+  # Build cargo doc and deploy to GitHub Pages.
+  # Requires Pages to be enabled with "GitHub Actions" as the source in repo settings.
+  docs:
+    if: inputs.publish_docs && github.event_name != 'pull_request'
+    needs: [test, clippy]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Build Documentation
+        run: cargo doc --no-deps --workspace
+      - name: Create Index Redirect
+        run: |
+          PRIMARY=$(echo '${{ inputs.binary_names }}' | jq -r '.[0]' | tr '-' '_')
+          echo "<meta http-equiv=\"refresh\" content=\"0; url=${PRIMARY}/index.html\">" > target/doc/index.html
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: target/doc
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
   # Build, test, sign, package, & release Rust apps on macOS and Windows
   release:
-    needs: release_cleanup
+    needs: [release_cleanup, test, clippy]
 
     strategy:
       matrix:
@@ -63,7 +200,7 @@ jobs:
   # Build, test, sign, package, & release Rust apps on Linux.
   # Runs inside AlmaLinux 8 (glibc 2.28) for maximum distribution compatibility.
   release-linux:
-    needs: release_cleanup
+    needs: [release_cleanup, test, clippy]
 
     strategy:
       matrix:
