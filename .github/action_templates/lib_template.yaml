@@ -1,0 +1,29 @@
+name: Library CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: main
+    tags: ['*']
+
+jobs:
+  build:
+    uses: DreamWeave-MP/StroggForge/.github/workflows/libGlobalBuild.yml@v7
+    secrets: inherit
+    with:
+      # Required: JSON array of crate names. Must match [package].name in Cargo.toml.
+      # Add more entries for workspaces with multiple publishable crates.
+      crate_names: '["ENTER_CRATE_NAME_HERE"]'
+
+      # Optional: uncomment to notify dependent repositories on tagged releases.
+      # dependent_repo_names: '["DreamWeave-MP/DW-tools"]'
+
+      # Optional: set false if this project uses its own SSG for docs.
+      # publish_docs: false
+
+      # Optional: set false if this project does not publish to crates.io.
+      # cargo_publish: false
+
+      # Optional: set true if this project has Criterion benchmarks.
+      # generate_benchmarks: true

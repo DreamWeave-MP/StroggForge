@@ -1,0 +1,310 @@
+name: Library CI
+
+on:
+  workflow_call:
+    inputs:
+      crate_names:
+        type: string
+        description: "JSON array of crate names to publish, e.g. '[\"my-lib\"]'. Must match [package].name in Cargo.toml."
+        required: true
+
+      dependent_repo_names:
+        type: string
+        required: false
+        default: '[]'
+
+      publish_docs:
+        type: boolean
+        required: false
+        default: true
+        description: "Build cargo doc and deploy to GitHub Pages. Disable if the project uses its own SSG."
+
+      cargo_publish:
+        type: boolean
+        required: false
+        default: true
+        description: "Publish to crates.io on tagged releases; run a dry-run on all other pushes. Requires CARGO_REGISTRY_TOKEN secret."
+
+      generate_changelog:
+        type: boolean
+        required: false
+        default: true
+        description: "Generate a CHANGELOG.md from git history and upload it to the release."
+
+      generate_benchmarks:
+        type: boolean
+        required: false
+        default: false
+        description: "Run cargo bench, generate BENCHMARKS.md from Criterion output, and upload it to the release."
+
+jobs:
+  # Ensure any previously-existing releases are deleted,
+  # And create a new one with auto-generated changelog & workflow ID
+  release_cleanup:
+    uses: DreamWeave-MP/StroggForge/.github/workflows/createRelease.yml@v7
+    secrets: inherit
+
+  # Run the full test suite on all platforms. Blocks release.
+  test:
+    strategy:
+      matrix:
+        os: [macos-latest, macos-15-intel, ubuntu-22.04, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Run Tests
+        run: cargo test --workspace --all-targets --all-features -- --show-output
+
+  # Check formatting. Blocks release.
+  fmt:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check Formatting
+        run: cargo fmt --all --check
+
+  # Run Clippy at pedantic level. Blocks release.
+  clippy:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Run Clippy
+        run: cargo clippy --workspace --all-targets --all-features -- -W clippy::pedantic -D warnings
+
+  # Scan Cargo.lock against the RustSec advisory database. Informational — does not block release.
+  audit:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: rustsec/audit-check@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  # Verify each crate would be publishable to crates.io. Informational — does not block release.
+  publish-dry-run:
+    if: inputs.cargo_publish && github.ref_type != 'tag'
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        crate_names: ${{ fromJson(inputs.crate_names) }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Publish Dry Run
+        run: cargo publish --dry-run -p ${{ matrix.crate_names }}
+
+  # Publish each crate to crates.io on tagged releases, after all quality gates pass.
+  publish:
+    if: inputs.cargo_publish && github.ref_type == 'tag'
+    needs: [test, clippy, fmt]
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        crate_names: ${{ fromJson(inputs.crate_names) }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Publish to crates.io
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish -p ${{ matrix.crate_names }}
+
+  # Build cargo doc and deploy to GitHub Pages.
+  # Requires Pages to be enabled with "GitHub Actions" as the source in repo settings.
+  docs:
+    if: inputs.publish_docs && github.event_name != 'pull_request'
+    needs: [test, clippy]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Build Documentation
+        run: cargo doc --no-deps --workspace
+      - name: Create Index Redirect
+        run: |
+          PRIMARY=$(echo '${{ inputs.crate_names }}' | jq -r '.[0]' | tr '-' '_')
+          echo "<meta http-equiv=\"refresh\" content=\"0; url=${PRIMARY}/index.html\">" > target/doc/index.html
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: target/doc
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  # Generate a CHANGELOG.md from git history and upload it to the release.
+  changelog:
+    if: inputs.generate_changelog && github.event_name != 'pull_request'
+    needs: [release_cleanup]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Generate Changelog
+        run: |
+          set -euo pipefail
+          REPO_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
+          OUTPUT="CHANGELOG.md"
+
+          mapfile -t tags < <(git tag --sort=-version:refname 2>/dev/null)
+
+          emit_commits() {
+            local range="$1"
+            git log "$range" --format="format:%h %s" | while read -r hash msg; do
+              echo "- [$hash]($REPO_URL/commit/$hash) - $msg"
+            done
+          }
+
+          {
+            echo "# Changelog"
+            echo ""
+
+            if [ "${#tags[@]}" -eq 0 ]; then
+              echo "## Unreleased"
+              echo ""
+              emit_commits "HEAD"
+              echo ""
+            else
+              unreleased=$(git log "${tags[0]}..HEAD" --format="format:%h %s")
+              if [ -n "$unreleased" ]; then
+                echo "## Unreleased"
+                echo ""
+                echo "$unreleased" | while read -r hash msg; do
+                  echo "- [$hash]($REPO_URL/commit/$hash) - $msg"
+                done
+                echo ""
+              fi
+
+              for i in "${!tags[@]}"; do
+                tag="${tags[$i]}"
+                echo "## $tag"
+                echo ""
+
+                if [ $(( i + 1 )) -lt "${#tags[@]}" ]; then
+                  emit_commits "${tags[$((i + 1))]}..${tag}"
+                else
+                  emit_commits "$tag"
+                fi
+
+                echo ""
+              done
+            fi
+          } > "$OUTPUT"
+      - name: Upload Changelog to Release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ needs.release_cleanup.outputs.release_name }}
+          files: CHANGELOG.md
+
+  # Run cargo bench, generate BENCHMARKS.md from Criterion output, and upload to the release.
+  benchmarks:
+    if: inputs.generate_benchmarks && github.event_name != 'pull_request'
+    needs: [release_cleanup]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: DreamWeave-MP/StroggForge
+          ref: v7
+          path: .stroggforge
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Run Benchmarks
+        run: cargo bench
+      - name: Generate Benchmark Docs
+        run: python3 .stroggforge/.github/scripts/gen_benchmarks.py
+      - name: Upload Benchmark Docs to Release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ needs.release_cleanup.outputs.release_name }}
+          files: BENCHMARKS.md
+
+  # For workflows where users may now receive a new deliverable, notify them about it!
+  call-discord-webhook:
+    if: always() && github.event_name == 'push'
+    needs: [test, fmt, clippy]
+    uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v7
+    secrets:
+      WEBHOOK_URL: ${{ secrets.DW_TOOLS_CHANNEL_WEBHOOK }}
+    with:
+      title: ${{ (needs.test.result == 'failure' || needs.fmt.result == 'failure' || needs.clippy.result == 'failure') && format('{0} pipeline failed! 😭', github.event.repository.name) || '' }}
+      description: ${{ (needs.test.result == 'failure' || needs.fmt.result == 'failure' || needs.clippy.result == 'failure') && format('[Workflow Results](https://github.com/{0}/actions/runs/{1})', github.repository, github.run_id) || ''}}
+
+  # For any repositories which use this one as a dependent,
+  # notify them by creating an issue within the DreamWeave org's scope.
+  nag-dependents:
+    if: success() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && inputs.dependent_repo_names != ''
+    needs: [test, fmt, clippy]
+
+    strategy:
+      matrix:
+        target_repo: ${{ fromJson(inputs.dependent_repo_names) }}
+
+    uses: DreamWeave-MP/StroggForge/.github/workflows/dependent.yml@v7
+
+    secrets:
+      DW_BOT_PAT: ${{ secrets.DW_BOT_PAT }}
+    with:
+      aur_package_name: ''
+      target_repo: ${{ matrix.target_repo }}

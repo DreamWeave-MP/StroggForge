@@ -29,6 +29,19 @@ The pipeline runs these jobs:
 - Doc/artifact generation (after gates pass, skipped on PRs): `docs` (GitHub Pages), `changelog`, `benchmarks`
 - Post-release (after all builds): `publish` (crates.io, tag only), `aur-publish`, `call-discord-webhook`, `nag-dependents`
 
+## [./.github/workflows/libGlobalBuild.yml](./.github/workflows/libGlobalBuild.yml)
+
+The library equivalent of `rustGlobalBuild.yml`. Use this for crates that have no distributable binary — it runs all the same quality gates, publishing, docs, changelog, and benchmarks, but has no `corprus-crucible` release build jobs and no AUR publishing.
+
+Inputs:
+
+1. `crate_names`: Required. JSON array of crate names to publish, e.g. `'["my-lib"]'`. Must match `[package].name` in each crate's `Cargo.toml`. Used for the `cargo publish -p` matrix.
+1. `dependent_repo_names`: Optional. JSON array of repositories to notify via issue on tagged releases.
+1. `publish_docs`: Optional, default `true`. Set `false` if using a custom SSG.
+1. `cargo_publish`: Optional, default `true`. Dry-run on non-tag pushes; real publish on tagged releases. Requires `CARGO_REGISTRY_TOKEN` secret.
+1. `generate_changelog`: Optional, default `true`.
+1. `generate_benchmarks`: Optional, default `false`.
+
 ## [./.github/actions/corprus-crucible/action.yml](./.github/actions/corprus-crucible/action.yml)
 
 Composite action used internally by `rustGlobalBuild.yml`. Handles the release artifact pipeline for a single binary on a single platform. Called once per OS per binary name.
@@ -93,4 +106,8 @@ python3 /path/to/StroggForge/.github/scripts/gen_benchmarks.py
 
 ## [./.github/action_templates/rust_template.yaml](./.github/action_templates/rust_template.yaml)
 
-Workflow template for new Rust repositories. Copy it to `.github/workflows/build.yml` in the target repo and replace `ENTER_BINARY_NAME_HERE` with the binary name. Uncomment optional inputs as needed. The entire pipeline is handled by StroggForge — no further editing is required.
+Workflow template for new Rust binary repositories. Copy it to `.github/workflows/build.yml` in the target repo and replace `ENTER_BINARY_NAME_HERE` with the binary name. Uncomment optional inputs as needed.
+
+## [./.github/action_templates/lib_template.yaml](./.github/action_templates/lib_template.yaml)
+
+Workflow template for library crates. Copy it to `.github/workflows/build.yml` and replace `ENTER_CRATE_NAME_HERE` with the crate name from `Cargo.toml`. Uncomment optional inputs as needed.
