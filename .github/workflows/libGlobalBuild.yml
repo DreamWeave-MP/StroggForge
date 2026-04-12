@@ -41,7 +41,7 @@ jobs:
   # Ensure any previously-existing releases are deleted,
   # And create a new one with auto-generated changelog & workflow ID
   release_cleanup:
-    uses: DreamWeave-MP/StroggForge/.github/workflows/createRelease.yml@v8
+    uses: DreamWeave-MP/StroggForge/.github/workflows/createRelease.yml@v9
     secrets: inherit
 
   # Run the full test suite on all platforms. Blocks release.
@@ -270,7 +270,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v8
+          ref: v9
           path: .stroggforge
       - uses: dtolnay/rust-toolchain@stable
       - uses: actions/cache@v4
@@ -296,7 +296,7 @@ jobs:
   call-discord-webhook:
     if: always() && github.event_name == 'push'
     needs: [test, fmt, clippy]
-    uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v8
+    uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v9
     secrets:
       WEBHOOK_URL: ${{ secrets.DW_TOOLS_CHANNEL_WEBHOOK }}
     with:
@@ -313,7 +313,7 @@ jobs:
       matrix:
         target_repo: ${{ fromJson(inputs.dependent_repo_names) }}
 
-    uses: DreamWeave-MP/StroggForge/.github/workflows/dependent.yml@v8
+    uses: DreamWeave-MP/StroggForge/.github/workflows/dependent.yml@v9
 
     secrets:
       DW_BOT_PAT: ${{ secrets.DW_BOT_PAT }}
