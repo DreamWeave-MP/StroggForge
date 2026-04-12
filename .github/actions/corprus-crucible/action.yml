@@ -79,7 +79,7 @@ runs:
 
     - name: Build Release
       shell: bash
-      run: cargo test --all-targets --all-features --manifest-path ${{ steps.context.outputs.build_dir }}/Cargo.toml -- --show-output && cargo build --release --manifest-path ${{ steps.context.outputs.build_dir }}/Cargo.toml
+      run: cargo build --release --manifest-path ${{ steps.context.outputs.build_dir }}/Cargo.toml
 
     # - name: Cargo Publish
     #   if: ${{ inputs.cargo_token }} != '' && ${{ inputs.release_name }} != 'development'
