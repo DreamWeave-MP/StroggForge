@@ -111,6 +111,7 @@ jobs:
       - uses: rustsec/audit-check@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          working-directory: ${{ github.workspace }}
 
   # Verify each crate would be publishable to crates.io. Informational — does not block release.
   publish-dry-run:

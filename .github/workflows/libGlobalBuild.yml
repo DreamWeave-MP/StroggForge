@@ -96,6 +96,7 @@ jobs:
       - uses: rustsec/audit-check@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          working-directory: ${{ github.workspace }}
 
   # Verify each crate would be publishable to crates.io. Informational — does not block release.
   publish-dry-run:
@@ -115,7 +116,11 @@ jobs:
             target
           key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Publish Dry Run
-        run: cargo publish --dry-run -p ${{ matrix.crate_names }}
+        run: |
+          MANIFEST=$(cargo metadata --no-deps --format-version 1 | \
+            jq -r --arg n "${{ matrix.crate_names }}" \
+            '.packages[] | select((.name | gsub("-";"_")) == ($n | gsub("-";"_"))) | .manifest_path' | head -1)
+          cargo publish --dry-run --manifest-path "$MANIFEST"
 
   # Publish each crate to crates.io on tagged releases, after all quality gates pass.
   publish:
@@ -138,7 +143,11 @@ jobs:
       - name: Publish to crates.io
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: cargo publish -p ${{ matrix.crate_names }}
+        run: |
+          MANIFEST=$(cargo metadata --no-deps --format-version 1 | \
+            jq -r --arg n "${{ matrix.crate_names }}" \
+            '.packages[] | select((.name | gsub("-";"_")) == ($n | gsub("-";"_"))) | .manifest_path' | head -1)
+          cargo publish --manifest-path "$MANIFEST"
 
   # Build cargo doc and deploy to GitHub Pages.
   # Requires Pages to be enabled with "GitHub Actions" as the source in repo settings.
