@@ -88,7 +88,7 @@ jobs:
       - name: Run Clippy
         run: cargo clippy --workspace --all-targets --all-features -- -W clippy::pedantic -D warnings
 
-  # Scan Cargo.lock against the RustSec advisory database. Informational — does not block release.
+  # Scan Cargo.lock against the RustSec advisory database. Blocks release.
   audit:
     runs-on: ubuntu-22.04
     steps:
@@ -125,7 +125,7 @@ jobs:
   # Publish each crate to crates.io on tagged releases, after all quality gates pass.
   publish:
     if: inputs.cargo_publish && github.ref_type == 'tag'
-    needs: [test, clippy, fmt]
+    needs: [test, clippy, fmt, audit]
     runs-on: ubuntu-22.04
     strategy:
       matrix:

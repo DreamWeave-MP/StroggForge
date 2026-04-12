@@ -23,8 +23,8 @@ Inputs:
 
 The pipeline runs these jobs:
 
-- Quality gates (parallel, block release): `test` (full platform matrix), `fmt`, `clippy` (pedantic)
-- Informational (parallel, do not block): `audit` (RustSec), `publish-dry-run`
+- Quality gates (parallel, block release): `test` (full platform matrix), `fmt`, `clippy` (pedantic), `audit` (RustSec)
+- Informational (parallel, does not block): `publish-dry-run`
 - Release builds (after gates pass): `release` (macOS ARM + Intel, Windows), `release-linux` (AlmaLinux 8 container for glibc 2.28 compatibility)
 - Doc/artifact generation (after gates pass, skipped on PRs): `docs` (GitHub Pages), `changelog`, `benchmarks`
 - Post-release (after all builds): `publish` (crates.io, tag only), `aur-publish`, `call-discord-webhook`, `nag-dependents`
@@ -35,7 +35,7 @@ The library equivalent of `rustGlobalBuild.yml`. Use this for crates that have n
 
 Inputs:
 
-1. `crate_names`: Required. JSON array of crate names to publish, e.g. `'["my-lib"]'`. Must match `[package].name` in each crate's `Cargo.toml`. Used for the `cargo publish -p` matrix.
+1. `crate_names`: Required. JSON array of crate names to publish, e.g. `'["my-lib"]'`. Used to locate each crate's `Cargo.toml` via `cargo metadata` (hyphens and underscores are treated as equivalent).
 1. `dependent_repo_names`: Optional. JSON array of repositories to notify via issue on tagged releases.
 1. `publish_docs`: Optional, default `true`. Set `false` if using a custom SSG.
 1. `cargo_publish`: Optional, default `true`. Dry-run on non-tag pushes; real publish on tagged releases. Requires `CARGO_REGISTRY_TOKEN` secret.

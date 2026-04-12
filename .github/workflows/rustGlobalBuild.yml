@@ -103,7 +103,7 @@ jobs:
       - name: Run Clippy
         run: cargo clippy --workspace --all-targets --all-features -- -W clippy::pedantic -D warnings
 
-  # Scan Cargo.lock against the RustSec advisory database. Informational — does not block release.
+  # Scan Cargo.lock against the RustSec advisory database. Blocks release.
   audit:
     runs-on: ubuntu-22.04
     steps:
@@ -308,7 +308,7 @@ jobs:
 
   # Build, test, sign, package, & release Rust apps on macOS and Windows
   release:
-    needs: [release_cleanup, test, clippy, fmt]
+    needs: [release_cleanup, test, clippy, fmt, audit]
 
     strategy:
       matrix:
@@ -334,7 +334,7 @@ jobs:
   # Build, test, sign, package, & release Rust apps on Linux.
   # Runs inside AlmaLinux 8 (glibc 2.28) for maximum distribution compatibility.
   release-linux:
-    needs: [release_cleanup, test, clippy, fmt]
+    needs: [release_cleanup, test, clippy, fmt, audit]
 
     strategy:
       matrix:
