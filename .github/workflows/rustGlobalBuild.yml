@@ -40,6 +40,12 @@ on:
         default: true
         description: "Publish to crates.io on tagged releases; run a dry-run on all other pushes. Requires CARGO_REGISTRY_TOKEN secret."
 
+      generate_changelog:
+        type: boolean
+        required: false
+        default: true
+        description: "Generate a CHANGELOG.md from git history and upload it to the release."
+
 jobs:
   # Ensure any previously-existing releases are deleted,
   # And create a new one with auto-generated changelog & workflow ID
@@ -171,6 +177,75 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  # Generate a CHANGELOG.md from git history and upload it to the release.
+  changelog:
+    if: inputs.generate_changelog && github.event_name != 'pull_request'
+    needs: [release_cleanup]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Generate Changelog
+        run: |
+          set -euo pipefail
+          REPO_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
+          OUTPUT="CHANGELOG.md"
+
+          mapfile -t tags < <(git tag --sort=-version:refname 2>/dev/null)
+
+          emit_commits() {
+            local range="$1"
+            git log "$range" --format="format:%h %s" | while read -r hash msg; do
+              echo "- [$hash]($REPO_URL/commit/$hash) - $msg"
+            done
+          }
+
+          {
+            echo "# Changelog"
+            echo ""
+
+            if [ "${#tags[@]}" -eq 0 ]; then
+              echo "## Unreleased"
+              echo ""
+              emit_commits "HEAD"
+              echo ""
+            else
+              unreleased=$(git log "${tags[0]}..HEAD" --format="format:%h %s")
+              if [ -n "$unreleased" ]; then
+                echo "## Unreleased"
+                echo ""
+                echo "$unreleased" | while read -r hash msg; do
+                  echo "- [$hash]($REPO_URL/commit/$hash) - $msg"
+                done
+                echo ""
+              fi
+
+              for i in "${!tags[@]}"; do
+                tag="${tags[$i]}"
+                echo "## $tag"
+                echo ""
+
+                if [ $(( i + 1 )) -lt "${#tags[@]}" ]; then
+                  emit_commits "${tags[$((i + 1))]}..${tag}"
+                else
+                  emit_commits "$tag"
+                fi
+
+                echo ""
+              done
+            fi
+          } > "$OUTPUT"
+      - name: Upload Changelog to Release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ needs.release_cleanup.outputs.release_name }}
+          files: CHANGELOG.md
 
   # Build, test, sign, package, & release Rust apps on macOS and Windows
   release:
