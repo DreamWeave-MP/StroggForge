@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    uses: DreamWeave-MP/StroggForge/.github/workflows/rustGlobalBuild.yml@v6
+    uses: DreamWeave-MP/StroggForge/.github/workflows/rustGlobalBuild.yml@v7
     secrets: inherit
     with:
       # Required: JSON array of binary names to build. Add more for monorepos.

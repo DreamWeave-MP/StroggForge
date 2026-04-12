@@ -2,72 +2,95 @@
 
 # StroggForge Actions
 
-This repository was originally born to provide GitHub Actions various apps in the org use.
-That's still its purpose, of course, and this document exists to explain them to you.
-Their usage will be described in sequence of the order in which your workflows should run them (generally).
+This repository provides the shared CI/CD infrastructure for all DreamWeave Rust applications.
+The primary entry point for consuming repositories is `rustGlobalBuild.yml`.
+Everything else described here is either called internally by that workflow or available for special use cases.
 
-## [./.github/workflows/createRelease.yml](./.github/workflows/createRelease.yml)
+## [./.github/workflows/rustGlobalBuild.yml](./.github/workflows/rustGlobalBuild.yml)
 
-This is a reusable workflow originally developed to help ease shipping development builds of applications to users.
-It will search for a release matching the current tag name, or if the job isn't running on a tag, then a release called `development`.
+The full pipeline orchestrator. This is what downstream repositories call — everything else in this document is an implementation detail of it.
 
-If the job is NOT running on a tag release, then, the `development` tag is also deleted from the target repository.
-A new release with the target name is then created on the repository, with auto-generated changelog and a marker indicating which workflow created the release.
+Inputs:
 
-This workflow has one output, `release_name`, which can be used to determine whether we're on a tag release or not a *bit* more easily.
-This workflow requires access to the GitHub token, so should be called with `secrets: inherit`
+1. `binary_names`: Required. JSON array of binary names to build, e.g. `'["my-app"]'`. Add multiple entries for monorepos.
+1. `aur_package_name`: Optional. AUR package name. Omit if the project is not on the AUR.
+1. `dependent_repo_names`: Optional. JSON array of repositories to notify via issue on tagged releases.
+1. `git_username` / `git_email`: Optional. AUR commit identity. Defaults to the DreamWeave maintainer values.
+1. `publish_docs`: Optional, default `true`. Set `false` if the project uses its own static site generator for documentation.
+1. `cargo_publish`: Optional, default `true`. Runs `cargo publish --dry-run` on every non-tag push, and `cargo publish` on tagged releases. Set `false` if the project does not publish to crates.io. Requires `CARGO_REGISTRY_TOKEN` secret.
+1. `generate_changelog`: Optional, default `true`. Generates `CHANGELOG.md` from git history and uploads it to the release.
+1. `generate_benchmarks`: Optional, default `false`. Runs `cargo bench`, generates `BENCHMARKS.md` from Criterion output, and uploads it to the release. Enable for projects with Criterion benchmarks.
+
+The pipeline runs these jobs:
+
+- Quality gates (parallel, block release): `test` (full platform matrix), `fmt`, `clippy` (pedantic)
+- Informational (parallel, do not block): `audit` (RustSec), `publish-dry-run`
+- Release builds (after gates pass): `release` (macOS ARM + Intel, Windows), `release-linux` (AlmaLinux 8 container for glibc 2.28 compatibility)
+- Doc/artifact generation (after gates pass, skipped on PRs): `docs` (GitHub Pages), `changelog`, `benchmarks`
+- Post-release (after all builds): `publish` (crates.io, tag only), `aur-publish`, `call-discord-webhook`, `nag-dependents`
 
 ## [./.github/actions/corprus-crucible/action.yml](./.github/actions/corprus-crucible/action.yml)
 
-Corprus Crucible is DreamWeave's core Rust build flow that ensures deliverability and verifiability of all releases.
-The Crucible tests, builds, and signs an array of Rust apps provided to it, supporting multi-app repositories or monorepos.
+Composite action used internally by `rustGlobalBuild.yml`. Handles the release artifact pipeline for a single binary on a single platform. Called once per OS per binary name.
 
-The Crucible has no direct outputs, but has a range of required parameters:
+Inputs:
 
-1. `binary_name`: String param indicating the executable name to build, sans extension.
-1. `include_files`: Optional comma-separated list of additional files to inclue. Paths are relative to the working directory, which is dependent upon whether the target `binary_name` matches a folder name in the root of the repository.
-1. `vt_api_key`: A VirusTotal API key. DreamWeave stores is VT API key as an organization-level secret which should be passed into this workflow.
-1. `github_token`: As it says on the tin. Not negotiable.
-1. `release_name`: Provided to this composite action as an output from the createRelease workflow, or just make it up yourself.
+1. `binary_name`: Required. The executable name to build, without platform extension.
+1. `include_files`: Optional. Comma-separated list of additional files to include in the release zip. Paths are relative to the build directory. Defaults to `Readme.md,LICENSE`.
+1. `vt_api_key`: Required. VirusTotal API key.
+1. `github_token`: Required. GitHub token for uploading release artifacts.
+1. `release_name`: Required. Output from `createRelease` — either a tag name or `development`.
+
+Build context detection: if `binary_name` matches a directory at the repo root, the action builds from that directory. Otherwise builds from `.`. This handles monorepos transparently.
+
+On pull requests, signing and VirusTotal scanning are skipped; the binary is uploaded as a workflow artifact instead.
+
+## [./.github/workflows/createRelease.yml](./.github/workflows/createRelease.yml)
+
+Reusable workflow called at the start of every pipeline. Deletes any existing release matching the current tag (or `development` on non-tag pushes), then creates a fresh one with auto-generated changelog and a workflow run ID marker.
+
+Output: `release_name` — the tag name on tag pushes, `development` otherwise.
+
+Requires access to the GitHub token; call with `secrets: inherit`.
 
 ## [./.github/workflows/discord.yml](./.github/workflows/discord.yml)
 
-Action to emit pipeline results into the DreamWeave Discord channels.
-Generally called `if: always()` to allow warning about pipeline failures.
+Reusable workflow that posts an embed to a Discord channel. Generally called `if: always()` to surface pipeline failures.
 
 Inputs:
 
-1. `avatar_url`: Optional, usually not needed. By default uses the DreamWeave logo.
-1. `title`: Optional title string for the embed. Autofills with the repo name if unspecified.
-1. `description`: Optional text content for the embed. If unspecified contains a link to the latest release, using the ref name as its text.
-1. `footer_text`: Optionally override the timestamp/workflow ids at the bottom of each log message.
+1. `avatar_url`: Optional. Defaults to the DreamWeave logo.
+1. `title`: Optional. Defaults to `{repo} has been updated.`
+1. `description`: Optional. Defaults to a link to the latest release.
+1. `footer_text`: Optional. Defaults to workflow ID, triggering actor, and timestamp.
 
 Secrets:
 
-1. `webhook_url`: Mandatory. Gives a channel URL to write to. By default, you should use the organization secrets containing this URL, unless you have a special use case.
+1. `webhook_url`: Required. Use the org-level secret unless there is a specific reason not to.
 
 ## [./.github/workflows/dependent.yml](./.github/workflows/dependent.yml)
 
-When one repository depends on another, use this action to notify your dependents so their maintainers don't lose track of things.
-Super simple action that needs some more work, specifically in accepting the issue body as an input.
+Reusable workflow that opens a dependency update issue in another repository. Run in a matrix to notify multiple repos.
 
 Inputs:
 
-1. `aur_package_name`: Required, used to generate links to AUR packages.
-1. `target_repo`: Well, you can't make an issue without saying where to do it. Run the workflow in a matrix to notify multiple repos.
+1. `aur_package_name`: Required. Used to generate a link to the AUR package in the issue body.
+1. `target_repo`: Required. The `Owner/Repo` to open the issue in.
 
 Secrets:
 
-1. `DW_BOT_PAT`: Typically should just use the Org-level PAT created specifically for this action. If you don't use this, you should have a very good reason for not doing so.
+1. `DW_BOT_PAT`: Required. Use the org-level PAT created for this purpose.
+
+## [./.github/scripts/gen_benchmarks.py](./.github/scripts/gen_benchmarks.py)
+
+Python script used by the `benchmarks` job in `rustGlobalBuild.yml`. Reads Criterion output from `target/criterion/**/new/{benchmark,estimates}.json` and writes `BENCHMARKS.md` with summary tables and Mermaid bar charts.
+
+Can also be run locally after `cargo bench`:
+
+```
+python3 /path/to/StroggForge/.github/scripts/gen_benchmarks.py
+```
 
 ## [./.github/action_templates/rust_template.yaml](./.github/action_templates/rust_template.yaml)
 
-This one actually is not meant to be used directly, but rather is a template for Rust repositories to use when creating new CI.
-It uses all of the above actions/workflows to provide a standardized build flow for *all* our apps. There's really no reason *not* to use this, except that it needs `cargo publish` functionality.
-
-To set up, you must fill in the following values, in each of the respective jobs and steps:
-
-1. `release.steps.Run Corprus Crucible`: `ENTER_BINARY_NAME_HERE` should be replaced with the name of the app you're building. Add a matrix for multi-project repos.
-1. `aur-publish.env.AUR_PACKAGE_NAME`: `ENTER_PACKAGE_NAME_HERE` should be replaced by the AUR package name, if there is one. If you're not posting to the AUR, delete this section, and shame on you.
-1. `aur-publish.steps[1].with.git_username/git_email`: both `ENTER_USERNAME_HERE` and `ENTER_EMAIL_HERE` should be replaced by the respective values for publishing.
-1. `nag-dependents.strategy.matrix.target_repo`: Replace the fake repository names here with real ones under the DreamWeave org.
+Workflow template for new Rust repositories. Copy it to `.github/workflows/build.yml` in the target repo and replace `ENTER_BINARY_NAME_HERE` with the binary name. Uncomment optional inputs as needed. The entire pipeline is handled by StroggForge — no further editing is required.

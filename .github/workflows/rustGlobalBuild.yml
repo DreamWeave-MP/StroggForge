@@ -56,7 +56,7 @@ jobs:
   # Ensure any previously-existing releases are deleted,
   # And create a new one with auto-generated changelog & workflow ID
   release_cleanup:
-    uses: DreamWeave-MP/StroggForge/.github/workflows/createRelease.yml@v6
+    uses: DreamWeave-MP/StroggForge/.github/workflows/createRelease.yml@v7
     secrets: inherit
 
   # Run the full test suite on all platforms. Blocks release.
@@ -66,7 +66,7 @@ jobs:
         os: [macos-latest, macos-15-intel, ubuntu-22.04, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - uses: actions/cache@v4
         with:
@@ -82,7 +82,7 @@ jobs:
   fmt:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - name: Check Formatting
         run: cargo fmt --all --check
@@ -91,7 +91,7 @@ jobs:
   clippy:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - uses: actions/cache@v4
         with:
@@ -107,7 +107,7 @@ jobs:
   audit:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: rustsec/audit-check@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -120,7 +120,7 @@ jobs:
       matrix:
         app_names: ${{ fromJson(inputs.binary_names) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - uses: actions/cache@v4
         with:
@@ -146,7 +146,7 @@ jobs:
       matrix:
         app_names: ${{ fromJson(inputs.binary_names) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - uses: actions/cache@v4
         with:
@@ -179,7 +179,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - uses: actions/cache@v4
         with:
@@ -210,7 +210,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Generate Changelog
@@ -279,11 +279,11 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v6
+          ref: v7
           path: .stroggforge
       - uses: dtolnay/rust-toolchain@stable
       - uses: actions/cache@v4
@@ -321,9 +321,9 @@ jobs:
       id-token: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Run Corprus Crucible
-        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v6
+        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v7
         with:
           binary_name: ${{ matrix.app_names }}
           vt_api_key: ${{ secrets.VT_API_KEY }}
@@ -349,9 +349,9 @@ jobs:
     steps:
       - name: Install Build Dependencies
         run: dnf install -y epel-release && dnf install -y p7zip p7zip-plugins
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Run Corprus Crucible
-        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v6
+        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v7
         with:
           binary_name: ${{ matrix.app_names }}
           vt_api_key: ${{ secrets.VT_API_KEY }}
@@ -367,7 +367,7 @@ jobs:
     environment: AUR
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: varrcan/aur-publish-action@v1
         with:
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
@@ -379,7 +379,7 @@ jobs:
   call-discord-webhook:
     if: always() && github.event_name == 'push'
     needs: [release, release-linux]
-    uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v6
+    uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v7
     secrets:
       WEBHOOK_URL: ${{ secrets.DW_TOOLS_CHANNEL_WEBHOOK }}
     with:
@@ -396,7 +396,7 @@ jobs:
       matrix:
         target_repo: ${{ fromJson(inputs.dependent_repo_names) }}
 
-    uses: DreamWeave-MP/StroggForge/.github/workflows/dependent.yml@v6
+    uses: DreamWeave-MP/StroggForge/.github/workflows/dependent.yml@v7
 
     secrets:
       DW_BOT_PAT: ${{ secrets.DW_BOT_PAT }}

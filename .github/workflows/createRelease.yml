@@ -15,7 +15,7 @@ jobs:
       release_name: ${{ steps.setup.outputs.release_name }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Release Environment
         id: setup
