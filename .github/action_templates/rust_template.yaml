@@ -1,4 +1,4 @@
-name: Corprus Crucible Manufacturing
+name: Application CI
 
 on:
   workflow_dispatch:
