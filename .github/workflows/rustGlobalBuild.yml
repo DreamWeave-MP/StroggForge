@@ -113,10 +113,9 @@ jobs:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - uses: taiki-e/install-action@cargo-audit
+      - name: Run Cargo audit
         run: cargo audit
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          working-directory: ${{ github.workspace }}
+        working-directory: ${{ github.workspace }}
 
   # Verify each crate would be publishable to crates.io. Informational — does not block release.
   publish-dry-run:
