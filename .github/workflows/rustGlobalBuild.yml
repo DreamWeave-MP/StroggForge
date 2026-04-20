@@ -352,7 +352,7 @@ jobs:
 
     steps:
       - name: Install Build Dependencies
-        run: dnf install -y epel-release && dnf install -y p7zip p7zip-plugins
+        run: dnf install -y epel-release && dnf install -y gcc gcc-c++ make glibc-devel pkgconf-pkg-config openssl-devel p7zip p7zip-plugins
       - uses: actions/checkout@v6
       - name: Run Corprus Crucible
         uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v9
