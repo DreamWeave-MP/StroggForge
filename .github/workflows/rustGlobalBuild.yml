@@ -2,6 +2,9 @@ name: Corprus Crucible Manufacturing
 
 on:
   workflow_call:
+    secrets:
+      VT_API_KEY:
+        required: true
     inputs:
       binary_names:
         type: string
