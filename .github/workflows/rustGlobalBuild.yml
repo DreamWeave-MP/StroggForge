@@ -55,6 +55,12 @@ on:
         default: false
         description: "Run cargo bench, generate BENCHMARKS.md from Criterion output, and upload it to the release."
 
+      generate_discord_notification:
+        type: boolean
+        required: false
+        default: true
+        description: "Generate a discord notification to DreamWeave upon success."
+
 jobs:
   # Ensure any previously-existing releases are deleted,
   # And create a new one with auto-generated changelog & workflow ID
@@ -382,7 +388,7 @@ jobs:
 
   # For workflows where users may now receive a new deliverable, notify them about it!
   call-discord-webhook:
-    if: always() && github.event_name == 'push'
+    if: inputs.generate_discord_notification && github.event_name == 'push'
     needs: [release, release-linux]
     uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v9
     secrets:

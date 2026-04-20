@@ -35,3 +35,6 @@ jobs:
 
       # Optional: set true if this project has Criterion benchmarks.
       # generate_benchmarks: true
+
+      # Optional: set false if the project is not hosted by DreamWeave or does not use discord notifications
+      # generate_discord_notification: false
