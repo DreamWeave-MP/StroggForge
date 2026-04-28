@@ -35,13 +35,13 @@ on:
         type: boolean
         required: false
         default: false
-        description: "Run cargo bench, generate BENCHMARKS.md from Criterion output, and upload it to the release."
+        description: "Run cargo bench, generate BENCHMARKS.md from Criterion output or the raw benchmark log, and upload it to the release."
 
 jobs:
   # Ensure any previously-existing releases are deleted,
   # And create a new one with auto-generated changelog & workflow ID
   release_cleanup:
-    uses: DreamWeave-MP/StroggForge/.github/workflows/createRelease.yml@v17
+    uses: DreamWeave-MP/StroggForge/.github/workflows/createRelease.yml@v18
     secrets: inherit
 
   # Run the full test suite on all platforms. Blocks release.
@@ -293,7 +293,7 @@ jobs:
           tag_name: ${{ needs.release_cleanup.outputs.release_name }}
           files: CHANGELOG.md
 
-  # Run cargo bench, generate BENCHMARKS.md from Criterion output, and upload to the release.
+  # Run cargo bench, generate BENCHMARKS.md from Criterion output or the raw benchmark log, and upload to the release.
   benchmarks:
     if: inputs.generate_benchmarks && github.event_name != 'pull_request'
     needs: [release_cleanup]
@@ -305,7 +305,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v17
+          ref: v18
           path: .stroggforge
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
@@ -323,7 +323,9 @@ jobs:
             target
           key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Run Benchmarks
-        run: cargo bench
+        run: |
+          set -o pipefail
+          CARGO_TERM_COLOR=never cargo bench 2>&1 | tee benchmark-output.txt
       - name: Generate Benchmark Docs
         run: python3 .stroggforge/.github/scripts/gen_benchmarks.py
       - name: Upload Benchmark Docs to Release
@@ -338,7 +340,7 @@ jobs:
   call-discord-webhook:
     if: always() && github.event_name == 'push'
     needs: [test, fmt, clippy]
-    uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v17
+    uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v18
     secrets:
       WEBHOOK_URL: ${{ secrets.DW_TOOLS_CHANNEL_WEBHOOK }}
     with:
@@ -355,7 +357,7 @@ jobs:
       matrix:
         target_repo: ${{ fromJson(inputs.dependent_repo_names) }}
 
-    uses: DreamWeave-MP/StroggForge/.github/workflows/dependent.yml@v17
+    uses: DreamWeave-MP/StroggForge/.github/workflows/dependent.yml@v18
 
     secrets:
       DW_BOT_PAT: ${{ secrets.DW_BOT_PAT }}

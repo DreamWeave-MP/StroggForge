@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
-Generate BENCHMARKS.md from Criterion benchmark output.
+Generate BENCHMARKS.md from benchmark output.
 
 Run `cargo bench` first, then:
     python3 gen_benchmarks.py
 
 Reads:  target/criterion/**/new/{benchmark,estimates}.json
+Fallback: benchmark-output.txt, for custom non-Criterion benchmark harnesses
 Writes: BENCHMARKS.md
 """
 
@@ -18,6 +19,7 @@ from pathlib import Path
 
 
 CRITERION_DIR = Path("target/criterion")
+BENCHMARK_LOG = Path("benchmark-output.txt")
 OUTPUT_FILE = Path("BENCHMARKS.md")
 
 
@@ -271,22 +273,50 @@ def generate_md(records: list[dict]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def generate_raw_md(log_path: Path) -> str:
+    """Generate Markdown from a non-Criterion `cargo bench` log."""
+    log = log_path.read_text(encoding="utf-8", errors="replace").rstrip()
+    return "\n".join([
+        "# Benchmarks",
+        "",
+        f"> Generated {date.today()} · `cargo bench`",
+        "",
+        (
+            "Criterion output was not found under `target/criterion`, so the "
+            "raw benchmark harness output is preserved below."
+        ),
+        "",
+        "```text",
+        log,
+        "```",
+        "",
+    ])
+
+
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 
 def main() -> None:
     if not CRITERION_DIR.exists():
+        if BENCHMARK_LOG.exists():
+            OUTPUT_FILE.write_text(generate_raw_md(BENCHMARK_LOG), encoding="utf-8")
+            print(f"wrote {OUTPUT_FILE} from {BENCHMARK_LOG}")
+            return
         print(
-            "error: target/criterion not found — run `cargo bench` first",
+            "error: target/criterion not found and benchmark-output.txt is missing — run `cargo bench` first",
             file=sys.stderr,
         )
         sys.exit(1)
 
     records = load_benchmarks()
     if not records:
+        if BENCHMARK_LOG.exists():
+            OUTPUT_FILE.write_text(generate_raw_md(BENCHMARK_LOG), encoding="utf-8")
+            print(f"wrote {OUTPUT_FILE} from {BENCHMARK_LOG}")
+            return
         print(
-            "error: no benchmark results found under target/criterion",
+            "error: no benchmark results found under target/criterion and benchmark-output.txt is missing",
             file=sys.stderr,
         )
         sys.exit(1)

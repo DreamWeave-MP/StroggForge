@@ -19,7 +19,7 @@ Inputs:
 1. `publish_docs`: Optional, default `true`. Set `false` if the project uses its own static site generator for documentation.
 1. `cargo_publish`: Optional, default `true`. Runs `cargo publish --dry-run` on every non-tag push, and `cargo publish` on tagged releases. Set `false` if the project does not publish to crates.io. Requires `CARGO_REGISTRY_TOKEN` secret.
 1. `generate_changelog`: Optional, default `true`. Generates `CHANGELOG.md` from git history and uploads it to the release.
-1. `generate_benchmarks`: Optional, default `false`. Runs `cargo bench`, generates `BENCHMARKS.md` from Criterion output, and uploads it to the release. Enable for projects with Criterion benchmarks.
+1. `generate_benchmarks`: Optional, default `false`. Runs `cargo bench`, generates `BENCHMARKS.md` from Criterion output when available, otherwise preserves the raw benchmark log, and uploads it to the release.
 
 The pipeline runs these jobs:
 
@@ -96,7 +96,7 @@ Secrets:
 
 ## [./.github/scripts/gen_benchmarks.py](./.github/scripts/gen_benchmarks.py)
 
-Python script used by the `benchmarks` job in `rustGlobalBuild.yml`. Reads Criterion output from `target/criterion/**/new/{benchmark,estimates}.json` and writes `BENCHMARKS.md` with summary tables and Mermaid bar charts.
+Python script used by the `benchmarks` job in `rustGlobalBuild.yml` and `libGlobalBuild.yml`. Reads Criterion output from `target/criterion/**/new/{benchmark,estimates}.json` and writes `BENCHMARKS.md` with summary tables and Mermaid bar charts. If the repository uses a custom benchmark harness that does not create Criterion JSON, it falls back to `benchmark-output.txt`.
 
 Can also be run locally after `cargo bench`:
 
