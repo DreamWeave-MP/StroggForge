@@ -65,7 +65,7 @@ jobs:
   # Ensure any previously-existing releases are deleted,
   # And create a new one with auto-generated changelog & workflow ID
   release_cleanup:
-    uses: DreamWeave-MP/StroggForge/.github/workflows/createRelease.yml@v15
+    uses: DreamWeave-MP/StroggForge/.github/workflows/createRelease.yml@v16
     secrets: inherit
 
   # Run the full test suite on all platforms. Blocks release.
@@ -329,7 +329,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v15
+          ref: v16
           path: .stroggforge
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
@@ -376,7 +376,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Run Corprus Crucible
-        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v15
+        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v16
         with:
           binary_name: ${{ matrix.app_names }}
           vt_api_key: ${{ secrets.VT_API_KEY }}
@@ -404,7 +404,7 @@ jobs:
         run: dnf install -y epel-release && dnf install -y gcc gcc-c++ make gettext glibc-devel pkgconf-pkg-config openssl-devel p7zip p7zip-plugins
       - uses: actions/checkout@v6
       - name: Run Corprus Crucible
-        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v15
+        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v16
         with:
           binary_name: ${{ matrix.app_names }}
           vt_api_key: ${{ secrets.VT_API_KEY }}
@@ -432,7 +432,7 @@ jobs:
   call-discord-webhook:
     if: inputs.generate_discord_notification && github.event_name == 'push'
     needs: [release, release-linux]
-    uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v15
+    uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v16
     secrets:
       WEBHOOK_URL: ${{ secrets.DW_TOOLS_CHANNEL_WEBHOOK }}
     with:
@@ -449,7 +449,7 @@ jobs:
       matrix:
         target_repo: ${{ fromJson(inputs.dependent_repo_names) }}
 
-    uses: DreamWeave-MP/StroggForge/.github/workflows/dependent.yml@v15
+    uses: DreamWeave-MP/StroggForge/.github/workflows/dependent.yml@v16
 
     secrets:
       DW_BOT_PAT: ${{ secrets.DW_BOT_PAT }}
