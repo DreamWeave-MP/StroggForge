@@ -53,13 +53,20 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
-      - uses: actions/cache@v4
+        id: rust_toolchain
+      - name: Cache Cargo registry
+        uses: actions/cache@v5.0.5
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+      - name: Cache Cargo target directory
+        uses: actions/cache@v5.0.5
+        with:
+          path: |
             target
-          key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Run Tests
         run: cargo test --workspace --all-targets --all-features -- --show-output
 
@@ -78,13 +85,20 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
-      - uses: actions/cache@v4
+        id: rust_toolchain
+      - name: Cache Cargo registry
+        uses: actions/cache@v5.0.5
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+      - name: Cache Cargo target directory
+        uses: actions/cache@v5.0.5
+        with:
+          path: |
             target
-          key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Run Clippy
         run: cargo clippy --workspace --all-targets --all-features -- -W clippy::pedantic -D warnings
 
@@ -111,13 +125,20 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
-      - uses: actions/cache@v4
+        id: rust_toolchain
+      - name: Cache Cargo registry
+        uses: actions/cache@v5.0.5
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+      - name: Cache Cargo target directory
+        uses: actions/cache@v5.0.5
+        with:
+          path: |
             target
-          key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Publish Dry Run
         run: |
           MANIFEST=$(cargo metadata --no-deps --format-version 1 | \
@@ -136,13 +157,20 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
-      - uses: actions/cache@v4
+        id: rust_toolchain
+      - name: Cache Cargo registry
+        uses: actions/cache@v5.0.5
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+      - name: Cache Cargo target directory
+        uses: actions/cache@v5.0.5
+        with:
+          path: |
             target
-          key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Publish to crates.io
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
@@ -168,13 +196,20 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
-      - uses: actions/cache@v4
+        id: rust_toolchain
+      - name: Cache Cargo registry
+        uses: actions/cache@v5.0.5
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+      - name: Cache Cargo target directory
+        uses: actions/cache@v5.0.5
+        with:
+          path: |
             target
-          key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Build Documentation
         run: cargo doc --no-deps --workspace
       - name: Create Index Redirect
@@ -273,13 +308,20 @@ jobs:
           ref: v15
           path: .stroggforge
       - uses: dtolnay/rust-toolchain@stable
-      - uses: actions/cache@v4
+        id: rust_toolchain
+      - name: Cache Cargo registry
+        uses: actions/cache@v5.0.5
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+      - name: Cache Cargo target directory
+        uses: actions/cache@v5.0.5
+        with:
+          path: |
             target
-          key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Run Benchmarks
         run: cargo bench
       - name: Generate Benchmark Docs
