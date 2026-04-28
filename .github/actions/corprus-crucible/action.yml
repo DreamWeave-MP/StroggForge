@@ -62,6 +62,8 @@ runs:
         fi
 
         echo "build_dir=$BUILD_DIR" >> $GITHUB_OUTPUT
+        echo "target_dir=.corprus-crucible/target" >> $GITHUB_OUTPUT
+        echo "dist_dir=.corprus-crucible/dist" >> $GITHUB_OUTPUT
 
     # Build steps
     - name: Setup Rust
@@ -82,13 +84,35 @@ runs:
       if: github.event_name != 'pull_request'
       with:
         path: |
-          target
-          ${{ steps.context.outputs.build_dir }}/target
+          ${{ steps.context.outputs.target_dir }}
         key: ${{ runner.os }}-${{ runner.arch }}-release-target-${{ inputs.binary_name }}-${{ steps.rust_toolchain.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock') }}
 
     - name: Build Release
+      id: build_release
       shell: bash
-      run: cargo build --release --manifest-path ${{ steps.context.outputs.build_dir }}/Cargo.toml
+      run: |
+        set -euo pipefail
+
+        BINARY_NAME="${{ inputs.binary_name }}${{ steps.os_check.outputs.suffix }}"
+        TARGET_DIR="${{ steps.context.outputs.target_dir }}"
+        DIST_DIR="${{ steps.context.outputs.dist_dir }}"
+
+        mkdir -p "$TARGET_DIR" "$DIST_DIR"
+        CARGO_TARGET_DIR="$TARGET_DIR" cargo build --release --manifest-path "${{ steps.context.outputs.build_dir }}/Cargo.toml"
+
+        BUILT_BINARY="$TARGET_DIR/release/$BINARY_NAME"
+        RELEASE_BINARY="$DIST_DIR/$BINARY_NAME"
+
+        if [ ! -f "$BUILT_BINARY" ]; then
+          echo "::error::Expected built binary at $BUILT_BINARY"
+          exit 1
+        fi
+
+        cp "$BUILT_BINARY" "$RELEASE_BINARY"
+        chmod +x "$RELEASE_BINARY" 2>/dev/null || true
+
+        echo "binary_name=$BINARY_NAME" >> $GITHUB_OUTPUT
+        echo "release_binary=$RELEASE_BINARY" >> $GITHUB_OUTPUT
 
     # - name: Cargo Publish
     #   if: ${{ inputs.cargo_token }} != '' && ${{ inputs.release_name }} != 'development'
@@ -103,33 +127,35 @@ runs:
       shell: bash
       if: github.event_name != 'pull_request'
       run: |
-        BINARY_NAME="${{ inputs.binary_name }}${{ steps.os_check.outputs.suffix }}"
-        cosign sign-blob -y "${{ steps.context.outputs.build_dir }}/target/release/$BINARY_NAME" \
-          --bundle "${{ inputs.binary_name }}-${{ runner.os }}-${{ runner.arch }}.bundle"
+        cosign sign-blob -y "${{ steps.build_release.outputs.release_binary }}" \
+          --bundle "${{ steps.context.outputs.dist_dir }}/${{ inputs.binary_name }}-${{ runner.os }}-${{ runner.arch }}.bundle"
 
     - name: Create Archive
       shell: bash
       if: github.event_name != 'pull_request'
       run: |
-        BINARY_NAME="${{ inputs.binary_name }}${{ steps.os_check.outputs.suffix }}"
         ARCHIVE_NAME="${{ inputs.binary_name}}-${{ runner.os }}-${{ runner.arch }}.zip"
-        
-        INCLUDE_FILES=(
-          "./${{ steps.context.outputs.build_dir }}/target/release/$BINARY_NAME"
-          "${{ inputs.binary_name }}-${{ runner.os }}-${{ runner.arch }}.bundle"
-        )
-        
+        ARCHIVE_PATH="$PWD/$ARCHIVE_NAME"
+        DIST_DIR="${{ steps.context.outputs.dist_dir }}"
+        BUNDLE_NAME="${{ inputs.binary_name }}-${{ runner.os }}-${{ runner.arch }}.bundle"
+        INCLUDE_NAMES=("${{ steps.build_release.outputs.binary_name }}" "$BUNDLE_NAME")
+
         if [ -n "${{ inputs.include_files }}" ]; then
           IFS=',' read -ra USER_FILES <<< "${{ inputs.include_files }}"
           for file in "${USER_FILES[@]}"; do
+            file="${file#${file%%[![:space:]]*}}"
+            file="${file%${file##*[![:space:]]}}"
             if [ -f "./${{ steps.context.outputs.build_dir }}/$file" ]; then
-              INCLUDE_FILES+=("./${{ steps.context.outputs.build_dir }}/$file")
+              include_name="$(basename "$file")"
+              cp "./${{ steps.context.outputs.build_dir }}/$file" "$DIST_DIR/$include_name"
+              INCLUDE_NAMES+=("$include_name")
             fi
           done
         fi
 
-        # Create archive with all files at once
-        7z a -tzip "$ARCHIVE_NAME" "${INCLUDE_FILES[@]}"
+        pushd "$DIST_DIR" >/dev/null
+        7z a -tzip "$ARCHIVE_PATH" "${INCLUDE_NAMES[@]}"
+        popd >/dev/null
 
     - name: VirusTotal Scan
       if: github.event_name != 'pull_request'
@@ -138,7 +164,7 @@ runs:
       with:
         update_release_body: true
         vt_api_key: ${{ inputs.vt_api_key }}
-        files: ${{ steps.context.outputs.build_dir }}/target/release/${{ inputs.binary_name }}${{ steps.os_check.outputs.suffix }}
+        files: ${{ steps.build_release.outputs.release_binary }}
 
     - name: Format VirusTotal Links
       if: github.event_name != 'pull_request'
@@ -183,5 +209,5 @@ runs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ inputs.binary_name }}-${{ runner.os }}-${{ runner.arch }}
-        path: ./${{ steps.context.outputs.build_dir }}/target/release/${{ inputs.binary_name }}${{ steps.os_check.outputs.suffix }}
+        path: ${{ steps.build_release.outputs.release_binary }}
         retention-days: 7
