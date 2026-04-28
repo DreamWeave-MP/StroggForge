@@ -41,7 +41,7 @@ jobs:
   # Ensure any previously-existing releases are deleted,
   # And create a new one with auto-generated changelog & workflow ID
   release_cleanup:
-    uses: DreamWeave-MP/StroggForge/.github/workflows/createRelease.yml@v9
+    uses: DreamWeave-MP/StroggForge/.github/workflows/createRelease.yml@v15
     secrets: inherit
 
   # Run the full test suite on all platforms. Blocks release.
@@ -155,7 +155,7 @@ jobs:
   # Build cargo doc and deploy to GitHub Pages.
   # Requires Pages to be enabled with "GitHub Actions" as the source in repo settings.
   docs:
-    if: inputs.publish_docs && github.event_name != 'pull_request'
+    if: inputs.publish_docs && github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [test, clippy]
     runs-on: ubuntu-22.04
     permissions:
@@ -270,7 +270,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v9
+          ref: v15
           path: .stroggforge
       - uses: dtolnay/rust-toolchain@stable
       - uses: actions/cache@v4
@@ -296,7 +296,7 @@ jobs:
   call-discord-webhook:
     if: always() && github.event_name == 'push'
     needs: [test, fmt, clippy]
-    uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v9
+    uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v15
     secrets:
       WEBHOOK_URL: ${{ secrets.DW_TOOLS_CHANNEL_WEBHOOK }}
     with:
@@ -306,14 +306,14 @@ jobs:
   # For any repositories which use this one as a dependent,
   # notify them by creating an issue within the DreamWeave org's scope.
   nag-dependents:
-    if: success() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && inputs.dependent_repo_names != ''
+    if: success() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && inputs.dependent_repo_names != '' && inputs.dependent_repo_names != '[]'
     needs: [test, fmt, clippy]
 
     strategy:
       matrix:
         target_repo: ${{ fromJson(inputs.dependent_repo_names) }}
 
-    uses: DreamWeave-MP/StroggForge/.github/workflows/dependent.yml@v9
+    uses: DreamWeave-MP/StroggForge/.github/workflows/dependent.yml@v15
 
     secrets:
       DW_BOT_PAT: ${{ secrets.DW_BOT_PAT }}

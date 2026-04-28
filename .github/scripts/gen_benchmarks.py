@@ -125,11 +125,12 @@ def standalone_prefix(group_id: str) -> str:
     return group_id.split()[0]
 
 
-def try_int(s: str):
+def sort_value_str(s: str) -> tuple[int, int | str]:
+    """Sort numeric Criterion values numerically, then text values lexically."""
     try:
-        return int(s)
+        return (0, int(s))
     except ValueError:
-        return s
+        return (1, s)
 
 
 # ---------------------------------------------------------------------------
@@ -206,12 +207,41 @@ def generate_md(records: list[dict]) -> str:
         # x-axis: input sizes sorted numerically
         all_x = sorted(
             {r["value_str"] for r in recs if r["value_str"]},
-            key=try_int,
+            key=sort_value_str,
         )
         fn_ids = sorted(fn_map.keys())
 
         all_ns = [r["mean_ns"] for r in recs]
         div, unit = best_unit(all_ns)
+
+        if not all_x:
+            # Criterion also uses function_id for non-parameterized
+            # benchmark_group::bench_function results. Those have no x-axis;
+            # treating them as a parameterized chart gives us max([]), which is
+            # a very efficient way to publish no benchmarks at all.
+            chart_labels = []
+            chart_values = []
+
+            lines.append("| Function | Mean | ± Std Dev |")
+            lines.append("|---|---:|---:|")
+            for fn_id in fn_ids:
+                r = fn_map[fn_id].get("")
+                if r is None:
+                    continue
+                label = fn_id or group_id
+                chart_labels.append(label)
+                chart_values.append(r["mean_ns"])
+                lines.append(
+                    f"| {label} "
+                    f"| {fmt_time(r['mean_ns'], div, unit)} "
+                    f"| {fmt_time(r['std_ns'], div, unit)} |"
+                )
+            lines.append("")
+
+            if chart_values:
+                lines.append(make_bar_chart(group_id, chart_labels, chart_values))
+                lines.append("")
+            continue
 
         # Summary table
         header = "| n | " + " | ".join(fn_ids) + " |"

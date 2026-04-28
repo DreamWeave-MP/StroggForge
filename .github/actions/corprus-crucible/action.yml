@@ -68,7 +68,7 @@ runs:
       uses: dtolnay/rust-toolchain@stable
 
     - name: ⚡ Cache Dependencies
-      uses: actions/cache@v4
+      uses: actions/cache@v5.0.5
       if: github.event_name != 'pull_request'
       with:
         path: |
@@ -158,7 +158,7 @@ runs:
 
     - name: Upload to GitHub Release
       if: github.event_name != 'pull_request'
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v3.0.0
       env:
         GITHUB_TOKEN: ${{ inputs.github_token }}
       with:
