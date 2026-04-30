@@ -14,7 +14,7 @@ Inputs:
 
 1. `binary_names`: Required. JSON array of binary names to build, e.g. `'["my-app"]'`. Add multiple entries for monorepos.
 1. `aur_package_name`: Optional. AUR package name. Omit if the project is not on the AUR.
-1. `dependent_repo_names`: Optional. JSON array of repositories to notify via issue on tagged releases.
+1. `dependent_repo_names`: Optional. Repositories to notify via issue on tagged releases, one `Owner/Repo` per line. JSON arrays are still accepted for compatibility.
 1. `git_username` / `git_email`: Optional. AUR commit identity. Defaults to the DreamWeave maintainer values.
 1. `publish_docs`: Optional, default `true`. Set `false` if the project uses its own static site generator for documentation.
 1. `cargo_publish`: Optional, default `true`. Runs `cargo publish --dry-run` on every non-tag push, and `cargo publish` on tagged releases. Set `false` if the project does not publish to crates.io. Requires `CARGO_REGISTRY_TOKEN` secret.
@@ -36,7 +36,7 @@ The library equivalent of `rustGlobalBuild.yml`. Use this for crates that have n
 Inputs:
 
 1. `crate_names`: Required. JSON array of crate names to publish, e.g. `'["my-lib"]'`. Used to locate each crate's `Cargo.toml` via `cargo metadata` (hyphens and underscores are treated as equivalent).
-1. `dependent_repo_names`: Optional. JSON array of repositories to notify via issue on tagged releases.
+1. `dependent_repo_names`: Optional. Repositories to notify via issue on tagged releases, one `Owner/Repo` per line. JSON arrays are still accepted for compatibility.
 1. `publish_docs`: Optional, default `true`. Set `false` if using a custom SSG.
 1. `cargo_publish`: Optional, default `true`. Dry-run on non-tag pushes; real publish on tagged releases. Requires `CARGO_REGISTRY_TOKEN` secret.
 1. `generate_changelog`: Optional, default `true`.
@@ -85,16 +85,18 @@ Secrets:
 
 ## [./.github/workflows/dependent.yml](./.github/workflows/dependent.yml)
 
-Reusable workflow that opens a dependency update issue in another repository. Run in a matrix to notify multiple repos.
+Reusable workflow that opens dependency update issues in downstream repositories. It accepts the same newline-separated repository list as the public workflows and fans out internally, attempting every repository before reporting aggregate failure.
 
 Inputs:
 
-1. `aur_package_name`: Required. Used to generate a link to the AUR package in the issue body.
-1. `target_repo`: Required. The `Owner/Repo` to open the issue in.
+1. `aur_package_name`: Optional. Used by application releases to render an AUR package link in the issue body. Omit for libraries or applications that are not published to the AUR.
+1. `dependent_repo_names`: Optional. Repositories to notify, one `Owner/Repo` per line. JSON arrays are still accepted for compatibility.
 
 Secrets:
 
 1. `DW_BOT_PAT`: Required. Use the org-level PAT created for this purpose.
+
+Created issues use the default `enhancement` label when the target repository has it; otherwise the issue is created without labels. Custom DreamWeave-only labels are not assumed to exist in downstream repositories, because that would be optimistic in the way YAML usually punishes.
 
 ## [./.github/scripts/gen_benchmarks.py](./.github/scripts/gen_benchmarks.py)
 
@@ -121,6 +123,14 @@ Shared shell script used by library publishing jobs. Given a crate name, it uses
 ## [./scripts/shared/docs-index.sh](./scripts/shared/docs-index.sh)
 
 Shared shell script used by both application and library docs jobs. Given the workflow's JSON array of binary or crate names, it creates the GitHub Pages `target/doc/index.html` redirect to the first generated rustdoc package path.
+
+## [./scripts/shared/create-dependent-update-issues.sh](./scripts/shared/create-dependent-update-issues.sh)
+
+Shared shell script used by `dependent.yml` to parse newline-separated or JSON-array dependent repository lists and call `create-dependent-update-issue.sh` for each repository. It attempts every target and exits non-zero after the loop if any notification failed.
+
+## [./scripts/shared/create-dependent-update-issue.sh](./scripts/shared/create-dependent-update-issue.sh)
+
+Shared shell script used by `create-dependent-update-issues.sh` to create one dependency update issue. It renders the AUR link only when an AUR package name is provided and applies the `enhancement` label only when the target repository has that label.
 
 ## [./.github/action_templates/rust_template.yaml](./.github/action_templates/rust_template.yaml)
 

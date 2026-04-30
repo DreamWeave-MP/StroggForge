@@ -13,7 +13,8 @@ on:
         default: ''
       dependent_repo_names:
         type: string
-        required: true
+        required: false
+        default: ''
 
 jobs:
   notify-dependents:
