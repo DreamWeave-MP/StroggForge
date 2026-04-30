@@ -19,11 +19,11 @@ inputs:
     description: 'Name of the release (tag or development)'
     required: true
   nexus_api_key:
-    description: 'Nexus Mods API key. Provide with nexus_group_id to upload release archives to Nexus Mods.'
+    description: 'Nexus Mods API key. Provide with nexus_group_ids to upload release archives to Nexus Mods.'
     required: false
     default: ''
-  nexus_group_id:
-    description: 'Nexus Mods file group ID. Provide with nexus_api_key to upload release archives to Nexus Mods.'
+  nexus_group_ids:
+    description: 'Nexus Mods file group IDs as JSON. Provide with nexus_api_key to upload release archives to Nexus Mods.'
     required: false
     default: ''
   # cargo_token:
@@ -131,15 +131,26 @@ runs:
         "${{ steps.vt_scan.outputs.analysis }}"
 
     - name: Validate Nexus Mods Inputs
-      if: github.event_name != 'pull_request' && (inputs.nexus_api_key != '' || inputs.nexus_group_id != '')
+      if: github.event_name != 'pull_request' && (inputs.nexus_api_key != '' || inputs.nexus_group_ids != '')
       shell: bash
+      env:
+        NEXUS_GROUP_IDS: ${{ inputs.nexus_group_ids }}
+      run: bash "${{ github.action_path }}/../../../scripts/corprus-crucible/validate-nexusmods-inputs.sh" "${{ inputs.nexus_api_key }}"
+
+    - name: Resolve Nexus Mods Group ID
+      if: github.event_name != 'pull_request' && inputs.nexus_api_key != '' && inputs.nexus_group_ids != ''
+      id: nexus_group
+      shell: bash
+      env:
+        NEXUS_GROUP_IDS: ${{ inputs.nexus_group_ids }}
       run: >-
-        bash "${{ github.action_path }}/../../../scripts/corprus-crucible/validate-nexusmods-inputs.sh"
-        "${{ inputs.nexus_api_key }}"
-        "${{ inputs.nexus_group_id }}"
+        bash "${{ github.action_path }}/../../../scripts/corprus-crucible/resolve-nexusmods-group-id.sh"
+        "${{ runner.os }}"
+        "${{ runner.arch }}"
+        "${{ inputs.release_name }}"
 
     - name: Prepare Nexus Mods Archive
-      if: github.event_name != 'pull_request' && inputs.nexus_api_key != '' && inputs.nexus_group_id != ''
+      if: github.event_name != 'pull_request' && inputs.nexus_api_key != '' && steps.nexus_group.outputs.group_id != ''
       id: nexus_archive
       shell: bash
       run: >-
@@ -147,14 +158,15 @@ runs:
         "${{ inputs.binary_name }}"
         "${{ runner.os }}"
         "${{ runner.arch }}"
+        "${{ steps.nexus_group.outputs.nexus_platform }}"
         "${{ inputs.release_name }}"
 
     - name: Upload to Nexus Mods
-      if: github.event_name != 'pull_request' && inputs.nexus_api_key != '' && inputs.nexus_group_id != ''
+      if: github.event_name != 'pull_request' && inputs.nexus_api_key != '' && steps.nexus_group.outputs.group_id != ''
       uses: Nexus-Mods/upload-action@v1.0.0-beta.5
       with:
         api_key: ${{ inputs.nexus_api_key }}
-        file_group_id: ${{ inputs.nexus_group_id }}
+        file_group_id: ${{ steps.nexus_group.outputs.group_id }}
         filename: ${{ steps.nexus_archive.outputs.nexus_archive }}
         display_name: ${{ steps.nexus_archive.outputs.nexus_file_stem }}
         version: ${{ inputs.release_name }}
