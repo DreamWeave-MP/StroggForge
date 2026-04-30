@@ -2,7 +2,7 @@
 set -euo pipefail
 
 target_repo=${1:?target repository is required}
-aur_package_name=${2:?AUR package name is required}
+aur_package_name=${2:-}
 
 repo_name=${GITHUB_EVENT_REPOSITORY_NAME:-${GITHUB_REPOSITORY#*/}}
 version=${GITHUB_REF_NAME:?GITHUB_REF_NAME is required}
@@ -12,13 +12,18 @@ actor=${GITHUB_ACTOR:?GITHUB_ACTOR is required}
 
 issue_title="📦 Update ${repo_name} dependency to ${version}"
 release_url="${server_url}/${source_repo}/releases/tag/${version}"
+aur_line=""
+
+if [ -n "$aur_package_name" ]; then
+  aur_line="[${repo_name} on the AUR](https://aur.archlinux.org/packages/${aur_package_name})"
+fi
 
 issue_body=$(cat <<EOF
 ## 🚨 Dependency Update Required: [${source_repo}](${server_url}/${source_repo})
 
 **New Version:** [${version}](${release_url})
 **Released By:** @${actor} **on** $(date -u +"%Y-%m-%d %H:%M UTC")
-[${repo_name} on the AUR](https://aur.archlinux.org/packages/${aur_package_name})
+${aur_line}
 
 ### 📋 Required Actions
 Please test integration with ${repo_name} version ${version}.
