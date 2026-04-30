@@ -13,7 +13,7 @@ jobs:
       contents: write
       pages: write
       id-token: write
-    uses: DreamWeave-MP/StroggForge/.github/workflows/libGlobalBuild.yml@v25
+    uses: DreamWeave-MP/StroggForge/.github/workflows/libGlobalBuild.yml@v26
     secrets: inherit
     with:
       # Required: JSON array of crate names. Must match [package].name in Cargo.toml.

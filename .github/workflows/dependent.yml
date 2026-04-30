@@ -25,7 +25,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v25
+          ref: v26
           path: .stroggforge
 
       - name: Create Update Issue
