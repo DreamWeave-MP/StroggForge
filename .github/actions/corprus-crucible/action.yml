@@ -180,7 +180,7 @@ runs:
 
     - name: Upload Nexus Mods Upload Artifact
       if: github.event_name != 'pull_request' && inputs.nexus_api_key != '' && steps.nexus_group.outputs.group_id != ''
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7.0.1
       with:
         name: ${{ steps.nexus_upload_artifact.outputs.artifact_name }}
         path: ${{ steps.nexus_upload_artifact.outputs.artifact_dir }}
@@ -201,7 +201,7 @@ runs:
 
     - name: Upload artifact (for PRs)
       if: github.event_name == 'pull_request'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7.0.1
       with:
         name: ${{ inputs.binary_name }}-${{ runner.os }}-${{ runner.arch }}
         path: ${{ steps.build_release.outputs.release_binary }}
