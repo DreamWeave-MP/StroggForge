@@ -316,12 +316,8 @@ jobs:
           path: |
             target
           key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock') }}
-      - name: Run Benchmarks
-        run: |
-          set -o pipefail
-          CARGO_TERM_COLOR=never cargo bench 2>&1 | tee benchmark-output.txt
       - name: Generate Benchmark Docs
-        run: python3 .stroggforge/.github/scripts/gen_benchmarks.py
+        run: bash .stroggforge/scripts/shared/generate-benchmark-docs.sh .stroggforge/.github/scripts/gen_benchmarks.py
       - name: Upload Benchmark Docs to Release
         uses: softprops/action-gh-release@v3
         env:
