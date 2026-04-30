@@ -96,13 +96,17 @@ Secrets:
 
 ## [./.github/scripts/gen_benchmarks.py](./.github/scripts/gen_benchmarks.py)
 
-Python script used by the `benchmarks` job in `rustGlobalBuild.yml` and `libGlobalBuild.yml`. Reads Criterion output from `target/criterion/**/new/{benchmark,estimates}.json` and writes `BENCHMARKS.md` with summary tables and Mermaid bar charts. If the repository uses a custom benchmark harness that does not create Criterion JSON, it falls back to `benchmark-output.txt`.
+Python script used by `scripts/shared/generate-benchmark-docs.sh`. Reads Criterion output from `target/criterion/**/new/{benchmark,estimates}.json` and writes `BENCHMARKS.md` with summary tables and Mermaid bar charts. If the repository uses a custom benchmark harness that does not create Criterion JSON, it falls back to `benchmark-output.txt`.
 
 Can also be run locally after `cargo bench`:
 
 ```
 python3 /path/to/StroggForge/.github/scripts/gen_benchmarks.py
 ```
+
+## [./scripts/shared/generate-benchmark-docs.sh](./scripts/shared/generate-benchmark-docs.sh)
+
+Shared shell script used by both application and library benchmark jobs. Runs `cargo bench`, preserves the raw log in `benchmark-output.txt`, then runs the Python benchmark documentation generator to create `BENCHMARKS.md`.
 
 ## [./scripts/shared/changelog.sh](./scripts/shared/changelog.sh)
 
