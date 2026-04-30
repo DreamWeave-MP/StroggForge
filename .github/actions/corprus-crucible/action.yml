@@ -29,41 +29,17 @@ runs:
     # Validate required VirusTotal API key
     - name: Validate VirusTotal API Key
       shell: bash
-      run: |
-        if [ -z "${{ inputs.vt_api_key }}" ]; then
-          echo "::error::VirusTotal API key is required!"
-          echo "Please provide vt_api_key input to this action"
-          exit 1
-        else
-          echo "✅ VirusTotal API key is set"
-        fi
+      run: bash "${{ github.action_path }}/../../../scripts/corprus-crucible/validate-virustotal-key.sh" "${{ inputs.vt_api_key }}"
 
     - name: Determine Binary Suffix
       id: os_check
       shell: bash
-      run: |
-        if [[ "${{ runner.os }}" == "Windows" ]]; then
-          echo "suffix=.exe" >> $GITHUB_OUTPUT
-          echo "Binary suffix: '.exe' (Windows detected)"
-        else
-          echo "suffix=" >> $GITHUB_OUTPUT
-          echo "Binary suffix: '' (${{ runner.os }} detected)"
-        fi
+      run: bash "${{ github.action_path }}/../../../scripts/corprus-crucible/binary-suffix.sh" "${{ runner.os }}"
 
     - name: Determine Build Context
       id: context
       shell: bash
-      run: |
-        # Auto-detect: if binary_name is a directory, build there
-        if [ -d "${{ inputs.binary_name }}" ]; then
-          BUILD_DIR="${{ inputs.binary_name }}"
-        else
-          BUILD_DIR="."
-        fi
-
-        echo "build_dir=$BUILD_DIR" >> $GITHUB_OUTPUT
-        echo "target_dir=.corprus-crucible/target" >> $GITHUB_OUTPUT
-        echo "dist_dir=.corprus-crucible/dist" >> $GITHUB_OUTPUT
+      run: bash "${{ github.action_path }}/../../../scripts/corprus-crucible/resolve-build-context.sh" "${{ inputs.binary_name }}"
 
     # Build steps
     - name: Setup Rust
@@ -90,29 +66,13 @@ runs:
     - name: Build Release
       id: build_release
       shell: bash
-      run: |
-        set -euo pipefail
-
-        BINARY_NAME="${{ inputs.binary_name }}${{ steps.os_check.outputs.suffix }}"
-        TARGET_DIR="${{ steps.context.outputs.target_dir }}"
-        DIST_DIR="${{ steps.context.outputs.dist_dir }}"
-
-        mkdir -p "$TARGET_DIR" "$DIST_DIR"
-        CARGO_TARGET_DIR="$TARGET_DIR" cargo build --release --manifest-path "${{ steps.context.outputs.build_dir }}/Cargo.toml"
-
-        BUILT_BINARY="$TARGET_DIR/release/$BINARY_NAME"
-        RELEASE_BINARY="$DIST_DIR/$BINARY_NAME"
-
-        if [ ! -f "$BUILT_BINARY" ]; then
-          echo "::error::Expected built binary at $BUILT_BINARY"
-          exit 1
-        fi
-
-        cp "$BUILT_BINARY" "$RELEASE_BINARY"
-        chmod +x "$RELEASE_BINARY" 2>/dev/null || true
-
-        echo "binary_name=$BINARY_NAME" >> $GITHUB_OUTPUT
-        echo "release_binary=$RELEASE_BINARY" >> $GITHUB_OUTPUT
+      run: >-
+        bash "${{ github.action_path }}/../../../scripts/corprus-crucible/build-release-binary.sh"
+        "${{ inputs.binary_name }}"
+        "${{ steps.os_check.outputs.suffix }}"
+        "${{ steps.context.outputs.build_dir }}"
+        "${{ steps.context.outputs.target_dir }}"
+        "${{ steps.context.outputs.dist_dir }}"
 
     # - name: Cargo Publish
     #   if: ${{ inputs.cargo_token }} != '' && ${{ inputs.release_name }} != 'development'

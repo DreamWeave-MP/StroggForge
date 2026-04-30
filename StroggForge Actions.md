@@ -58,6 +58,8 @@ Build context detection: if `binary_name` matches a directory at the repo root, 
 
 On pull requests, signing and VirusTotal scanning are skipped; the binary is uploaded as a workflow artifact instead.
 
+Corprus Crucible shell implementation details live under `scripts/corprus-crucible/`. The composite action owns GitHub Actions orchestration; the scripts own validation, build context detection, binary suffix detection, and release binary staging.
+
 ## [./.github/workflows/createRelease.yml](./.github/workflows/createRelease.yml)
 
 Reusable workflow called at the start of every pipeline. Deletes any existing release matching the current tag (or `development` on non-tag pushes), then creates a fresh one with auto-generated changelog and a workflow run ID marker.
