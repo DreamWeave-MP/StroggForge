@@ -7,6 +7,8 @@ on:
         required: false
       DW_BOT_PAT:
         required: false
+      DISCORD_CHANNEL_WEBHOOK:
+        required: false
       DW_TOOLS_CHANNEL_WEBHOOK:
         required: false
     inputs:
@@ -312,7 +314,7 @@ jobs:
     needs: [test, fmt, clippy]
     uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v19
     secrets:
-      WEBHOOK_URL: ${{ secrets.DW_TOOLS_CHANNEL_WEBHOOK }}
+      WEBHOOK_URL: ${{ secrets.DISCORD_CHANNEL_WEBHOOK || secrets.DW_TOOLS_CHANNEL_WEBHOOK }}
     with:
       title: ${{ (needs.test.result == 'failure' || needs.fmt.result == 'failure' || needs.clippy.result == 'failure') && format('{0} pipeline failed! 😭', github.event.repository.name) || '' }}
       description: ${{ (needs.test.result == 'failure' || needs.fmt.result == 'failure' || needs.clippy.result == 'failure') && format('[Workflow Results](https://github.com/{0}/actions/runs/{1})', github.repository, github.run_id) || ''}}

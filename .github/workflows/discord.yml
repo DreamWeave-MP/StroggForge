@@ -4,7 +4,7 @@ on:
   workflow_call:
     secrets:
       WEBHOOK_URL:
-        required: true
+        required: false
 
     inputs:
       webhook_url:
@@ -32,9 +32,16 @@ jobs:
   discord-notify:
     name: Discord Notification
     runs-on: ubuntu-latest
+    env:
+      WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
 
     steps:
+      - name: Skip Missing Webhook
+        if: env.WEBHOOK_URL == ''
+        run: echo "Discord webhook secret was not provided; skipping notification."
+
       - name: Detect Release URL
+        if: env.WEBHOOK_URL != ''
         id: detect
         run: |
           echo "release_time=$(date -u "+%F %T")" >> $GITHUB_OUTPUT
@@ -49,6 +56,7 @@ jobs:
           fi
 
       - name: Initialize Empty Fields
+        if: env.WEBHOOK_URL != ''
         id: format
         run: |
           if [[ -z "${{ inputs.title }}" ]]; then
@@ -70,10 +78,11 @@ jobs:
           fi
 
       - name: Discord Webhook Action
+        if: env.WEBHOOK_URL != ''
         uses: tsickert/discord-webhook@v7.0.0
         with:
           username: DreamWeave
-          webhook-url: ${{ secrets.WEBHOOK_URL }}
+          webhook-url: ${{ env.WEBHOOK_URL }}
           avatar-url: ${{ inputs.avatar_url }}
           embed-title: ${{ steps.format.outputs.title }}
           embed-description: ${{ steps.format.outputs.description }}
