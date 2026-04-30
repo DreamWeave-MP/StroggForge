@@ -116,26 +116,10 @@ runs:
       if: github.event_name != 'pull_request'
       id: format_vt_links
       shell: bash
-      run: |
-        # Extract just the filename for display
-        FILENAME="${{ inputs.binary_name }}-${{ runner.os }}-${{ runner.arch }}"
-
-        # The vt_scan outputs.analysis is like "filename=https://virustotal.com/..."
-        # Parse it to create markdown links
-        if [ -n "${{ steps.vt_scan.outputs.analysis }}" ]; then
-          # Convert "filename=url,filename2=url2" to markdown
-          ANALYSIS_TEXT=""
-          IFS=',' read -ra ENTRIES <<< "${{ steps.vt_scan.outputs.analysis }}"
-
-          for entry in "${ENTRIES[@]}"; do
-            IFS='=' read -r file url <<< "$entry"
-            ANALYSIS_TEXT="${ANALYSIS_TEXT}- [${FILENAME} on VirusTotal](${url})"$'\n'
-          done
-
-          echo "vt_analysis=${ANALYSIS_TEXT}" >> $GITHUB_OUTPUT
-        else
-          echo "vt_analysis=" >> $GITHUB_OUTPUT
-        fi
+      run: >-
+        bash "${{ github.action_path }}/../../../scripts/corprus-crucible/format-virustotal-links.sh"
+        "${{ inputs.binary_name }}-${{ runner.os }}-${{ runner.arch }}"
+        "${{ steps.vt_scan.outputs.analysis }}"
 
     - name: Upload to GitHub Release
       if: github.event_name != 'pull_request'
