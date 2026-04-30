@@ -14,7 +14,7 @@ Inputs:
 
 1. `binary_names`: Required. JSON array of binary names to build, e.g. `'["my-app"]'`. Add multiple entries for monorepos.
 1. `aur_package_name`: Optional. AUR package name. Omit if the project is not on the AUR.
-1. `dependent_repo_names`: Optional. Repositories to notify via issue on tagged releases, one `Owner/Repo` per line. JSON arrays are still accepted for compatibility.
+1. `dependent_repo_names`: Optional. Repositories to notify via issue on tagged releases, one `Owner/Repo` per line. JSON arrays are still accepted for compatibility. When set, requires `DW_BOT_PAT`.
 1. `git_username` / `git_email`: Optional. AUR commit identity. Defaults to the DreamWeave maintainer values.
 1. `publish_docs`: Optional, default `true`. Set `false` if the project uses its own static site generator for documentation.
 1. `cargo_publish`: Optional, default `true`. Runs `cargo publish --dry-run` on every non-tag push, and `cargo publish` on tagged releases. Set `false` if the project does not publish to crates.io. Requires `CARGO_REGISTRY_TOKEN` secret.
@@ -36,7 +36,7 @@ The library equivalent of `rustGlobalBuild.yml`. Use this for crates that have n
 Inputs:
 
 1. `crate_names`: Required. JSON array of crate names to publish, e.g. `'["my-lib"]'`. Used to locate each crate's `Cargo.toml` via `cargo metadata` (hyphens and underscores are treated as equivalent).
-1. `dependent_repo_names`: Optional. Repositories to notify via issue on tagged releases, one `Owner/Repo` per line. JSON arrays are still accepted for compatibility.
+1. `dependent_repo_names`: Optional. Repositories to notify via issue on tagged releases, one `Owner/Repo` per line. JSON arrays are still accepted for compatibility. When set, requires `DW_BOT_PAT`.
 1. `publish_docs`: Optional, default `true`. Set `false` if using a custom SSG.
 1. `cargo_publish`: Optional, default `true`. Dry-run on non-tag pushes; real publish on tagged releases. Requires `CARGO_REGISTRY_TOKEN` secret.
 1. `generate_changelog`: Optional, default `true`.
