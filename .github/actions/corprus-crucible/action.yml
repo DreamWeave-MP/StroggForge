@@ -161,20 +161,29 @@ runs:
         "${{ steps.nexus_group.outputs.nexus_platform }}"
         "${{ inputs.release_name }}"
 
-    - name: Upload to Nexus Mods
+    - name: Prepare Nexus Mods Upload Artifact
       if: github.event_name != 'pull_request' && inputs.nexus_api_key != '' && steps.nexus_group.outputs.group_id != ''
-      uses: DreamWeave-MP/upload-action@main
-      with:
-        api_key: ${{ inputs.nexus_api_key }}
-        file_group_id: ${{ steps.nexus_group.outputs.group_id }}
-        filename: ${{ steps.nexus_archive.outputs.nexus_archive }}
-        display_name: ${{ steps.nexus_archive.outputs.nexus_file_stem }}
-        version: ${{ inputs.release_name }}
-        description: |
-          ${{ inputs.binary_name }} release archive for ${{ runner.os }}-${{ runner.arch }}.
+      id: nexus_upload_artifact
+      shell: bash
+      env:
+        VT_ANALYSIS_BBCODE: ${{ steps.format_vt_links.outputs.vt_analysis_bbcode }}
+      run: >-
+        bash "${{ github.action_path }}/../../../scripts/corprus-crucible/prepare-nexusmods-upload-artifact.sh"
+        "${{ inputs.binary_name }}"
+        "${{ runner.os }}"
+        "${{ runner.arch }}"
+        "${{ steps.nexus_group.outputs.group_id }}"
+        "${{ steps.nexus_archive.outputs.nexus_archive }}"
+        "${{ steps.nexus_archive.outputs.nexus_file_stem }}"
+        "${{ inputs.release_name }}"
 
-          ${{ steps.format_vt_links.outputs.vt_analysis_bbcode }}
-        archive_existing_file: ${{ inputs.release_name == 'development' }}
+    - name: Upload Nexus Mods Upload Artifact
+      if: github.event_name != 'pull_request' && inputs.nexus_api_key != '' && steps.nexus_group.outputs.group_id != ''
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ steps.nexus_upload_artifact.outputs.artifact_name }}
+        path: ${{ steps.nexus_upload_artifact.outputs.artifact_dir }}
+        retention-days: 1
 
     - name: Upload to GitHub Release
       if: github.event_name != 'pull_request'

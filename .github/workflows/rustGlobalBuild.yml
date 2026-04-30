@@ -388,6 +388,63 @@ jobs:
           nexus_api_key: ${{ secrets.NEXUS_API_KEY }}
           nexus_group_ids: ${{ secrets.NEXUS_GROUP_IDS }}
 
+  # Publish Nexus Mods files after all platform archives are built.
+  # Nexus' upload API does not tolerate concurrent publication very well (empty 500s, naturally),
+  # so keep the expensive build/sign/scan work parallel and serialize only this remote mutation.
+  nexus-publish:
+    if: github.event_name != 'pull_request'
+    needs: [release, release-linux]
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        app_names: ${{ fromJson(inputs.binary_names) }}
+        platform:
+          - os: macOS
+            arch: ARM64
+          - os: macOS
+            arch: X64
+          - os: Windows
+            arch: X64
+          - os: Linux
+            arch: X64
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          repository: DreamWeave-MP/StroggForge
+          ref: v24
+          path: .stroggforge
+
+      - name: Download Nexus Mods Upload Artifact
+        id: download_nexus_artifact
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: nexus-${{ matrix.app_names }}-${{ matrix.platform.os }}-${{ matrix.platform.arch }}
+          path: .corprus-crucible/nexus-downloads/nexus-${{ matrix.app_names }}-${{ matrix.platform.os }}-${{ matrix.platform.arch }}
+
+      - name: Read Nexus Mods Upload Artifact
+        if: steps.download_nexus_artifact.outcome == 'success'
+        id: nexus_upload
+        run: >-
+          bash .stroggforge/scripts/corprus-crucible/read-nexusmods-upload-artifact.sh
+          ".corprus-crucible/nexus-downloads/nexus-${{ matrix.app_names }}-${{ matrix.platform.os }}-${{ matrix.platform.arch }}"
+
+      - name: Upload to Nexus Mods
+        if: steps.download_nexus_artifact.outcome == 'success'
+        uses: DreamWeave-MP/upload-action@main
+        with:
+          api_key: ${{ secrets.NEXUS_API_KEY }}
+          file_group_id: ${{ steps.nexus_upload.outputs.group_id }}
+          filename: ${{ steps.nexus_upload.outputs.filename }}
+          display_name: ${{ steps.nexus_upload.outputs.display_name }}
+          version: ${{ steps.nexus_upload.outputs.version }}
+          description: ${{ steps.nexus_upload.outputs.description }}
+          archive_existing_file: ${{ steps.nexus_upload.outputs.archive_existing_file }}
+
   # For application repositories which are also hosted in the AUR,
   # update the AUR package as well.
   aur-publish:
@@ -408,19 +465,19 @@ jobs:
   # For workflows where users may now receive a new deliverable, notify them about it!
   call-discord-webhook:
     if: inputs.generate_discord_notification && github.event_name == 'push'
-    needs: [release, release-linux]
+    needs: [release, release-linux, nexus-publish]
     uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v24
     secrets:
       WEBHOOK_URL: ${{ secrets.DISCORD_CHANNEL_WEBHOOK || secrets.DW_TOOLS_CHANNEL_WEBHOOK }}
     with:
-      title: ${{ (needs.release.result == 'failure' || needs.release-linux.result == 'failure') && format('{0} pipeline failed! 😭', github.event.repository.name) || '' }}
-      description: ${{ (needs.release.result == 'failure' || needs.release-linux.result == 'failure') && format('[Workflow Results](https://github.com/{0}/actions/runs/{1})', github.repository, github.run_id) || ''}}
+      title: ${{ (needs.release.result == 'failure' || needs.release-linux.result == 'failure' || needs['nexus-publish'].result == 'failure') && format('{0} pipeline failed! 😭', github.event.repository.name) || '' }}
+      description: ${{ (needs.release.result == 'failure' || needs.release-linux.result == 'failure' || needs['nexus-publish'].result == 'failure') && format('[Workflow Results](https://github.com/{0}/actions/runs/{1})', github.repository, github.run_id) || ''}}
 
   # For any repositories which use this one as a dependent,
   # notify them by creating an issue within the DreamWeave org's scope.
   nag-dependents:
     if: success() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && inputs.dependent_repo_names != '' && inputs.dependent_repo_names != '[]'
-    needs: [release, release-linux]
+    needs: [release, release-linux, nexus-publish]
 
     uses: DreamWeave-MP/StroggForge/.github/workflows/dependent.yml@v24
 
