@@ -112,6 +112,10 @@ Shared shell script used by both application and library workflows to generate `
 
 Shared shell script used by library publishing jobs. Given a crate name, it uses `cargo metadata` to find the matching `Cargo.toml`, treating hyphens and underscores as equivalent.
 
+## [./scripts/shared/docs-index.sh](./scripts/shared/docs-index.sh)
+
+Shared shell script used by both application and library docs jobs. Given the workflow's JSON array of binary or crate names, it creates the GitHub Pages `target/doc/index.html` redirect to the first generated rustdoc package path.
+
 ## [./.github/action_templates/rust_template.yaml](./.github/action_templates/rust_template.yaml)
 
 Workflow template for new Rust binary repositories. Copy it to `.github/workflows/build.yml` in the target repo and replace `ENTER_BINARY_NAME_HERE` with the binary name. Uncomment optional inputs as needed.

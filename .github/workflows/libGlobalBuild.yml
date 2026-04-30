@@ -210,6 +210,11 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: DreamWeave-MP/StroggForge
+          ref: v19
+          path: .stroggforge
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
       - name: Cache Cargo registry
@@ -228,9 +233,7 @@ jobs:
       - name: Build Documentation
         run: cargo doc --no-deps --workspace
       - name: Create Index Redirect
-        run: |
-          PRIMARY=$(echo '${{ inputs.crate_names }}' | jq -r '.[0]' | tr '-' '_')
-          echo "<meta http-equiv=\"refresh\" content=\"0; url=${PRIMARY}/index.html\">" > target/doc/index.html
+        run: bash .stroggforge/scripts/shared/docs-index.sh '${{ inputs.crate_names }}' target/doc/index.html
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
