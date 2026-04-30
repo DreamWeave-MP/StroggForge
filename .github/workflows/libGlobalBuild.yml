@@ -199,7 +199,7 @@ jobs:
   # Requires Pages to be enabled with "GitHub Actions" as the source in repo settings.
   docs:
     if: inputs.publish_docs && github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [test, clippy]
+    needs: [test, clippy, fmt, audit]
     runs-on: ubuntu-22.04
     permissions:
       contents: read
@@ -245,7 +245,7 @@ jobs:
   # Generate a CHANGELOG.md from git history and upload it to the release.
   changelog:
     if: inputs.generate_changelog && github.event_name != 'pull_request'
-    needs: [release_cleanup]
+    needs: [release_cleanup, test, clippy, fmt, audit]
     runs-on: ubuntu-22.04
     permissions:
       contents: write
@@ -271,7 +271,7 @@ jobs:
   # Run cargo bench, generate BENCHMARKS.md from Criterion output or the raw benchmark log, and upload to the release.
   benchmarks:
     if: inputs.generate_benchmarks && github.event_name != 'pull_request'
-    needs: [release_cleanup]
+    needs: [release_cleanup, test, clippy, fmt, audit]
     runs-on: ubuntu-22.04
     permissions:
       contents: write

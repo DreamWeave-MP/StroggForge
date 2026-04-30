@@ -26,7 +26,7 @@ The pipeline runs these jobs:
 - Quality gates (parallel, block release): `test` (full platform matrix), `fmt`, `clippy` (pedantic), `audit` (RustSec)
 - Informational (parallel, does not block): `publish-dry-run`
 - Release builds (after gates pass): `release` (macOS ARM + Intel, Windows), `release-linux` (AlmaLinux 8 container for glibc 2.28 compatibility)
-- Doc/artifact generation (after gates pass, skipped on PRs): `docs` (GitHub Pages), `changelog`, `benchmarks`
+- Doc/artifact generation (after gates pass, skipped on PRs except docs which only runs on main pushes): `docs` (GitHub Pages), `changelog`, `benchmarks`
 - Post-release (after all builds): `publish` (crates.io, tag only), `aur-publish`, `call-discord-webhook`, `nag-dependents`
 
 ## [./.github/workflows/libGlobalBuild.yml](./.github/workflows/libGlobalBuild.yml)
@@ -58,7 +58,7 @@ Build context detection: if `binary_name` matches a directory at the repo root, 
 
 On pull requests, signing and VirusTotal scanning are skipped; the binary is uploaded as a workflow artifact instead.
 
-Corprus Crucible shell implementation details live under `scripts/corprus-crucible/`. The composite action owns GitHub Actions orchestration; the scripts own validation, build context detection, binary suffix detection, and release binary staging.
+Corprus Crucible shell implementation details live under `scripts/corprus-crucible/`. The composite action owns GitHub Actions orchestration; the scripts own validation, build context detection, binary suffix detection, release binary staging, signing, archive creation, and VirusTotal link formatting.
 
 ## [./.github/workflows/createRelease.yml](./.github/workflows/createRelease.yml)
 
