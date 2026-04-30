@@ -2,7 +2,7 @@
 set -euo pipefail
 
 nexus_api_key=${1:-}
-nexus_group_ids=${2:-}
+nexus_group_ids=${NEXUS_GROUP_IDS:-}
 
 if [ -z "$nexus_api_key" ] && [ -z "$nexus_group_ids" ]; then
   exit 0

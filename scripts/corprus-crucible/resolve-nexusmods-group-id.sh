@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-nexus_group_ids=${1:-}
-runner_os=${2:?usage: resolve-nexusmods-group-id.sh <group-ids-json> <runner-os> <runner-arch> <release-name>}
-runner_arch=${3:?usage: resolve-nexusmods-group-id.sh <group-ids-json> <runner-os> <runner-arch> <release-name>}
-release_name=${4:?usage: resolve-nexusmods-group-id.sh <group-ids-json> <runner-os> <runner-arch> <release-name>}
+nexus_group_ids=${NEXUS_GROUP_IDS:-}
+runner_os=${1:?usage: resolve-nexusmods-group-id.sh <runner-os> <runner-arch> <release-name>}
+runner_arch=${2:?usage: resolve-nexusmods-group-id.sh <runner-os> <runner-arch> <release-name>}
+release_name=${3:?usage: resolve-nexusmods-group-id.sh <runner-os> <runner-arch> <release-name>}
 
 if [ -z "$nexus_group_ids" ]; then
   {
@@ -15,11 +15,13 @@ if [ -z "$nexus_group_ids" ]; then
   exit 0
 fi
 
-python3 - "$nexus_group_ids" "$runner_os" "$runner_arch" "$release_name" "$GITHUB_OUTPUT" <<'PY'
+python3 - "$runner_os" "$runner_arch" "$release_name" "$GITHUB_OUTPUT" <<'PY'
 import json
+import os
 import sys
 
-raw_group_ids, runner_os, runner_arch, release_name, github_output = sys.argv[1:]
+runner_os, runner_arch, release_name, github_output = sys.argv[1:]
+raw_group_ids = os.environ["NEXUS_GROUP_IDS"]
 
 os_names = {
     "Linux": "linux",
@@ -50,11 +52,17 @@ group_id = group_ids.get(key, "")
 if group_id is None:
     group_id = ""
 
+if isinstance(group_id, bool):
+    raise SystemExit(f"::error::NEXUS_GROUP_IDS['{key}'] must be a string or integer, not boolean")
+
 if group_id and not isinstance(group_id, (str, int)):
     raise SystemExit(f"::error::NEXUS_GROUP_IDS['{key}'] must be a string or integer")
 
 if isinstance(group_id, int):
     group_id = str(group_id)
+
+if isinstance(group_id, str):
+    group_id = group_id.strip()
 
 if not group_id and channel == "stable":
     raise SystemExit(f"::error::Missing required Nexus Mods group ID for '{key}'")

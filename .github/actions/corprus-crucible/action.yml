@@ -133,18 +133,18 @@ runs:
     - name: Validate Nexus Mods Inputs
       if: github.event_name != 'pull_request' && (inputs.nexus_api_key != '' || inputs.nexus_group_ids != '')
       shell: bash
-      run: >-
-        bash "${{ github.action_path }}/../../../scripts/corprus-crucible/validate-nexusmods-inputs.sh"
-        "${{ inputs.nexus_api_key }}"
-        "${{ inputs.nexus_group_ids }}"
+      env:
+        NEXUS_GROUP_IDS: ${{ inputs.nexus_group_ids }}
+      run: bash "${{ github.action_path }}/../../../scripts/corprus-crucible/validate-nexusmods-inputs.sh" "${{ inputs.nexus_api_key }}"
 
     - name: Resolve Nexus Mods Group ID
       if: github.event_name != 'pull_request' && inputs.nexus_api_key != '' && inputs.nexus_group_ids != ''
       id: nexus_group
       shell: bash
+      env:
+        NEXUS_GROUP_IDS: ${{ inputs.nexus_group_ids }}
       run: >-
         bash "${{ github.action_path }}/../../../scripts/corprus-crucible/resolve-nexusmods-group-id.sh"
-        "${{ inputs.nexus_group_ids }}"
         "${{ runner.os }}"
         "${{ runner.arch }}"
         "${{ inputs.release_name }}"
