@@ -18,6 +18,14 @@ inputs:
   release_name:
     description: 'Name of the release (tag or development)'
     required: true
+  nexus_api_key:
+    description: 'Nexus Mods API key. Provide with nexus_group_id to upload release archives to Nexus Mods.'
+    required: false
+    default: ''
+  nexus_group_id:
+    description: 'Nexus Mods file group ID. Provide with nexus_api_key to upload release archives to Nexus Mods.'
+    required: false
+    default: ''
   # cargo_token:
   #   description: 'If provided, the token is used to publish the target app to crates.io'
   #   required: false
@@ -121,6 +129,40 @@ runs:
         bash "${{ github.action_path }}/../../../scripts/corprus-crucible/format-virustotal-links.sh"
         "${{ inputs.binary_name }}-${{ runner.os }}-${{ runner.arch }}"
         "${{ steps.vt_scan.outputs.analysis }}"
+
+    - name: Validate Nexus Mods Inputs
+      if: github.event_name != 'pull_request' && (inputs.nexus_api_key != '' || inputs.nexus_group_id != '')
+      shell: bash
+      run: >-
+        bash "${{ github.action_path }}/../../../scripts/corprus-crucible/validate-nexusmods-inputs.sh"
+        "${{ inputs.nexus_api_key }}"
+        "${{ inputs.nexus_group_id }}"
+
+    - name: Prepare Nexus Mods Archive
+      if: github.event_name != 'pull_request' && inputs.nexus_api_key != '' && inputs.nexus_group_id != ''
+      id: nexus_archive
+      shell: bash
+      run: >-
+        bash "${{ github.action_path }}/../../../scripts/corprus-crucible/prepare-nexusmods-archive.sh"
+        "${{ inputs.binary_name }}"
+        "${{ runner.os }}"
+        "${{ runner.arch }}"
+        "${{ inputs.release_name }}"
+
+    - name: Upload to Nexus Mods
+      if: github.event_name != 'pull_request' && inputs.nexus_api_key != '' && inputs.nexus_group_id != ''
+      uses: Nexus-Mods/upload-action@v1.0.0-beta.5
+      with:
+        api_key: ${{ inputs.nexus_api_key }}
+        file_group_id: ${{ inputs.nexus_group_id }}
+        filename: ${{ steps.nexus_archive.outputs.nexus_archive }}
+        display_name: ${{ steps.nexus_archive.outputs.nexus_file_stem }}
+        version: ${{ inputs.release_name }}
+        description: |
+          ${{ inputs.binary_name }} release archive for ${{ runner.os }}-${{ runner.arch }}.
+
+          ${{ steps.format_vt_links.outputs.vt_analysis }}
+        archive_existing_file: ${{ inputs.release_name == 'development' }}
 
     - name: Upload to GitHub Release
       if: github.event_name != 'pull_request'
