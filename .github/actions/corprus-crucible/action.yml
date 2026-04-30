@@ -173,7 +173,7 @@ runs:
         description: |
           ${{ inputs.binary_name }} release archive for ${{ runner.os }}-${{ runner.arch }}.
 
-          ${{ steps.format_vt_links.outputs.vt_analysis }}
+          ${{ steps.format_vt_links.outputs.vt_analysis_bbcode }}
         archive_existing_file: ${{ inputs.release_name == 'development' }}
 
     - name: Upload to GitHub Release
