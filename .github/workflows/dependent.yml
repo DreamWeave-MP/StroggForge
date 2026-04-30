@@ -10,7 +10,7 @@ on:
       aur_package_name:
         type: string
         required: true
-      target_repo:
+      dependent_repo_names:
         type: string
         required: true
 
@@ -30,4 +30,4 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.DW_BOT_PAT }}
           GITHUB_EVENT_REPOSITORY_NAME: ${{ github.event.repository.name }}
-        run: bash .stroggforge/scripts/shared/create-dependent-update-issue.sh '${{ inputs.target_repo }}' '${{ inputs.aur_package_name }}'
+        run: bash .stroggforge/scripts/shared/create-dependent-update-issues.sh '${{ inputs.dependent_repo_names }}' '${{ inputs.aur_package_name }}'
