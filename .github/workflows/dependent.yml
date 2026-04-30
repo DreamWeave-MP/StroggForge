@@ -9,7 +9,8 @@ on:
     inputs:
       aur_package_name:
         type: string
-        required: true
+        required: false
+        default: ''
       dependent_repo_names:
         type: string
         required: true
