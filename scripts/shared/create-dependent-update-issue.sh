@@ -35,7 +35,7 @@ issue_args=(
   --assignee "$actor"
 )
 
-if gh label list --repo "$target_repo" --json name --jq '.[] | select(.name == "enhancement") | .name' | grep -qxF enhancement; then
+if gh api --silent "repos/${target_repo}/labels/enhancement"; then
   issue_args+=(--label enhancement)
 else
   echo "Label 'enhancement' does not exist in ${target_repo}; creating issue without labels."
