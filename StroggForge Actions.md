@@ -14,7 +14,6 @@ Inputs:
 
 1. `binary_names`: Required. JSON array of binary names to build, e.g. `'["my-app"]'`. Add multiple entries for monorepos.
 1. `aur_package_name`: Optional. AUR package name. Omit if the project is not on the AUR.
-1. `nexus_group_id`: Optional. Nexus Mods file group ID. When set, each platform release archive is uploaded to Nexus Mods and `NEXUS_API_KEY` is required.
 1. `dependent_repo_names`: Optional. Repositories to notify via issue on tagged releases, one `Owner/Repo` per line. JSON arrays are still accepted for compatibility. When set, requires `DW_BOT_PAT`.
 1. `git_username` / `git_email`: Optional. AUR commit identity. Defaults to the DreamWeave maintainer values.
 1. `publish_docs`: Optional, default `true`. Set `false` if the project uses its own static site generator for documentation.
@@ -54,14 +53,14 @@ Inputs:
 1. `vt_api_key`: Required. VirusTotal API key.
 1. `github_token`: Required. GitHub token for uploading release artifacts.
 1. `release_name`: Required. Output from `createRelease` — either a tag name or `development`.
-1. `nexus_api_key`: Optional. Nexus Mods API key. Provide with `nexus_group_id` to upload release archives to Nexus Mods.
-1. `nexus_group_id`: Optional. Nexus Mods file group ID. Provide with `nexus_api_key` to upload release archives to Nexus Mods.
+1. `nexus_api_key`: Optional. Nexus Mods API key. Provide with `nexus_group_ids` to upload release archives to Nexus Mods.
+1. `nexus_group_ids`: Optional. Nexus Mods file group IDs as JSON. Provide with `nexus_api_key` to upload release archives to Nexus Mods.
 
 Build context detection: if `binary_name` matches a directory at the repo root, the action builds from that directory. Otherwise builds from `.`. This handles monorepos transparently.
 
 On pull requests, signing, VirusTotal scanning, Nexus Mods upload, and GitHub Release upload are skipped; the binary is uploaded as a workflow artifact instead.
 
-When Nexus Mods upload is enabled, each platform archive is copied to a Nexus-specific filename of `{binary}-{os}-{arch}-{release}.zip`, uploaded with that display name, and uses the release name as the Nexus version. Development builds set `archive_existing_file` so the previous development upload is archived.
+Nexus Mods upload is enabled by setting both `NEXUS_API_KEY` and `NEXUS_GROUP_IDS` secrets on the consuming repository or organization. `NEXUS_GROUP_IDS` is a JSON object keyed by `{platform}-{channel}`; use `.github/nexus_group_ids.template.json` as the template. Stable keys are required for tagged releases. Development keys are optional; missing development keys skip Nexus upload for that platform. Each platform archive is copied to a Nexus-specific filename of `{binary}-{platform}-{release}.zip`, uploaded with that display name, and uses the release name as the Nexus version. Development builds set `archive_existing_file` so the previous development upload for that file group is archived.
 
 Corprus Crucible shell implementation details live under `scripts/corprus-crucible/`. The composite action owns GitHub Actions orchestration; the scripts own validation, build context detection, binary suffix detection, release binary staging, signing, archive creation, VirusTotal link formatting, and Nexus Mods archive preparation.
 
