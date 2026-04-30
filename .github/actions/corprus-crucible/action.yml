@@ -163,7 +163,7 @@ runs:
 
     - name: Upload to Nexus Mods
       if: github.event_name != 'pull_request' && inputs.nexus_api_key != '' && steps.nexus_group.outputs.group_id != ''
-      uses: Nexus-Mods/upload-action@v1.0.0-beta.5
+      uses: DreamWeave-MP/upload-action@main
       with:
         api_key: ${{ inputs.nexus_api_key }}
         file_group_id: ${{ steps.nexus_group.outputs.group_id }}
