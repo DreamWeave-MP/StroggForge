@@ -104,6 +104,14 @@ Can also be run locally after `cargo bench`:
 python3 /path/to/StroggForge/.github/scripts/gen_benchmarks.py
 ```
 
+## [./scripts/shared/changelog.sh](./scripts/shared/changelog.sh)
+
+Shared shell script used by both application and library workflows to generate `CHANGELOG.md` from git history. The workflows still own checkout and release upload; the script only owns changelog content generation.
+
+## [./scripts/shared/resolve-crate-manifest.sh](./scripts/shared/resolve-crate-manifest.sh)
+
+Shared shell script used by library publishing jobs. Given a crate name, it uses `cargo metadata` to find the matching `Cargo.toml`, treating hyphens and underscores as equivalent.
+
 ## [./.github/action_templates/rust_template.yaml](./.github/action_templates/rust_template.yaml)
 
 Workflow template for new Rust binary repositories. Copy it to `.github/workflows/build.yml` in the target repo and replace `ENTER_BINARY_NAME_HERE` with the binary name. Uncomment optional inputs as needed.
