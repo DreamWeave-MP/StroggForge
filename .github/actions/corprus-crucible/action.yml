@@ -176,6 +176,7 @@ runs:
         "${{ steps.nexus_archive.outputs.nexus_archive }}"
         "${{ steps.nexus_archive.outputs.nexus_file_stem }}"
         "${{ inputs.release_name }}"
+        "${{ github.repository }}"
 
     - name: Upload Nexus Mods Upload Artifact
       if: github.event_name != 'pull_request' && inputs.nexus_api_key != '' && steps.nexus_group.outputs.group_id != ''
