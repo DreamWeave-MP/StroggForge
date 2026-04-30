@@ -19,8 +19,9 @@ on:
 
       dependent_repo_names:
         type: string
+        description: "Dependent repositories to notify on tagged releases, one owner/repo per line. JSON arrays are still accepted for compatibility."
         required: false
-        default: '[]'
+        default: ''
 
       publish_docs:
         type: boolean
@@ -324,14 +325,10 @@ jobs:
     if: success() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && inputs.dependent_repo_names != '' && inputs.dependent_repo_names != '[]'
     needs: [test, fmt, clippy]
 
-    strategy:
-      matrix:
-        target_repo: ${{ fromJson(inputs.dependent_repo_names) }}
-
     uses: DreamWeave-MP/StroggForge/.github/workflows/dependent.yml@v19
 
     secrets:
       DW_BOT_PAT: ${{ secrets.DW_BOT_PAT }}
     with:
       aur_package_name: ''
-      target_repo: ${{ matrix.target_repo }}
+      dependent_repo_names: ${{ inputs.dependent_repo_names }}
