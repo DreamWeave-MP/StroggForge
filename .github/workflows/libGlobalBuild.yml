@@ -235,13 +235,13 @@ jobs:
         run: cargo doc --no-deps --workspace
       - name: Create Index Redirect
         run: bash .stroggforge/scripts/shared/docs-index.sh '${{ inputs.crate_names }}' target/doc/index.html
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/configure-pages@v6.0.0
+      - uses: actions/upload-pages-artifact@v5.0.0
         with:
           path: target/doc
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5.0.0
 
   # Generate a CHANGELOG.md from git history and upload it to the release.
   changelog:
@@ -262,7 +262,7 @@ jobs:
       - name: Generate Changelog
         run: bash .stroggforge/scripts/shared/changelog.sh CHANGELOG.md
       - name: Upload Changelog to Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -301,7 +301,7 @@ jobs:
       - name: Generate Benchmark Docs
         run: bash .stroggforge/scripts/shared/generate-benchmark-docs.sh .stroggforge/.github/scripts/gen_benchmarks.py
       - name: Upload Benchmark Docs to Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
