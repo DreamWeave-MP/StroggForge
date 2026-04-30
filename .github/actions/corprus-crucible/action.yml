@@ -86,9 +86,10 @@ runs:
     - name: Sign Binary
       shell: bash
       if: github.event_name != 'pull_request'
-      run: |
-        cosign sign-blob -y "${{ steps.build_release.outputs.release_binary }}" \
-          --bundle "${{ steps.context.outputs.dist_dir }}/${{ inputs.binary_name }}-${{ runner.os }}-${{ runner.arch }}.bundle"
+      run: >-
+        bash "${{ github.action_path }}/../../../scripts/corprus-crucible/sign-release-binary.sh"
+        "${{ steps.build_release.outputs.release_binary }}"
+        "${{ steps.context.outputs.dist_dir }}/${{ inputs.binary_name }}-${{ runner.os }}-${{ runner.arch }}.bundle"
 
     - name: Create Archive
       shell: bash
