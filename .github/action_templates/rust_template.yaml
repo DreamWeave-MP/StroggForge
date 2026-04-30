@@ -24,6 +24,10 @@ jobs:
       # git_username: ENTER_USERNAME_HERE
       # git_email: ENTER_EMAIL_HERE
 
+      # Optional: uncomment to upload release archives to Nexus Mods.
+      # Requires NEXUS_API_KEY in repository or organization secrets.
+      # nexus_group_id: ENTER_NEXUS_FILE_GROUP_ID
+
       # Optional: uncomment to notify dependent repositories on tagged releases.
       # dependent_repo_names: |
       #   DreamWeave-MP/DW-tools
