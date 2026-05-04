@@ -157,6 +157,7 @@ jobs:
       - name: Publish Dry Run
         run: |
           MANIFEST=$(bash .stroggforge/scripts/shared/resolve-crate-manifest.sh "${{ matrix.crate_names }}")
+          rm -rf .stroggforge
           cargo publish --dry-run --manifest-path "$MANIFEST"
 
   # Publish each crate to crates.io on tagged releases, after all quality gates pass.
@@ -194,6 +195,7 @@ jobs:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
           MANIFEST=$(bash .stroggforge/scripts/shared/resolve-crate-manifest.sh "${{ matrix.crate_names }}")
+          rm -rf .stroggforge
           cargo publish --manifest-path "$MANIFEST"
 
   # Build cargo doc and deploy to GitHub Pages.
