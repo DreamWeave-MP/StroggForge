@@ -51,7 +51,7 @@ jobs:
   # Ensure any previously-existing releases are deleted,
   # And create a new one with auto-generated changelog & workflow ID
   release_cleanup:
-    uses: DreamWeave-MP/StroggForge/.github/workflows/createRelease.yml@v27
+    uses: DreamWeave-MP/StroggForge/.github/workflows/createRelease.yml@v28
     secrets: inherit
 
   # Run the full test suite on all platforms. Blocks release.
@@ -137,7 +137,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v27
+          ref: v28
           path: .stroggforge
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
@@ -173,7 +173,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v27
+          ref: v28
           path: .stroggforge
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
@@ -216,7 +216,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v27
+          ref: v28
           path: .stroggforge
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
@@ -259,7 +259,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v27
+          ref: v28
           path: .stroggforge
       - name: Generate Changelog
         run: bash .stroggforge/scripts/shared/changelog.sh CHANGELOG.md
@@ -283,7 +283,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v27
+          ref: v28
           path: .stroggforge
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
@@ -314,7 +314,7 @@ jobs:
   call-discord-webhook:
     if: always() && github.event_name == 'push'
     needs: [test, fmt, clippy]
-    uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v27
+    uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v28
     secrets:
       WEBHOOK_URL: ${{ secrets.DISCORD_CHANNEL_WEBHOOK || secrets.DW_TOOLS_CHANNEL_WEBHOOK }}
     with:
@@ -327,7 +327,7 @@ jobs:
     if: success() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && inputs.dependent_repo_names != '' && inputs.dependent_repo_names != '[]'
     needs: [test, fmt, clippy]
 
-    uses: DreamWeave-MP/StroggForge/.github/workflows/dependent.yml@v27
+    uses: DreamWeave-MP/StroggForge/.github/workflows/dependent.yml@v28
 
     secrets:
       DW_BOT_PAT: ${{ secrets.DW_BOT_PAT }}
