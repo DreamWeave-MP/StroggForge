@@ -129,7 +129,7 @@ runs:
       id: vt_scan
       uses: crazy-max/ghaction-virustotal@v5
       with:
-        update_release_body: true
+        update_release_body: false
         vt_api_key: ${{ inputs.vt_api_key }}
         files: ${{ steps.build_release.outputs.release_binary }}
 
