@@ -531,13 +531,13 @@ jobs:
   # For workflows where users may now receive a new deliverable, notify them about it!
   call-discord-webhook:
     if: always() && inputs.generate_discord_notification && github.event_name == 'push'
-    needs: [release, release-linux, github-publish, nexus-publish, publish, aur-publish, changelog]
+    needs: [test, fmt, clippy, audit, release, release-linux, release_cleanup, github-publish, nexus-publish, publish, aur-publish, changelog]
     uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v28
     secrets:
       WEBHOOK_URL: ${{ secrets.DISCORD_CHANNEL_WEBHOOK || secrets.DW_TOOLS_CHANNEL_WEBHOOK }}
     with:
-      title: ${{ (needs.release.result == 'failure' || needs['release-linux'].result == 'failure' || needs['github-publish'].result == 'failure' || needs['nexus-publish'].result == 'failure' || needs.publish.result == 'failure' || needs['aur-publish'].result == 'failure' || needs.changelog.result == 'failure') && format('{0} pipeline failed! 😭', github.event.repository.name) || '' }}
-      description: ${{ (needs.release.result == 'failure' || needs['release-linux'].result == 'failure' || needs['github-publish'].result == 'failure' || needs['nexus-publish'].result == 'failure' || needs.publish.result == 'failure' || needs['aur-publish'].result == 'failure' || needs.changelog.result == 'failure') && format('[Workflow Results](https://github.com/{0}/actions/runs/{1})', github.repository, github.run_id) || ''}}
+      title: ${{ (needs.test.result != 'success' || needs.fmt.result != 'success' || needs.clippy.result != 'success' || needs.audit.result != 'success' || needs.release.result != 'success' || needs['release-linux'].result != 'success' || needs.release_cleanup.result != 'success' || needs['github-publish'].result != 'success' || needs['nexus-publish'].result == 'failure' || needs.publish.result == 'failure' || needs['aur-publish'].result == 'failure' || needs.changelog.result == 'failure') && format('{0} pipeline failed! 😭', github.event.repository.name) || '' }}
+      description: ${{ (needs.test.result != 'success' || needs.fmt.result != 'success' || needs.clippy.result != 'success' || needs.audit.result != 'success' || needs.release.result != 'success' || needs['release-linux'].result != 'success' || needs.release_cleanup.result != 'success' || needs['github-publish'].result != 'success' || needs['nexus-publish'].result == 'failure' || needs.publish.result == 'failure' || needs['aur-publish'].result == 'failure' || needs.changelog.result == 'failure') && format('[Workflow Results](https://github.com/{0}/actions/runs/{1})', github.repository, github.run_id) || ''}}
 
   # For any repositories which use this one as a dependent,
   # notify them by creating an issue within the DreamWeave org's scope.
