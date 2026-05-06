@@ -411,8 +411,6 @@ jobs:
           nexus_group_ids: ${{ secrets.NEXUS_GROUP_IDS }}
 
   # Publish Nexus Mods files after all platform archives are built.
-  # Nexus' upload API does not tolerate concurrent publication very well (empty 500s, naturally),
-  # so keep the expensive build/sign/scan work parallel and serialize only this remote mutation.
   nexus-publish:
     if: github.event_name != 'pull_request'
     needs: [release, release-linux]
@@ -420,7 +418,6 @@ jobs:
 
     strategy:
       fail-fast: false
-      max-parallel: 1
       matrix:
         app_names: ${{ fromJson(inputs.binary_names) }}
         platform:
@@ -457,7 +454,7 @@ jobs:
 
       - name: Upload to Nexus Mods
         if: steps.download_nexus_artifact.outcome == 'success'
-        uses: DreamWeave-MP/upload-action@main
+        uses: Nexus-Mods/upload-action@v1.0.0-beta.5
         with:
           api_key: ${{ secrets.NEXUS_API_KEY }}
           file_group_id: ${{ steps.nexus_upload.outputs.group_id }}
