@@ -76,6 +76,10 @@ on:
         default: true
         description: "Generate a discord notification to DreamWeave upon success."
 
+concurrency:
+  group: stroggforge-rust-global-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # Ensure any previously-existing releases are deleted,
   # And create a new one with auto-generated changelog & workflow ID
