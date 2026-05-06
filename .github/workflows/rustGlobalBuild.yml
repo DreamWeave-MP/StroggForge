@@ -502,7 +502,8 @@ jobs:
       - name: Install Build Dependencies
         run: >-
           dnf install -y epel-release
-          && dnf --installroot=/usr/aarch64-linux-gnu/sys-root --releasever=8 --forcearch=aarch64 install -y glibc-devel libstdc++-devel libgcc openssl-devel
+          && { dnf --installroot=/usr/aarch64-linux-gnu/sys-root --releasever=8 --forcearch=aarch64 --setopt=tsflags=noscripts --setopt=install_weak_deps=False install -y glibc-devel libstdc++-devel libgcc openssl-devel
+          || { test -f /usr/aarch64-linux-gnu/sys-root/usr/lib64/crt1.o && test -f /usr/aarch64-linux-gnu/sys-root/lib64/libgcc_s.so.1 && test -f /usr/aarch64-linux-gnu/sys-root/usr/include/openssl/ssl.h && test -f /usr/aarch64-linux-gnu/sys-root/usr/lib64/pkgconfig/openssl.pc; }; }
           && dnf install -y git python3 make gettext pkgconf-pkg-config p7zip p7zip-plugins clang clang-devel gcc-aarch64-linux-gnu gcc-c++-aarch64-linux-gnu binutils-aarch64-linux-gnu
           && mkdir -p /home/runner/work
           && { [ -e /home/runner/work/_actions ] || ln -s /__w/_actions /home/runner/work/_actions; }
