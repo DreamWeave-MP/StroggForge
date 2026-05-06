@@ -70,6 +70,9 @@ runs:
         path: |
           ${{ steps.context.outputs.target_dir }}
         key: ${{ runner.os }}-${{ runner.arch }}-release-target-${{ inputs.binary_name }}-${{ steps.rust_toolchain.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ runner.arch }}-release-target-${{ inputs.binary_name }}-${{ steps.rust_toolchain.outputs.cachekey }}-
+          ${{ runner.os }}-${{ runner.arch }}-release-target-${{ inputs.binary_name }}-
 
     - name: Build Release
       id: build_release
