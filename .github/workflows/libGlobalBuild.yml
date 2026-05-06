@@ -47,6 +47,10 @@ on:
         default: false
         description: "Run cargo bench, generate BENCHMARKS.md from Criterion output or the raw benchmark log, and upload it to the release."
 
+concurrency:
+  group: stroggforge-lib-global-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # Ensure any previously-existing releases are deleted,
   # And create a new one with auto-generated changelog & workflow ID

@@ -4,6 +4,8 @@ on:
   workflow_dispatch:
   pull_request:
   push:
+    # Keep branch pushes restricted to main. Non-tag pushes publish to the shared
+    # "development" release, so feature branches will compete for the same release.
     branches: main
     tags: ['*']
 
