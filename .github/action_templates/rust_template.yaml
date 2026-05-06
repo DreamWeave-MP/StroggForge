@@ -47,5 +47,9 @@ jobs:
       # This does not produce an APK.
       # enable_android: true
 
+      # Optional: set true to build Portmaster ARM64 release artifacts.
+      # Uses aarch64-unknown-linux-gnu with an AlmaLinux 8 sysroot for old glibc compatibility.
+      # enable_portmaster: true
+
       # Optional: set false if the project is not hosted by DreamWeave or does not use discord notifications
       # generate_discord_notification: false

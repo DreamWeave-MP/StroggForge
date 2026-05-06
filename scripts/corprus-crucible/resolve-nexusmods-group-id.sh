@@ -26,6 +26,7 @@ raw_group_ids = os.environ["NEXUS_GROUP_IDS"]
 os_names = {
     "Android": "android",
     "Linux": "linux",
+    "Portmaster": "portmaster",
     "Windows": "windows",
     "macOS": "macos",
 }
