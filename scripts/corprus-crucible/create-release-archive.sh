@@ -21,6 +21,14 @@ if [ -n "$include_files" ]; then
     file=${file%"${file##*[![:space:]]}"}
     if [ -f "./$build_dir/$file" ]; then
       include_name=$(basename "$file")
+      case "${include_name,,}" in
+        readme.md)
+          include_name="$binary_name-README.md"
+          ;;
+        license)
+          include_name="$binary_name-LICENSE"
+          ;;
+      esac
       cp "./$build_dir/$file" "$dist_dir/$include_name"
       include_names+=("$include_name")
     fi
