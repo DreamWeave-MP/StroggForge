@@ -93,7 +93,7 @@ jobs:
   test:
     strategy:
       matrix:
-        os: [macos-latest, macos-15-intel, ubuntu-22.04, windows-latest]
+        os: [macos-latest, macos-15-intel, ubuntu-22.04, windows-2025-vs2026]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6
@@ -365,7 +365,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [macos-latest, macos-15-intel, windows-latest]
+        os: [macos-latest, macos-15-intel, windows-2025-vs2026]
         app_names: ${{ fromJson(inputs.binary_names) }}
 
     runs-on: ${{ matrix.os }}
