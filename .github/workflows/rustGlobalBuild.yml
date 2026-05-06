@@ -455,10 +455,28 @@ jobs:
           append_body: true
           body_path: ${{ steps.release_body.outputs.body_path }}
 
+  # Secrets are not available in job-level `if`, so resolve whether Nexus publishing is configured here.
+  nexus-publish-enabled:
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.nexus_config.outputs.enabled }}
+    steps:
+      - name: Check Nexus Mods Configuration
+        id: nexus_config
+        env:
+          NEXUS_API_KEY: ${{ secrets.NEXUS_API_KEY }}
+          NEXUS_GROUP_IDS: ${{ secrets.NEXUS_GROUP_IDS }}
+        run: |
+          if [ -n "$NEXUS_API_KEY" ] || [ -n "$NEXUS_GROUP_IDS" ]; then
+            echo 'enabled=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'enabled=false' >> "$GITHUB_OUTPUT"
+          fi
+
   # Publish Nexus Mods files after all platform archives are built.
   nexus-publish:
-    if: github.event_name != 'pull_request'
-    needs: [release, release-linux]
+    if: github.event_name != 'pull_request' && needs.nexus-publish-enabled.outputs.enabled == 'true'
+    needs: [release, release-linux, nexus-publish-enabled]
     runs-on: ubuntu-latest
 
     strategy:
@@ -534,8 +552,8 @@ jobs:
     secrets:
       WEBHOOK_URL: ${{ secrets.DISCORD_CHANNEL_WEBHOOK || secrets.DW_TOOLS_CHANNEL_WEBHOOK }}
     with:
-      title: ${{ ((inputs.generate_changelog && needs.changelog.result != 'success') || needs['nexus-publish'].result != 'success' || needs.publish.result == 'failure' || needs['aur-publish'].result == 'failure') && format('{0} pipeline failed! 😭', github.event.repository.name) || '' }}
-      description: ${{ ((inputs.generate_changelog && needs.changelog.result != 'success') || needs['nexus-publish'].result != 'success' || needs.publish.result == 'failure' || needs['aur-publish'].result == 'failure') && format('[Workflow Results](https://github.com/{0}/actions/runs/{1})', github.repository, github.run_id) || (inputs.aur_package_name != '' && format('[{0}](https://github.com/{1}/releases/tag/{0}) is now available on GitHub and the AUR.', github.ref_type == 'tag' && github.ref_name || 'development', github.repository) || format('[{0}](https://github.com/{1}/releases/tag/{0}) is now available on GitHub.', github.ref_type == 'tag' && github.ref_name || 'development', github.repository)) }}
+      title: ${{ ((inputs.generate_changelog && needs.changelog.result != 'success') || needs['nexus-publish'].result == 'failure' || needs.publish.result == 'failure' || needs['aur-publish'].result == 'failure') && format('{0} pipeline failed! 😭', github.event.repository.name) || '' }}
+      description: ${{ ((inputs.generate_changelog && needs.changelog.result != 'success') || needs['nexus-publish'].result == 'failure' || needs.publish.result == 'failure' || needs['aur-publish'].result == 'failure') && format('[Workflow Results](https://github.com/{0}/actions/runs/{1})', github.repository, github.run_id) || (inputs.aur_package_name != '' && format('[{0}](https://github.com/{1}/releases/tag/{0}) is now available on GitHub and the AUR.', github.ref_type == 'tag' && github.ref_name || 'development', github.repository) || format('[{0}](https://github.com/{1}/releases/tag/{0}) is now available on GitHub.', github.ref_type == 'tag' && github.ref_name || 'development', github.repository)) }}
 
   # For any repositories which use this one as a dependent,
   # notify them by creating an issue within the DreamWeave org's scope.
