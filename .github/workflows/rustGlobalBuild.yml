@@ -424,7 +424,7 @@ jobs:
 
     steps:
       - name: Download GitHub Release Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8.0.1
         with:
           pattern: github-release-*
           path: .corprus-crucible/github-release-downloads
@@ -485,7 +485,7 @@ jobs:
       - name: Download Nexus Mods Upload Artifact
         id: download_nexus_artifact
         continue-on-error: true
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8.0.1
         with:
           name: nexus-${{ matrix.app_names }}-${{ matrix.platform.os }}-${{ matrix.platform.arch }}
           path: .corprus-crucible/nexus-downloads/nexus-${{ matrix.app_names }}-${{ matrix.platform.os }}-${{ matrix.platform.arch }}
