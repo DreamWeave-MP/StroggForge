@@ -25,13 +25,17 @@ The pipeline runs these jobs:
 
 - Quality gates (parallel, block release): `test` (full platform matrix), `fmt`, `clippy` (pedantic), `audit` (RustSec)
 - Informational (parallel, does not block): `publish-dry-run`
-- Release builds (after gates pass): `release` (macOS ARM + Intel, Windows), `release-linux` (AlmaLinux 8 container for glibc 2.28 compatibility)
-- Doc/artifact generation (after gates pass, skipped on PRs except docs which only runs on main pushes): `docs` (GitHub Pages), `changelog`, `benchmarks`
-- Post-release (after all builds): `publish` (crates.io, tag only), `aur-publish`, `call-discord-webhook`, `nag-dependents`
+- Release builds (after gates pass): `release` (macOS ARM + Intel, Windows) and `release-linux` (AlmaLinux 8 container for glibc 2.28 compatibility) build, sign, scan, package, and stage platform archives as workflow artifacts. They do not mutate the GitHub Release directly.
+- Release preparation: `release_cleanup` runs after the application release builds succeed and refreshes the current tag or shared `development` release.
+- GitHub Release publish: `github-publish` uploads the staged platform archives and VirusTotal notes after `release_cleanup` succeeds.
+- Doc/artifact generation: `docs` deploys GitHub Pages on main pushes after gates pass; `changelog` and `benchmarks` upload release files after `github-publish` succeeds.
+- External publish/notification: `publish` (crates.io, tag only), `aur-publish`, and `nexus-publish` fan out after builds; `call-discord-webhook` waits for the mandatory release path and changelog, while `nag-dependents` waits for the GitHub Release publish boundary.
 
 ## [./.github/workflows/libGlobalBuild.yml](./.github/workflows/libGlobalBuild.yml)
 
 The library equivalent of `rustGlobalBuild.yml`. Use this for crates that have no distributable binary — it runs all the same quality gates, publishing, docs, changelog, and benchmarks, but has no `corprus-crucible` release build jobs and no AUR publishing.
+
+Library release cleanup runs after the mandatory quality gates pass. Changelog and benchmark release files upload after release cleanup succeeds; dependent repository notifications wait for that GitHub Release boundary.
 
 Inputs:
 
