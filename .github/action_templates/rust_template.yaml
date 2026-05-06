@@ -51,5 +51,9 @@ jobs:
       # Uses aarch64-unknown-linux-gnu with an AlmaLinux 8 sysroot for old glibc compatibility.
       # enable_portmaster: true
 
+      # Optional: copy StroggForge's scripts/cargo-build-args.example.sh to
+      # .stroggforge/cargo-build-args.sh and make it executable if release builds need
+      # platform-specific Cargo features. Corprus Crucible runs it automatically when present.
+
       # Optional: set false if the project is not hosted by DreamWeave or does not use discord notifications
       # generate_discord_notification: false

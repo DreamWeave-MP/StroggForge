@@ -69,6 +69,16 @@ Inputs:
 
 Build context detection: if `binary_name` matches a directory at the repo root, the action builds from that directory. Otherwise builds from `.`. This handles monorepos transparently.
 
+Release builds may customize Cargo feature policy by adding an executable `.stroggforge/cargo-build-args.sh` script to the consuming repository. This is a fixed convention, not another workflow input pretending to be useful. If the file exists, Corprus Crucible calls it before `cargo build` as:
+
+```bash
+.stroggforge/cargo-build-args.sh "$platform_os" "$platform_arch" "$rust_target" "$binary_name"
+```
+
+The script must print one extra Cargo argument per line. Blank lines are ignored; shell quoting is not interpreted. Corprus Crucible still owns `--release`, `--target`, `--target-dir`, `--manifest-path`, and the expected binary path, so the hook may not emit structural build-location arguments such as `--manifest-path`, `--target`, `--target-dir`, `--release`, or `--bin`. Use `scripts/cargo-build-args.example.sh` as a starting point; it demonstrates desktop builds using the `gui` feature and Android/Portmaster builds using `--no-default-features`.
+
+Stable platform tuples currently passed to the hook are `macOS-ARM64`, `macOS-Intel`, `Windows-x64`, `Linux-x64`, `Android-ARM64`, and `Portmaster-ARM64`. Native desktop builds pass an empty Rust target; Android passes `aarch64-linux-android`; Portmaster passes `aarch64-unknown-linux-gnu`.
+
 On pull requests, signing, VirusTotal scanning, Nexus Mods artifact staging, and GitHub Release artifact staging are skipped; the binary is uploaded as a workflow artifact instead. On release builds, Corprus Crucible stages GitHub Release archives as workflow artifacts; `rustGlobalBuild.yml` publishes them later after release cleanup succeeds.
 
 Nexus Mods upload is enabled by setting both `NEXUS_API_KEY` and `NEXUS_GROUP_IDS` secrets on the consuming repository or organization. `NEXUS_GROUP_IDS` is a JSON object keyed by `{platform}-{channel}`; use `.github/nexus_group_ids.template.json` as the template. Supported platform keys are `linux-x64`, `windows-x64`, `macos-x64`, `macos-arm64`, `android-arm64`, and `portmaster-arm64`, with `stable` for tagged releases and `dev` for the `development` release. Stable keys are required for tagged releases for every enabled release platform; optional platform keys such as `android-arm64` and `portmaster-arm64` are only required when those builds are enabled. Development keys are optional; missing development keys skip Nexus upload for that platform. Each platform archive is copied to a Nexus-specific filename of `{binary}-{platform}-{release}.zip`, uploaded with that display name, and uses the release name as the Nexus version. Development builds set `archive_existing_file` so the previous development upload for that file group is archived. The Nexus file description includes BBCode-formatted VirusTotal analysis links generated earlier in the release pipeline; GitHub Release notes keep the Markdown version.
