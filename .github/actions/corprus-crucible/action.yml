@@ -193,6 +193,7 @@ runs:
       with:
         name: ${{ steps.nexus_upload_artifact.outputs.artifact_name }}
         path: ${{ steps.nexus_upload_artifact.outputs.artifact_dir }}
+        include-hidden-files: true
         retention-days: 1
 
     - name: Prepare GitHub Release Artifact
@@ -214,6 +215,7 @@ runs:
       with:
         name: ${{ steps.github_release_artifact.outputs.artifact_name }}
         path: ${{ steps.github_release_artifact.outputs.artifact_dir }}
+        include-hidden-files: true
         retention-days: 1
 
     - name: Upload artifact (for PRs)
