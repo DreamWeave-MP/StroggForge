@@ -4,7 +4,7 @@ on:
   workflow_call:
     secrets:
       VT_API_KEY:
-        required: true
+        required: false
       NEXUS_API_KEY:
         required: false
       NEXUS_GROUP_IDS:
@@ -84,6 +84,8 @@ jobs:
   # Ensure any previously-existing releases are deleted,
   # And create a new one with auto-generated changelog & workflow ID
   release_cleanup:
+    if: github.event_name != 'pull_request'
+    needs: [release, release-linux]
     uses: DreamWeave-MP/StroggForge/.github/workflows/createRelease.yml@v28
     secrets: inherit
 
@@ -290,7 +292,7 @@ jobs:
   # Generate a CHANGELOG.md from git history and upload it to the release.
   changelog:
     if: inputs.generate_changelog && github.event_name != 'pull_request'
-    needs: [release_cleanup, test, clippy, fmt, audit]
+    needs: [github-publish, release_cleanup]
     runs-on: ubuntu-22.04
     permissions:
       contents: write
@@ -316,7 +318,7 @@ jobs:
   # Run cargo bench, generate BENCHMARKS.md from Criterion output or the raw benchmark log, and upload to the release.
   benchmarks:
     if: inputs.generate_benchmarks && github.event_name != 'pull_request'
-    needs: [release_cleanup, test, clippy, fmt, audit]
+    needs: [github-publish, release_cleanup]
     runs-on: ubuntu-22.04
     permissions:
       contents: write
@@ -357,9 +359,9 @@ jobs:
           tag_name: ${{ needs.release_cleanup.outputs.release_name }}
           files: BENCHMARKS.md
 
-  # Build, test, sign, package, & release Rust apps on macOS and Windows
+  # Build, sign, scan, package, and stage Rust app archives on macOS and Windows.
   release:
-    needs: [release_cleanup, test, clippy, fmt, audit]
+    needs: [test, clippy, fmt, audit]
 
     strategy:
       matrix:
@@ -379,15 +381,14 @@ jobs:
         with:
           binary_name: ${{ matrix.app_names }}
           vt_api_key: ${{ secrets.VT_API_KEY }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          release_name: ${{ needs.release_cleanup.outputs.release_name }}
+          release_name: ${{ github.ref_type == 'tag' && github.ref_name || 'development' }}
           nexus_api_key: ${{ secrets.NEXUS_API_KEY }}
           nexus_group_ids: ${{ secrets.NEXUS_GROUP_IDS }}
 
-  # Build, test, sign, package, & release Rust apps on Linux.
+  # Build, sign, scan, package, and stage Rust app archives on Linux.
   # Runs inside AlmaLinux 8 (glibc 2.28) for maximum distribution compatibility.
   release-linux:
-    needs: [release_cleanup, test, clippy, fmt, audit]
+    needs: [test, clippy, fmt, audit]
 
     strategy:
       matrix:
@@ -409,10 +410,50 @@ jobs:
         with:
           binary_name: ${{ matrix.app_names }}
           vt_api_key: ${{ secrets.VT_API_KEY }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          release_name: ${{ needs.release_cleanup.outputs.release_name }}
+          release_name: ${{ github.ref_type == 'tag' && github.ref_name || 'development' }}
           nexus_api_key: ${{ secrets.NEXUS_API_KEY }}
           nexus_group_ids: ${{ secrets.NEXUS_GROUP_IDS }}
+
+  # Publish staged platform archives to the freshly-created GitHub Release.
+  github-publish:
+    if: github.event_name != 'pull_request'
+    needs: [release_cleanup]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download GitHub Release Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: github-release-*
+          path: .corprus-crucible/github-release-downloads
+          merge-multiple: true
+
+      - name: Collect VirusTotal Release Notes
+        id: release_body
+        shell: bash
+        run: |
+          body_file=.corprus-crucible/github-release-downloads/release-body.md
+          : > "$body_file"
+          shopt -s nullglob
+          for vt_file in .corprus-crucible/github-release-downloads/*.vt.md; do
+            if [ -s "$vt_file" ]; then
+              printf '%s\n' "$(< "$vt_file")" >> "$body_file"
+            fi
+          done
+          echo "body_path=$body_file" >> "$GITHUB_OUTPUT"
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ needs.release_cleanup.outputs.release_name }}
+          prerelease: ${{ github.ref_type != 'tag' }}
+          files: .corprus-crucible/github-release-downloads/*.zip
+          append_body: true
+          body_path: ${{ steps.release_body.outputs.body_path }}
 
   # Publish Nexus Mods files after all platform archives are built.
   nexus-publish:
@@ -487,20 +528,20 @@ jobs:
 
   # For workflows where users may now receive a new deliverable, notify them about it!
   call-discord-webhook:
-    if: inputs.generate_discord_notification && github.event_name == 'push'
-    needs: [release, release-linux, nexus-publish]
+    if: always() && inputs.generate_discord_notification && github.event_name == 'push'
+    needs: [test, fmt, clippy, audit, release, release-linux, release_cleanup, github-publish, nexus-publish, publish, aur-publish, changelog]
     uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v28
     secrets:
       WEBHOOK_URL: ${{ secrets.DISCORD_CHANNEL_WEBHOOK || secrets.DW_TOOLS_CHANNEL_WEBHOOK }}
     with:
-      title: ${{ (needs.release.result == 'failure' || needs.release-linux.result == 'failure' || needs['nexus-publish'].result == 'failure') && format('{0} pipeline failed! 😭', github.event.repository.name) || '' }}
-      description: ${{ (needs.release.result == 'failure' || needs.release-linux.result == 'failure' || needs['nexus-publish'].result == 'failure') && format('[Workflow Results](https://github.com/{0}/actions/runs/{1})', github.repository, github.run_id) || ''}}
+      title: ${{ (needs.test.result != 'success' || needs.fmt.result != 'success' || needs.clippy.result != 'success' || needs.audit.result != 'success' || needs.release.result != 'success' || needs['release-linux'].result != 'success' || needs.release_cleanup.result != 'success' || needs['github-publish'].result != 'success' || needs['nexus-publish'].result == 'failure' || needs.publish.result == 'failure' || needs['aur-publish'].result == 'failure' || needs.changelog.result == 'failure') && format('{0} pipeline failed! 😭', github.event.repository.name) || '' }}
+      description: ${{ (needs.test.result != 'success' || needs.fmt.result != 'success' || needs.clippy.result != 'success' || needs.audit.result != 'success' || needs.release.result != 'success' || needs['release-linux'].result != 'success' || needs.release_cleanup.result != 'success' || needs['github-publish'].result != 'success' || needs['nexus-publish'].result == 'failure' || needs.publish.result == 'failure' || needs['aur-publish'].result == 'failure' || needs.changelog.result == 'failure') && format('[Workflow Results](https://github.com/{0}/actions/runs/{1})', github.repository, github.run_id) || (inputs.aur_package_name != '' && format('[{0}](https://github.com/{1}/releases/tag/{0}) is now available on GitHub and the AUR.', github.ref_type == 'tag' && github.ref_name || 'development', github.repository) || format('[{0}](https://github.com/{1}/releases/tag/{0}) is now available on GitHub.', github.ref_type == 'tag' && github.ref_name || 'development', github.repository)) }}
 
   # For any repositories which use this one as a dependent,
   # notify them by creating an issue within the DreamWeave org's scope.
   nag-dependents:
     if: success() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && inputs.dependent_repo_names != '' && inputs.dependent_repo_names != '[]'
-    needs: [release, release-linux, nexus-publish]
+    needs: [github-publish]
 
     uses: DreamWeave-MP/StroggForge/.github/workflows/dependent.yml@v28
 

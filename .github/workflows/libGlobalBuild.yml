@@ -55,6 +55,8 @@ jobs:
   # Ensure any previously-existing releases are deleted,
   # And create a new one with auto-generated changelog & workflow ID
   release_cleanup:
+    if: github.event_name != 'pull_request'
+    needs: [test, clippy, fmt, audit]
     uses: DreamWeave-MP/StroggForge/.github/workflows/createRelease.yml@v28
     secrets: inherit
 
@@ -269,7 +271,7 @@ jobs:
   # Generate a CHANGELOG.md from git history and upload it to the release.
   changelog:
     if: inputs.generate_changelog && github.event_name != 'pull_request'
-    needs: [release_cleanup, test, clippy, fmt, audit]
+    needs: [release_cleanup]
     runs-on: ubuntu-22.04
     permissions:
       contents: write
@@ -295,7 +297,7 @@ jobs:
   # Run cargo bench, generate BENCHMARKS.md from Criterion output or the raw benchmark log, and upload to the release.
   benchmarks:
     if: inputs.generate_benchmarks && github.event_name != 'pull_request'
-    needs: [release_cleanup, test, clippy, fmt, audit]
+    needs: [release_cleanup]
     runs-on: ubuntu-22.04
     permissions:
       contents: write
@@ -339,19 +341,19 @@ jobs:
   # For workflows where users may now receive a new deliverable, notify them about it!
   call-discord-webhook:
     if: always() && github.event_name == 'push'
-    needs: [test, fmt, clippy]
+    needs: [test, fmt, clippy, audit, release_cleanup, publish, changelog]
     uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v28
     secrets:
       WEBHOOK_URL: ${{ secrets.DISCORD_CHANNEL_WEBHOOK || secrets.DW_TOOLS_CHANNEL_WEBHOOK }}
     with:
-      title: ${{ (needs.test.result == 'failure' || needs.fmt.result == 'failure' || needs.clippy.result == 'failure') && format('{0} pipeline failed! 😭', github.event.repository.name) || '' }}
-      description: ${{ (needs.test.result == 'failure' || needs.fmt.result == 'failure' || needs.clippy.result == 'failure') && format('[Workflow Results](https://github.com/{0}/actions/runs/{1})', github.repository, github.run_id) || ''}}
+      title: ${{ (needs.test.result != 'success' || needs.fmt.result != 'success' || needs.clippy.result != 'success' || needs.audit.result != 'success' || needs.release_cleanup.result != 'success' || needs.publish.result == 'failure' || needs.changelog.result == 'failure') && format('{0} pipeline failed! 😭', github.event.repository.name) || '' }}
+      description: ${{ (needs.test.result != 'success' || needs.fmt.result != 'success' || needs.clippy.result != 'success' || needs.audit.result != 'success' || needs.release_cleanup.result != 'success' || needs.publish.result == 'failure' || needs.changelog.result == 'failure') && format('[Workflow Results](https://github.com/{0}/actions/runs/{1})', github.repository, github.run_id) || format('[{0}](https://github.com/{1}/releases/tag/{0}) is now available on GitHub.', github.ref_type == 'tag' && github.ref_name || 'development', github.repository) }}
 
   # For any repositories which use this one as a dependent,
   # notify them by creating an issue within the DreamWeave org's scope.
   nag-dependents:
     if: success() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && inputs.dependent_repo_names != '' && inputs.dependent_repo_names != '[]'
-    needs: [test, fmt, clippy]
+    needs: [release_cleanup]
 
     uses: DreamWeave-MP/StroggForge/.github/workflows/dependent.yml@v28
 

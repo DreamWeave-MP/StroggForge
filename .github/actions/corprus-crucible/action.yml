@@ -1,5 +1,5 @@
 name: 'Corprus Crucible'
-description: 'Strogg manufacturing system for Rust binaries - builds, signs, and scans releases'
+description: 'Strogg manufacturing system for Rust binaries - builds, signs, scans, packages, and stages release artifacts'
 
 inputs:
   binary_name:
@@ -12,9 +12,6 @@ inputs:
   vt_api_key:
     description: 'VirusTotal API key (REQUIRED)'
     required: true
-  github_token:
-    description: 'GitHub Token (REQUIRED)'
-    required: true
   release_name:
     description: 'Name of the release (tag or development)'
     required: true
@@ -26,16 +23,13 @@ inputs:
     description: 'Nexus Mods file group IDs as JSON. Provide with nexus_api_key to upload release archives to Nexus Mods.'
     required: false
     default: ''
-  # cargo_token:
-  #   description: 'If provided, the token is used to publish the target app to crates.io'
-  #   required: false
-  #   default: ''
 
 runs:
   using: composite
   steps:
     # Validate required VirusTotal API key
     - name: Validate VirusTotal API Key
+      if: github.event_name != 'pull_request'
       shell: bash
       run: bash "${{ github.action_path }}/../../../scripts/corprus-crucible/validate-virustotal-key.sh" "${{ inputs.vt_api_key }}"
 
@@ -63,8 +57,9 @@ runs:
           ~/.cargo/git
         key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
 
-    - name: ⚡ Cache Cargo target directory
-      uses: actions/cache@v5.0.5
+    - name: ⚡ Restore Cargo target cache
+      id: cache_release_target
+      uses: actions/cache/restore@v5.0.5
       if: github.event_name != 'pull_request'
       with:
         path: |
@@ -85,10 +80,13 @@ runs:
         "${{ steps.context.outputs.target_dir }}"
         "${{ steps.context.outputs.dist_dir }}"
 
-    # - name: Cargo Publish
-    #   if: ${{ inputs.cargo_token }} != '' && ${{ inputs.release_name }} != 'development'
-    #   shell: bash
-    #   run: cargo publish --manifest-path ${{ steps.context.outputs.build_dir }}/Cargo.toml --token ${{ inputs.cargo_token }}
+    - name: ⚡ Save Cargo target cache
+      uses: actions/cache/save@v5.0.5
+      if: github.event_name != 'pull_request' && steps.cache_release_target.outputs.cache-hit != 'true'
+      with:
+        path: |
+          ${{ steps.context.outputs.target_dir }}
+        key: ${{ steps.cache_release_target.outputs.cache-primary-key }}
 
     - name: Install Cosign
       if: github.event_name != 'pull_request'
@@ -120,7 +118,7 @@ runs:
       id: vt_scan
       uses: crazy-max/ghaction-virustotal@v5
       with:
-        update_release_body: true
+        update_release_body: false
         vt_api_key: ${{ inputs.vt_api_key }}
         files: ${{ steps.build_release.outputs.release_binary }}
 
@@ -187,20 +185,30 @@ runs:
       with:
         name: ${{ steps.nexus_upload_artifact.outputs.artifact_name }}
         path: ${{ steps.nexus_upload_artifact.outputs.artifact_dir }}
+        include-hidden-files: true
         retention-days: 1
 
-    - name: Upload to GitHub Release
+    - name: Prepare GitHub Release Artifact
       if: github.event_name != 'pull_request'
-      uses: softprops/action-gh-release@v3.0.0
+      id: github_release_artifact
+      shell: bash
       env:
-        GITHUB_TOKEN: ${{ inputs.github_token }}
+        VT_ANALYSIS: ${{ steps.format_vt_links.outputs.vt_analysis }}
+      run: >-
+        bash "${{ github.action_path }}/../../../scripts/corprus-crucible/prepare-github-release-artifact.sh"
+        "${{ inputs.binary_name }}"
+        "${{ runner.os }}"
+        "${{ runner.arch }}"
+        "${{ inputs.binary_name }}-${{ runner.os }}-${{ runner.arch }}.zip"
+
+    - name: Upload GitHub Release Artifact
+      if: github.event_name != 'pull_request'
+      uses: actions/upload-artifact@v7.0.1
       with:
-        tag_name: ${{ inputs.release_name }}
-        prerelease: ${{ github.ref_type != 'tag' }}
-        files: ${{ inputs.binary_name }}-${{ runner.os }}-${{ runner.arch }}.zip
-        append_body: true
-        body: |
-          ${{ steps.format_vt_links.outputs.vt_analysis }}
+        name: ${{ steps.github_release_artifact.outputs.artifact_name }}
+        path: ${{ steps.github_release_artifact.outputs.artifact_dir }}
+        include-hidden-files: true
+        retention-days: 1
 
     - name: Upload artifact (for PRs)
       if: github.event_name == 'pull_request'
