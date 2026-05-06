@@ -138,7 +138,7 @@ jobs:
         working-directory: ${{ github.workspace }}
 
   # Verify each crate would be publishable to crates.io. Informational — does not block release.
-  publish-dry-run:
+  cargo-publish-dry-run:
     if: inputs.cargo_publish && github.ref_type != 'tag'
     runs-on: ubuntu-22.04
     strategy:
@@ -176,7 +176,7 @@ jobs:
           cargo publish --dry-run --manifest-path "$MANIFEST"
 
   # Publish each crate to crates.io on tagged releases, after all quality gates pass.
-  publish:
+  cargo-publish:
     if: inputs.cargo_publish && github.ref_type == 'tag'
     needs: [test, clippy, fmt, audit]
     runs-on: ubuntu-22.04
@@ -341,13 +341,13 @@ jobs:
   # For workflows where users may now receive a new deliverable, notify them about it!
   call-discord-webhook:
     if: always() && github.event_name == 'push'
-    needs: [changelog, publish]
+    needs: [changelog, cargo-publish]
     uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v31
     secrets:
       WEBHOOK_URL: ${{ secrets.DISCORD_CHANNEL_WEBHOOK || secrets.DW_TOOLS_CHANNEL_WEBHOOK }}
     with:
-      title: ${{ ((inputs.generate_changelog && needs.changelog.result != 'success') || needs.publish.result == 'failure') && format('{0} pipeline failed! 😭', github.event.repository.name) || '' }}
-      description: ${{ ((inputs.generate_changelog && needs.changelog.result != 'success') || needs.publish.result == 'failure') && format('[Workflow Results](https://github.com/{0}/actions/runs/{1})', github.repository, github.run_id) || format('[{0}](https://github.com/{1}/releases/tag/{0}) is now available on GitHub.', github.ref_type == 'tag' && github.ref_name || 'development', github.repository) }}
+      title: ${{ ((inputs.generate_changelog && needs.changelog.result != 'success') || needs['cargo-publish'].result == 'failure') && format('{0} pipeline failed! 😭', github.event.repository.name) || '' }}
+      description: ${{ ((inputs.generate_changelog && needs.changelog.result != 'success') || needs['cargo-publish'].result == 'failure') && format('[Workflow Results](https://github.com/{0}/actions/runs/{1})', github.repository, github.run_id) || format('[{0}](https://github.com/{1}/releases/tag/{0}) is now available on GitHub.', github.ref_type == 'tag' && github.ref_name || 'development', github.repository) }}
 
   # For any repositories which use this one as a dependent,
   # notify them by creating an issue within the DreamWeave org's scope.

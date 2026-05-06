@@ -6,6 +6,10 @@ This repository provides the shared CI/CD infrastructure for all DreamWeave Rust
 The primary entry point for consuming repositories is `rustGlobalBuild.yml`.
 Everything else described here is either called internally by that workflow or available for special use cases.
 
+## [./.github/action_templates/daily_quality_template.yaml](./.github/action_templates/daily_quality_template.yaml)
+
+Optional consumer workflow template for daily Rust maintenance checks. It runs `cargo fmt --all --check`, strict workspace Clippy, and `cargo audit` once per day at 9 AM Central Standard Time (`0 15 * * *` UTC), plus manual `workflow_dispatch`.
+
 ## [./.github/workflows/rustGlobalBuild.yml](./.github/workflows/rustGlobalBuild.yml)
 
 The full pipeline orchestrator. This is what downstream repositories call — everything else in this document is an implementation detail of it.
@@ -24,12 +28,12 @@ Inputs:
 The pipeline runs these jobs:
 
 - Quality gates (parallel, block release): `test` (full platform matrix), `fmt`, `clippy` (pedantic), `audit` (RustSec)
-- Informational (parallel, does not block): `publish-dry-run`
+- Informational (parallel, does not block): `cargo-publish-dry-run`
 - Release builds (after gates pass): `release` (macOS ARM + Intel, Windows) and `release-linux` (AlmaLinux 8 container for glibc 2.28 compatibility) build, sign, scan, package, and stage platform archives as workflow artifacts. They do not mutate the GitHub Release directly.
 - Release preparation: `release_cleanup` runs after the application release builds succeed and refreshes the current tag or shared `development` release.
 - GitHub Release publish: `github-publish` uploads the staged platform archives and VirusTotal notes after `release_cleanup` succeeds.
 - Doc/artifact generation: `docs` deploys GitHub Pages on main pushes after gates pass; `changelog` and `benchmarks` upload release files after `github-publish` succeeds.
-- External publish/notification: `publish` (crates.io, tag only), `aur-publish`, and `nexus-publish` fan out after builds; `call-discord-webhook` waits for the mandatory release path, changelog, and optional external publish jobs so it can report their failures, while `nag-dependents` waits for the GitHub Release publish boundary.
+- External publish/notification: `cargo-publish` (crates.io, tag only), `aur-publish`, and `nexus-publish` fan out after builds; `call-discord-webhook` waits for the mandatory release path, changelog, and optional external publish jobs so it can report their failures, while `nag-dependents` waits for the GitHub Release publish boundary.
 
 ## [./.github/workflows/libGlobalBuild.yml](./.github/workflows/libGlobalBuild.yml)
 
