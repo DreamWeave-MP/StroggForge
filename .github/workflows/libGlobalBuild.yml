@@ -353,7 +353,7 @@ jobs:
   # notify them by creating an issue within the DreamWeave org's scope.
   nag-dependents:
     if: success() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && inputs.dependent_repo_names != '' && inputs.dependent_repo_names != '[]'
-    needs: [test, fmt, clippy]
+    needs: [release_cleanup]
 
     uses: DreamWeave-MP/StroggForge/.github/workflows/dependent.yml@v28
 
