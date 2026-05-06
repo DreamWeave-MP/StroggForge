@@ -503,7 +503,7 @@ jobs:
         run: >-
           dnf install -y epel-release
           && dnf --installroot=/usr/aarch64-linux-gnu/sys-root --releasever=8 --forcearch=aarch64 install -y glibc-devel libstdc++-devel libgcc openssl-devel
-          && dnf install -y git python3 make gettext pkgconf-pkg-config p7zip p7zip-plugins gcc-aarch64-linux-gnu gcc-c++-aarch64-linux-gnu binutils-aarch64-linux-gnu
+          && dnf install -y git python3 make gettext pkgconf-pkg-config p7zip p7zip-plugins clang clang-devel gcc-aarch64-linux-gnu gcc-c++-aarch64-linux-gnu binutils-aarch64-linux-gnu
           && mkdir -p /home/runner/work
           && { [ -e /home/runner/work/_actions ] || ln -s /__w/_actions /home/runner/work/_actions; }
       - uses: actions/checkout@v6
@@ -511,9 +511,12 @@ jobs:
         uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v32
         env:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_RUSTFLAGS: -C link-arg=--sysroot=/usr/aarch64-linux-gnu/sys-root
           CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
           CXX_aarch64_unknown_linux_gnu: aarch64-linux-gnu-g++
           AR_aarch64_unknown_linux_gnu: aarch64-linux-gnu-ar
+          CFLAGS_aarch64_unknown_linux_gnu: --sysroot=/usr/aarch64-linux-gnu/sys-root
+          CXXFLAGS_aarch64_unknown_linux_gnu: --sysroot=/usr/aarch64-linux-gnu/sys-root
           BINDGEN_EXTRA_CLANG_ARGS: --target=aarch64-unknown-linux-gnu --sysroot=/usr/aarch64-linux-gnu/sys-root
           PKG_CONFIG_ALLOW_CROSS: '1'
           PKG_CONFIG_SYSROOT_DIR: /usr/aarch64-linux-gnu/sys-root
