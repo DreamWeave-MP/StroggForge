@@ -23,6 +23,18 @@ inputs:
     description: 'Nexus Mods file group IDs as JSON. Provide with nexus_api_key to upload release archives to Nexus Mods.'
     required: false
     default: ''
+  platform_os:
+    description: 'Release platform name used for artifacts. Defaults to the runner OS for native builds.'
+    required: false
+    default: ''
+  platform_arch:
+    description: 'Release platform architecture used for artifacts. Defaults to the runner architecture for native builds.'
+    required: false
+    default: ''
+  rust_target:
+    description: 'Optional Rust target triple for cross-compiled release builds.'
+    required: false
+    default: ''
 
 runs:
   using: composite
@@ -36,7 +48,7 @@ runs:
     - name: Determine Binary Suffix
       id: os_check
       shell: bash
-      run: bash "${{ github.action_path }}/../../../scripts/corprus-crucible/binary-suffix.sh" "${{ runner.os }}"
+      run: bash "${{ github.action_path }}/../../../scripts/corprus-crucible/binary-suffix.sh" "${{ inputs.platform_os || runner.os }}"
 
     - name: Determine Build Context
       id: context
@@ -47,6 +59,11 @@ runs:
     - name: Setup Rust
       uses: dtolnay/rust-toolchain@stable
       id: rust_toolchain
+
+    - name: Setup Rust Target
+      if: inputs.rust_target != ''
+      shell: bash
+      run: rustup target add "${{ inputs.rust_target }}"
 
     - name: ⚡ Cache Cargo registry
       uses: actions/cache@v5.0.5
@@ -64,10 +81,10 @@ runs:
       with:
         path: |
           ${{ steps.context.outputs.target_dir }}
-        key: ${{ runner.os }}-${{ runner.arch }}-release-target-${{ inputs.binary_name }}-${{ steps.rust_toolchain.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ inputs.platform_os || runner.os }}-${{ inputs.platform_arch || runner.arch }}-release-target-${{ inputs.binary_name }}-${{ inputs.rust_target || 'native' }}-${{ steps.rust_toolchain.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: |
-          ${{ runner.os }}-${{ runner.arch }}-release-target-${{ inputs.binary_name }}-${{ steps.rust_toolchain.outputs.cachekey }}-
-          ${{ runner.os }}-${{ runner.arch }}-release-target-${{ inputs.binary_name }}-
+          ${{ inputs.platform_os || runner.os }}-${{ inputs.platform_arch || runner.arch }}-release-target-${{ inputs.binary_name }}-${{ inputs.rust_target || 'native' }}-${{ steps.rust_toolchain.outputs.cachekey }}-
+          ${{ inputs.platform_os || runner.os }}-${{ inputs.platform_arch || runner.arch }}-release-target-${{ inputs.binary_name }}-${{ inputs.rust_target || 'native' }}-
 
     - name: Build Release
       id: build_release
@@ -79,6 +96,7 @@ runs:
         "${{ steps.context.outputs.build_dir }}"
         "${{ steps.context.outputs.target_dir }}"
         "${{ steps.context.outputs.dist_dir }}"
+        "${{ inputs.rust_target }}"
 
     - name: ⚡ Save Cargo target cache
       uses: actions/cache/save@v5.0.5
@@ -98,7 +116,7 @@ runs:
       run: >-
         bash "${{ github.action_path }}/../../../scripts/corprus-crucible/sign-release-binary.sh"
         "${{ steps.build_release.outputs.release_binary }}"
-        "${{ steps.context.outputs.dist_dir }}/${{ inputs.binary_name }}-${{ runner.os }}-${{ runner.arch }}.bundle"
+        "${{ steps.context.outputs.dist_dir }}/${{ inputs.binary_name }}-${{ inputs.platform_os || runner.os }}-${{ inputs.platform_arch || runner.arch }}.bundle"
 
     - name: Create Archive
       shell: bash
@@ -106,8 +124,8 @@ runs:
       run: >-
         bash "${{ github.action_path }}/../../../scripts/corprus-crucible/create-release-archive.sh"
         "${{ inputs.binary_name }}"
-        "${{ runner.os }}"
-        "${{ runner.arch }}"
+        "${{ inputs.platform_os || runner.os }}"
+        "${{ inputs.platform_arch || runner.arch }}"
         "${{ steps.build_release.outputs.binary_name }}"
         "${{ steps.context.outputs.build_dir }}"
         "${{ steps.context.outputs.dist_dir }}"
@@ -128,7 +146,7 @@ runs:
       shell: bash
       run: >-
         bash "${{ github.action_path }}/../../../scripts/corprus-crucible/format-virustotal-links.sh"
-        "${{ inputs.binary_name }}-${{ runner.os }}-${{ runner.arch }}"
+        "${{ inputs.binary_name }}-${{ inputs.platform_os || runner.os }}-${{ inputs.platform_arch || runner.arch }}"
         "${{ steps.vt_scan.outputs.analysis }}"
 
     - name: Validate Nexus Mods Inputs
@@ -146,8 +164,8 @@ runs:
         NEXUS_GROUP_IDS: ${{ inputs.nexus_group_ids }}
       run: >-
         bash "${{ github.action_path }}/../../../scripts/corprus-crucible/resolve-nexusmods-group-id.sh"
-        "${{ runner.os }}"
-        "${{ runner.arch }}"
+        "${{ inputs.platform_os || runner.os }}"
+        "${{ inputs.platform_arch || runner.arch }}"
         "${{ inputs.release_name }}"
 
     - name: Prepare Nexus Mods Archive
@@ -157,8 +175,8 @@ runs:
       run: >-
         bash "${{ github.action_path }}/../../../scripts/corprus-crucible/prepare-nexusmods-archive.sh"
         "${{ inputs.binary_name }}"
-        "${{ runner.os }}"
-        "${{ runner.arch }}"
+        "${{ inputs.platform_os || runner.os }}"
+        "${{ inputs.platform_arch || runner.arch }}"
         "${{ steps.nexus_group.outputs.nexus_platform }}"
         "${{ inputs.release_name }}"
 
@@ -171,8 +189,8 @@ runs:
       run: >-
         bash "${{ github.action_path }}/../../../scripts/corprus-crucible/prepare-nexusmods-upload-artifact.sh"
         "${{ inputs.binary_name }}"
-        "${{ runner.os }}"
-        "${{ runner.arch }}"
+        "${{ inputs.platform_os || runner.os }}"
+        "${{ inputs.platform_arch || runner.arch }}"
         "${{ steps.nexus_group.outputs.group_id }}"
         "${{ steps.nexus_archive.outputs.nexus_archive }}"
         "${{ steps.nexus_archive.outputs.nexus_file_stem }}"
@@ -197,9 +215,9 @@ runs:
       run: >-
         bash "${{ github.action_path }}/../../../scripts/corprus-crucible/prepare-github-release-artifact.sh"
         "${{ inputs.binary_name }}"
-        "${{ runner.os }}"
-        "${{ runner.arch }}"
-        "${{ inputs.binary_name }}-${{ runner.os }}-${{ runner.arch }}.zip"
+        "${{ inputs.platform_os || runner.os }}"
+        "${{ inputs.platform_arch || runner.arch }}"
+        "${{ inputs.binary_name }}-${{ inputs.platform_os || runner.os }}-${{ inputs.platform_arch || runner.arch }}.zip"
 
     - name: Upload GitHub Release Artifact
       if: github.event_name != 'pull_request'
@@ -214,6 +232,6 @@ runs:
       if: github.event_name == 'pull_request'
       uses: actions/upload-artifact@v7.0.1
       with:
-        name: ${{ inputs.binary_name }}-${{ runner.os }}-${{ runner.arch }}
+        name: ${{ inputs.binary_name }}-${{ inputs.platform_os || runner.os }}-${{ inputs.platform_arch || runner.arch }}
         path: ${{ steps.build_release.outputs.release_binary }}
         retention-days: 7

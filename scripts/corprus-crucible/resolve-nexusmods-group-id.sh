@@ -24,6 +24,7 @@ runner_os, runner_arch, release_name, github_output = sys.argv[1:]
 raw_group_ids = os.environ["NEXUS_GROUP_IDS"]
 
 os_names = {
+    "Android": "android",
     "Linux": "linux",
     "Windows": "windows",
     "macOS": "macos",
