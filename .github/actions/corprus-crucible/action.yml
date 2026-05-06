@@ -33,6 +33,7 @@ runs:
   steps:
     # Validate required VirusTotal API key
     - name: Validate VirusTotal API Key
+      if: github.event_name != 'pull_request'
       shell: bash
       run: bash "${{ github.action_path }}/../../../scripts/corprus-crucible/validate-virustotal-key.sh" "${{ inputs.vt_api_key }}"
 

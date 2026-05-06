@@ -4,7 +4,7 @@ on:
   workflow_call:
     secrets:
       VT_API_KEY:
-        required: true
+        required: false
       NEXUS_API_KEY:
         required: false
       NEXUS_GROUP_IDS:

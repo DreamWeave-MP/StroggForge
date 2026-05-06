@@ -50,7 +50,7 @@ Inputs:
 
 1. `binary_name`: Required. The executable name to build, without platform extension.
 1. `include_files`: Optional. Comma-separated list of additional files to include in the release zip. Paths are relative to the build directory. Defaults to `Readme.md,LICENSE`.
-1. `vt_api_key`: Required. VirusTotal API key.
+1. `vt_api_key`: Required for non-PR release builds. VirusTotal API key.
 1. `release_name`: Required. Output from `createRelease` — either a tag name or `development`.
 1. `nexus_api_key`: Optional. Nexus Mods API key. Provide with `nexus_group_ids` to upload release archives to Nexus Mods. Passed through the environment so JSON secrets are not damaged by shell quoting.
 1. `nexus_group_ids`: Optional. Nexus Mods file group IDs as JSON. Provide with `nexus_api_key` to upload release archives to Nexus Mods. Values may be strings or integers; booleans are rejected so `false` cannot accidentally become a file group ID.
