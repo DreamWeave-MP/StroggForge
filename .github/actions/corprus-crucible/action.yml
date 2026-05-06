@@ -198,18 +198,26 @@ runs:
         path: ${{ steps.nexus_upload_artifact.outputs.artifact_dir }}
         retention-days: 1
 
-    - name: Upload to GitHub Release
+    - name: Prepare GitHub Release Artifact
       if: github.event_name != 'pull_request'
-      uses: softprops/action-gh-release@v3.0.0
+      id: github_release_artifact
+      shell: bash
       env:
-        GITHUB_TOKEN: ${{ inputs.github_token }}
+        VT_ANALYSIS: ${{ steps.format_vt_links.outputs.vt_analysis }}
+      run: >-
+        bash "${{ github.action_path }}/../../../scripts/corprus-crucible/prepare-github-release-artifact.sh"
+        "${{ inputs.binary_name }}"
+        "${{ runner.os }}"
+        "${{ runner.arch }}"
+        "${{ inputs.binary_name }}-${{ runner.os }}-${{ runner.arch }}.zip"
+
+    - name: Upload GitHub Release Artifact
+      if: github.event_name != 'pull_request'
+      uses: actions/upload-artifact@v7.0.1
       with:
-        tag_name: ${{ inputs.release_name }}
-        prerelease: ${{ github.ref_type != 'tag' }}
-        files: ${{ inputs.binary_name }}-${{ runner.os }}-${{ runner.arch }}.zip
-        append_body: true
-        body: |
-          ${{ steps.format_vt_links.outputs.vt_analysis }}
+        name: ${{ steps.github_release_artifact.outputs.artifact_name }}
+        path: ${{ steps.github_release_artifact.outputs.artifact_dir }}
+        retention-days: 1
 
     - name: Upload artifact (for PRs)
       if: github.event_name == 'pull_request'
