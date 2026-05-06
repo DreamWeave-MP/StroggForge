@@ -63,8 +63,9 @@ runs:
           ~/.cargo/git
         key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
 
-    - name: ⚡ Cache Cargo target directory
-      uses: actions/cache@v5.0.5
+    - name: ⚡ Restore Cargo target cache
+      id: cache_release_target
+      uses: actions/cache/restore@v5.0.5
       if: github.event_name != 'pull_request'
       with:
         path: |
@@ -84,6 +85,14 @@ runs:
         "${{ steps.context.outputs.build_dir }}"
         "${{ steps.context.outputs.target_dir }}"
         "${{ steps.context.outputs.dist_dir }}"
+
+    - name: ⚡ Save Cargo target cache
+      uses: actions/cache/save@v5.0.5
+      if: github.event_name != 'pull_request' && steps.cache_release_target.outputs.cache-hit != 'true'
+      with:
+        path: |
+          ${{ steps.context.outputs.target_dir }}
+        key: ${{ steps.cache_release_target.outputs.cache-primary-key }}
 
     # - name: Cargo Publish
     #   if: ${{ inputs.cargo_token }} != '' && ${{ inputs.release_name }} != 'development'
