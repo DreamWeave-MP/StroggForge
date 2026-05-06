@@ -51,22 +51,21 @@ Inputs:
 1. `binary_name`: Required. The executable name to build, without platform extension.
 1. `include_files`: Optional. Comma-separated list of additional files to include in the release zip. Paths are relative to the build directory. Defaults to `Readme.md,LICENSE`.
 1. `vt_api_key`: Required. VirusTotal API key.
-1. `github_token`: Required. GitHub token for uploading release artifacts.
 1. `release_name`: Required. Output from `createRelease` — either a tag name or `development`.
 1. `nexus_api_key`: Optional. Nexus Mods API key. Provide with `nexus_group_ids` to upload release archives to Nexus Mods. Passed through the environment so JSON secrets are not damaged by shell quoting.
 1. `nexus_group_ids`: Optional. Nexus Mods file group IDs as JSON. Provide with `nexus_api_key` to upload release archives to Nexus Mods. Values may be strings or integers; booleans are rejected so `false` cannot accidentally become a file group ID.
 
 Build context detection: if `binary_name` matches a directory at the repo root, the action builds from that directory. Otherwise builds from `.`. This handles monorepos transparently.
 
-On pull requests, signing, VirusTotal scanning, Nexus Mods upload, and GitHub Release upload are skipped; the binary is uploaded as a workflow artifact instead.
+On pull requests, signing, VirusTotal scanning, Nexus Mods artifact staging, and GitHub Release artifact staging are skipped; the binary is uploaded as a workflow artifact instead. On release builds, Corprus Crucible stages GitHub Release archives as workflow artifacts; `rustGlobalBuild.yml` publishes them later after release cleanup succeeds.
 
 Nexus Mods upload is enabled by setting both `NEXUS_API_KEY` and `NEXUS_GROUP_IDS` secrets on the consuming repository or organization. `NEXUS_GROUP_IDS` is a JSON object keyed by `{platform}-{channel}`; use `.github/nexus_group_ids.template.json` as the template. Supported platform keys are `linux-x64`, `windows-x64`, `macos-x64`, and `macos-arm64`, with `stable` for tagged releases and `dev` for the `development` release. Stable keys are required for tagged releases. Development keys are optional; missing development keys skip Nexus upload for that platform. Each platform archive is copied to a Nexus-specific filename of `{binary}-{platform}-{release}.zip`, uploaded with that display name, and uses the release name as the Nexus version. Development builds set `archive_existing_file` so the previous development upload for that file group is archived. The Nexus file description includes BBCode-formatted VirusTotal analysis links generated earlier in the release pipeline; GitHub Release notes keep the Markdown version.
 
-Corprus Crucible shell implementation details live under `scripts/corprus-crucible/`. The composite action owns GitHub Actions orchestration; the scripts own validation, build context detection, binary suffix detection, release binary staging, signing, archive creation, VirusTotal link formatting, and Nexus Mods archive preparation.
+Corprus Crucible shell implementation details live under `scripts/corprus-crucible/`. The composite action owns GitHub Actions orchestration; the scripts own validation, build context detection, binary suffix detection, release binary staging, signing, archive creation, VirusTotal link formatting, GitHub Release artifact staging, and Nexus Mods archive preparation.
 
 ## [./.github/workflows/createRelease.yml](./.github/workflows/createRelease.yml)
 
-Reusable workflow called at the start of every pipeline. Deletes any existing release matching the current tag (or `development` on non-tag pushes), then creates a fresh one with auto-generated changelog and a workflow run ID marker.
+Reusable workflow used by release-producing jobs after their mandatory prerequisites pass. Deletes any existing release matching the current tag (or `development` on non-tag pushes), then creates a fresh one with auto-generated changelog and a workflow run ID marker.
 
 Output: `release_name` — the tag name on tag pushes, `development` otherwise.
 

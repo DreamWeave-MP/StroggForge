@@ -1,5 +1,5 @@
 name: 'Corprus Crucible'
-description: 'Strogg manufacturing system for Rust binaries - builds, signs, and scans releases'
+description: 'Strogg manufacturing system for Rust binaries - builds, signs, scans, packages, and stages release artifacts'
 
 inputs:
   binary_name:
@@ -11,9 +11,6 @@ inputs:
     default: 'Readme.md,LICENSE'
   vt_api_key:
     description: 'VirusTotal API key (REQUIRED)'
-    required: true
-  github_token:
-    description: 'GitHub Token (REQUIRED)'
     required: true
   release_name:
     description: 'Name of the release (tag or development)'

@@ -359,7 +359,7 @@ jobs:
           tag_name: ${{ needs.release_cleanup.outputs.release_name }}
           files: BENCHMARKS.md
 
-  # Build, test, sign, package, & release Rust apps on macOS and Windows
+  # Build, sign, scan, package, and stage Rust app archives on macOS and Windows.
   release:
     needs: [test, clippy, fmt, audit]
 
@@ -381,12 +381,11 @@ jobs:
         with:
           binary_name: ${{ matrix.app_names }}
           vt_api_key: ${{ secrets.VT_API_KEY }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
           release_name: ${{ github.ref_type == 'tag' && github.ref_name || 'development' }}
           nexus_api_key: ${{ secrets.NEXUS_API_KEY }}
           nexus_group_ids: ${{ secrets.NEXUS_GROUP_IDS }}
 
-  # Build, test, sign, package, & release Rust apps on Linux.
+  # Build, sign, scan, package, and stage Rust app archives on Linux.
   # Runs inside AlmaLinux 8 (glibc 2.28) for maximum distribution compatibility.
   release-linux:
     needs: [test, clippy, fmt, audit]
@@ -411,7 +410,6 @@ jobs:
         with:
           binary_name: ${{ matrix.app_names }}
           vt_api_key: ${{ secrets.VT_API_KEY }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
           release_name: ${{ github.ref_type == 'tag' && github.ref_name || 'development' }}
           nexus_api_key: ${{ secrets.NEXUS_API_KEY }}
           nexus_group_ids: ${{ secrets.NEXUS_GROUP_IDS }}
