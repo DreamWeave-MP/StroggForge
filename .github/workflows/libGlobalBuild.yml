@@ -341,13 +341,13 @@ jobs:
   # For workflows where users may now receive a new deliverable, notify them about it!
   call-discord-webhook:
     if: always() && github.event_name == 'push'
-    needs: [test, fmt, clippy, audit, release_cleanup, publish, changelog]
+    needs: [release_cleanup, publish, changelog]
     uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v29
     secrets:
       WEBHOOK_URL: ${{ secrets.DISCORD_CHANNEL_WEBHOOK || secrets.DW_TOOLS_CHANNEL_WEBHOOK }}
     with:
-      title: ${{ (needs.test.result != 'success' || needs.fmt.result != 'success' || needs.clippy.result != 'success' || needs.audit.result != 'success' || needs.release_cleanup.result != 'success' || needs.publish.result == 'failure' || needs.changelog.result == 'failure') && format('{0} pipeline failed! 😭', github.event.repository.name) || '' }}
-      description: ${{ (needs.test.result != 'success' || needs.fmt.result != 'success' || needs.clippy.result != 'success' || needs.audit.result != 'success' || needs.release_cleanup.result != 'success' || needs.publish.result == 'failure' || needs.changelog.result == 'failure') && format('[Workflow Results](https://github.com/{0}/actions/runs/{1})', github.repository, github.run_id) || format('[{0}](https://github.com/{1}/releases/tag/{0}) is now available on GitHub.', github.ref_type == 'tag' && github.ref_name || 'development', github.repository) }}
+      title: ${{ (needs.release_cleanup.result != 'success' || needs.publish.result == 'failure' || needs.changelog.result == 'failure') && format('{0} pipeline failed! 😭', github.event.repository.name) || '' }}
+      description: ${{ (needs.release_cleanup.result != 'success' || needs.publish.result == 'failure' || needs.changelog.result == 'failure') && format('[Workflow Results](https://github.com/{0}/actions/runs/{1})', github.repository, github.run_id) || format('[{0}](https://github.com/{1}/releases/tag/{0}) is now available on GitHub.', github.ref_type == 'tag' && github.ref_name || 'development', github.repository) }}
 
   # For any repositories which use this one as a dependent,
   # notify them by creating an issue within the DreamWeave org's scope.
