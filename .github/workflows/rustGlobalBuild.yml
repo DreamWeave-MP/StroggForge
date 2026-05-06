@@ -80,7 +80,7 @@ on:
         type: boolean
         required: false
         default: false
-        description: "Build and publish Android ARM64 ELF release artifacts. This does not build an APK."
+        description: "Build and publish Android ARM64 ELF release artifacts targeting Android API level 23. This does not build an APK."
 
 concurrency:
   group: stroggforge-rust-global-${{ github.repository }}-${{ github.ref }}
@@ -421,6 +421,7 @@ jobs:
           nexus_group_ids: ${{ secrets.NEXUS_GROUP_IDS }}
 
   # Build, sign, scan, package, and stage Android ARM64 ELF artifacts.
+  # Android builds target API level 23. Keep this fixed until a consumer actually needs another minSdk.
   # This deliberately does not build an APK; it only validates and publishes the native Rust artifact.
   release-android:
     if: inputs.enable_android
@@ -432,6 +433,9 @@ jobs:
         android_target: [aarch64-linux-android]
 
     runs-on: ubuntu-latest
+
+    env:
+      ANDROID_API_LEVEL: '23'
 
     permissions:
       contents: write
@@ -449,8 +453,18 @@ jobs:
       - name: Run Corprus Crucible
         uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v31
         env:
-          CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER: ${{ steps.setup_ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android23-clang
+          ANDROID_NDK_HOME: ${{ steps.setup_ndk.outputs.ndk-path }}
+          NDK_HOME: ${{ steps.setup_ndk.outputs.ndk-path }}
+          CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER: ${{ steps.setup_ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android${{ env.ANDROID_API_LEVEL }}-clang
           CARGO_TARGET_AARCH64_LINUX_ANDROID_AR: ${{ steps.setup_ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
+          CC_aarch64_linux_android: ${{ steps.setup_ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android${{ env.ANDROID_API_LEVEL }}-clang
+          CXX_aarch64_linux_android: ${{ steps.setup_ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android${{ env.ANDROID_API_LEVEL }}-clang++
+          AR_aarch64_linux_android: ${{ steps.setup_ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
+          CMAKE_TOOLCHAIN_FILE: ${{ steps.setup_ndk.outputs.ndk-path }}/build/cmake/android.toolchain.cmake
+          ANDROID_ABI: arm64-v8a
+          ANDROID_PLATFORM: android-${{ env.ANDROID_API_LEVEL }}
+          BINDGEN_EXTRA_CLANG_ARGS: --sysroot=${{ steps.setup_ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/sysroot
+          PKG_CONFIG_ALLOW_CROSS: '1'
         with:
           binary_name: ${{ matrix.app_names }}
           vt_api_key: ${{ secrets.VT_API_KEY }}

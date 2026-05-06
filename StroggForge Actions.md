@@ -24,13 +24,13 @@ Inputs:
 1. `cargo_publish`: Optional, default `true`. Runs `cargo publish --dry-run` on every non-tag push, and `cargo publish` on tagged releases. Set `false` if the project does not publish to crates.io. Requires `CARGO_REGISTRY_TOKEN` secret.
 1. `generate_changelog`: Optional, default `true`. Generates `CHANGELOG.md` from git history and uploads it to the release.
 1. `generate_benchmarks`: Optional, default `false`. Runs `cargo bench`, generates `BENCHMARKS.md` from Criterion output when available, otherwise preserves the raw benchmark log, and uploads it to the release.
-1. `enable_android`: Optional, default `false`. Builds Android ARM64 ELF release artifacts using the Android NDK. This does not produce an APK.
+1. `enable_android`: Optional, default `false`. Builds Android ARM64 ELF release artifacts using the Android NDK at API level 23. This does not produce an APK.
 
 The pipeline runs these jobs:
 
 - Quality gates (parallel, block release): `test` (full platform matrix), `fmt`, `clippy` (pedantic), `audit` (RustSec)
 - Informational (parallel, does not block): `cargo-publish-dry-run`
-- Release builds (after gates pass): `release` (macOS ARM + Intel, Windows), `release-linux` (AlmaLinux 8 container for glibc 2.28 compatibility), and optional `release-android` (Android ARM64 ELF, not APK) build, sign, scan, package, and stage platform archives as workflow artifacts. They do not mutate the GitHub Release directly.
+- Release builds (after gates pass): `release` (macOS ARM + Intel, Windows), `release-linux` (AlmaLinux 8 container for glibc 2.28 compatibility), and optional `release-android` (Android ARM64 ELF targeting API level 23, not APK) build, sign, scan, package, and stage platform archives as workflow artifacts. They do not mutate the GitHub Release directly.
 - Release preparation: `release_cleanup` runs after the application release builds succeed and refreshes the current tag or shared `development` release.
 - GitHub Release publish: `github-publish` uploads the staged platform archives and VirusTotal notes after `release_cleanup` succeeds.
 - Doc/artifact generation: `docs` deploys GitHub Pages on main pushes after gates pass; `changelog` and `benchmarks` upload release files after `github-publish` succeeds.
