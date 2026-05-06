@@ -82,6 +82,12 @@ on:
         default: false
         description: "Build and publish Android ARM64 ELF release artifacts targeting Android API level 23. This does not build an APK."
 
+      enable_portmaster:
+        type: boolean
+        required: false
+        default: false
+        description: "Build and publish Portmaster ARM64 release artifacts targeting aarch64-unknown-linux-gnu with an AlmaLinux 8 sysroot."
+
 concurrency:
   group: stroggforge-rust-global-${{ github.repository }}-${{ github.ref }}
   cancel-in-progress: true
@@ -90,8 +96,8 @@ jobs:
   # Ensure any previously-existing releases are deleted,
   # And create a new one with auto-generated changelog & workflow ID
   release_cleanup:
-    if: always() && github.event_name != 'pull_request' && needs.release.result == 'success' && needs.release-linux.result == 'success' && (!inputs.enable_android || needs.release-android.result == 'success')
-    needs: [release, release-linux, release-android]
+    if: always() && github.event_name != 'pull_request' && needs.release.result == 'success' && needs.release-linux.result == 'success' && (!inputs.enable_android || needs.release-android.result == 'success') && (!inputs.enable_portmaster || needs.release-portmaster.result == 'success')
+    needs: [release, release-linux, release-android, release-portmaster]
     uses: DreamWeave-MP/StroggForge/.github/workflows/createRelease.yml@v32
     secrets: inherit
 
@@ -207,8 +213,8 @@ jobs:
 
   # Publish each crate to crates.io on tagged releases, after all release builds succeed.
   cargo-publish:
-    if: always() && inputs.cargo_publish && github.ref_type == 'tag' && needs.release.result == 'success' && needs.release-linux.result == 'success' && (!inputs.enable_android || needs.release-android.result == 'success')
-    needs: [release, release-linux, release-android]
+    if: always() && inputs.cargo_publish && github.ref_type == 'tag' && needs.release.result == 'success' && needs.release-linux.result == 'success' && (!inputs.enable_android || needs.release-android.result == 'success') && (!inputs.enable_portmaster || needs.release-portmaster.result == 'success')
+    needs: [release, release-linux, release-android, release-portmaster]
     runs-on: ubuntu-22.04
     strategy:
       matrix:
@@ -475,6 +481,56 @@ jobs:
           platform_arch: ARM64
           rust_target: ${{ matrix.android_target }}
 
+  # Build, sign, scan, package, and stage Portmaster ARM64 artifacts.
+  # Uses AlmaLinux 8 target libraries so the aarch64-unknown-linux-gnu artifact keeps the same old-glibc compatibility posture as the native Linux release.
+  release-portmaster:
+    if: inputs.enable_portmaster
+    needs: [test, clippy, fmt, audit]
+
+    strategy:
+      matrix:
+        app_names: ${{ fromJson(inputs.binary_names) }}
+
+    runs-on: ubuntu-latest
+    container: almalinux:8
+
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - name: Install Build Dependencies
+        run: >-
+          dnf install -y epel-release
+          && dnf --installroot=/usr/aarch64-linux-gnu/sys-root --releasever=8 --forcearch=aarch64 install -y glibc-devel libstdc++-devel libgcc openssl-devel
+          && dnf install -y git python3 make gettext pkgconf-pkg-config p7zip p7zip-plugins clang clang-devel gcc-aarch64-linux-gnu gcc-c++-aarch64-linux-gnu binutils-aarch64-linux-gnu
+          && mkdir -p /home/runner/work
+          && { [ -e /home/runner/work/_actions ] || ln -s /__w/_actions /home/runner/work/_actions; }
+      - uses: actions/checkout@v6
+      - name: Run Corprus Crucible
+        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v32
+        env:
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_RUSTFLAGS: -C link-arg=--sysroot=/usr/aarch64-linux-gnu/sys-root
+          CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
+          CXX_aarch64_unknown_linux_gnu: aarch64-linux-gnu-g++
+          AR_aarch64_unknown_linux_gnu: aarch64-linux-gnu-ar
+          CFLAGS_aarch64_unknown_linux_gnu: --sysroot=/usr/aarch64-linux-gnu/sys-root
+          CXXFLAGS_aarch64_unknown_linux_gnu: --sysroot=/usr/aarch64-linux-gnu/sys-root
+          BINDGEN_EXTRA_CLANG_ARGS: --target=aarch64-unknown-linux-gnu --sysroot=/usr/aarch64-linux-gnu/sys-root
+          PKG_CONFIG_ALLOW_CROSS: '1'
+          PKG_CONFIG_SYSROOT_DIR: /usr/aarch64-linux-gnu/sys-root
+          PKG_CONFIG_LIBDIR: /usr/aarch64-linux-gnu/sys-root/usr/lib64/pkgconfig:/usr/aarch64-linux-gnu/sys-root/usr/share/pkgconfig
+        with:
+          binary_name: ${{ matrix.app_names }}
+          vt_api_key: ${{ secrets.VT_API_KEY }}
+          release_name: ${{ github.ref_type == 'tag' && github.ref_name || 'development' }}
+          nexus_api_key: ${{ secrets.NEXUS_API_KEY }}
+          nexus_group_ids: ${{ secrets.NEXUS_GROUP_IDS }}
+          platform_os: Portmaster
+          platform_arch: ARM64
+          rust_target: aarch64-unknown-linux-gnu
+
   # Publish staged platform archives to the freshly-created GitHub Release.
   github-publish:
     if: github.event_name != 'pull_request'
@@ -518,8 +574,8 @@ jobs:
 
   # Publish Nexus Mods files after all platform archives are built.
   nexus-publish:
-    if: always() && github.event_name != 'pull_request' && needs.release.result == 'success' && needs.release-linux.result == 'success' && (!inputs.enable_android || needs.release-android.result == 'success')
-    needs: [release, release-linux, release-android]
+    if: always() && github.event_name != 'pull_request' && needs.release.result == 'success' && needs.release-linux.result == 'success' && (!inputs.enable_android || needs.release-android.result == 'success') && (!inputs.enable_portmaster || needs.release-portmaster.result == 'success')
+    needs: [release, release-linux, release-android, release-portmaster]
     runs-on: ubuntu-latest
     env:
       NEXUS_API_KEY: ${{ secrets.NEXUS_API_KEY }}
@@ -540,17 +596,19 @@ jobs:
             arch: X64
           - os: Android
             arch: ARM64
+          - os: Portmaster
+            arch: ARM64
 
     steps:
       - uses: actions/checkout@v6
-        if: env.NEXUS_API_KEY != '' || env.NEXUS_GROUP_IDS != ''
+        if: (env.NEXUS_API_KEY != '' || env.NEXUS_GROUP_IDS != '') && (matrix.platform.os != 'Portmaster' || inputs.enable_portmaster)
         with:
           repository: DreamWeave-MP/StroggForge
           ref: v32
           path: .stroggforge
 
       - name: Download Nexus Mods Upload Artifact
-        if: env.NEXUS_API_KEY != '' || env.NEXUS_GROUP_IDS != ''
+        if: (env.NEXUS_API_KEY != '' || env.NEXUS_GROUP_IDS != '') && (matrix.platform.os != 'Portmaster' || inputs.enable_portmaster)
         id: download_nexus_artifact
         continue-on-error: true
         uses: actions/download-artifact@v8.0.1
@@ -581,8 +639,8 @@ jobs:
   # update the AUR package as well.
   aur-publish:
     runs-on: ubuntu-latest
-    if: always() && github.event_name == 'push' && inputs.aur_package_name != '' && needs.release.result == 'success' && needs.release-linux.result == 'success' && (!inputs.enable_android || needs.release-android.result == 'success')
-    needs: [release, release-linux, release-android]
+    if: always() && github.event_name == 'push' && inputs.aur_package_name != '' && needs.release.result == 'success' && needs.release-linux.result == 'success' && (!inputs.enable_android || needs.release-android.result == 'success') && (!inputs.enable_portmaster || needs.release-portmaster.result == 'success')
+    needs: [release, release-linux, release-android, release-portmaster]
     environment: AUR
 
     steps:
