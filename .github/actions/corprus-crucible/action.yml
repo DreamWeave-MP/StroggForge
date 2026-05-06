@@ -23,10 +23,6 @@ inputs:
     description: 'Nexus Mods file group IDs as JSON. Provide with nexus_api_key to upload release archives to Nexus Mods.'
     required: false
     default: ''
-  # cargo_token:
-  #   description: 'If provided, the token is used to publish the target app to crates.io'
-  #   required: false
-  #   default: ''
 
 runs:
   using: composite
@@ -91,11 +87,6 @@ runs:
         path: |
           ${{ steps.context.outputs.target_dir }}
         key: ${{ steps.cache_release_target.outputs.cache-primary-key }}
-
-    # - name: Cargo Publish
-    #   if: ${{ inputs.cargo_token }} != '' && ${{ inputs.release_name }} != 'development'
-    #   shell: bash
-    #   run: cargo publish --manifest-path ${{ steps.context.outputs.build_dir }}/Cargo.toml --token ${{ inputs.cargo_token }}
 
     - name: Install Cosign
       if: github.event_name != 'pull_request'

@@ -29,7 +29,7 @@ The pipeline runs these jobs:
 - Release preparation: `release_cleanup` runs after the application release builds succeed and refreshes the current tag or shared `development` release.
 - GitHub Release publish: `github-publish` uploads the staged platform archives and VirusTotal notes after `release_cleanup` succeeds.
 - Doc/artifact generation: `docs` deploys GitHub Pages on main pushes after gates pass; `changelog` and `benchmarks` upload release files after `github-publish` succeeds.
-- External publish/notification: `publish` (crates.io, tag only), `aur-publish`, and `nexus-publish` fan out after builds; `call-discord-webhook` waits for the mandatory release path and changelog, while `nag-dependents` waits for the GitHub Release publish boundary.
+- External publish/notification: `publish` (crates.io, tag only), `aur-publish`, and `nexus-publish` fan out after builds; `call-discord-webhook` waits for the mandatory release path, changelog, and optional external publish jobs so it can report their failures, while `nag-dependents` waits for the GitHub Release publish boundary.
 
 ## [./.github/workflows/libGlobalBuild.yml](./.github/workflows/libGlobalBuild.yml)
 
@@ -55,7 +55,7 @@ Inputs:
 1. `binary_name`: Required. The executable name to build, without platform extension.
 1. `include_files`: Optional. Comma-separated list of additional files to include in the release zip. Paths are relative to the build directory. Defaults to `Readme.md,LICENSE`.
 1. `vt_api_key`: Required for non-PR release builds. VirusTotal API key.
-1. `release_name`: Required. Output from `createRelease` — either a tag name or `development`.
+1. `release_name`: Required. Caller-supplied release identifier — either the tag name or `development`.
 1. `nexus_api_key`: Optional. Nexus Mods API key. Provide with `nexus_group_ids` to upload release archives to Nexus Mods. Passed through the environment so JSON secrets are not damaged by shell quoting.
 1. `nexus_group_ids`: Optional. Nexus Mods file group IDs as JSON. Provide with `nexus_api_key` to upload release archives to Nexus Mods. Values may be strings or integers; booleans are rejected so `false` cannot accidentally become a file group ID.
 
@@ -88,7 +88,7 @@ Inputs:
 
 Secrets:
 
-1. `webhook_url`: Required. Use the org-level secret unless there is a specific reason not to.
+1. `WEBHOOK_URL`: Required. Use the org-level secret unless there is a specific reason not to.
 
 ## [./.github/workflows/dependent.yml](./.github/workflows/dependent.yml)
 
