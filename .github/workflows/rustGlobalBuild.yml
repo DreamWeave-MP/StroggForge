@@ -84,6 +84,8 @@ jobs:
   # Ensure any previously-existing releases are deleted,
   # And create a new one with auto-generated changelog & workflow ID
   release_cleanup:
+    if: github.event_name != 'pull_request'
+    needs: [release, release-linux]
     uses: DreamWeave-MP/StroggForge/.github/workflows/createRelease.yml@v28
     secrets: inherit
 
@@ -359,7 +361,7 @@ jobs:
 
   # Build, test, sign, package, & release Rust apps on macOS and Windows
   release:
-    needs: [release_cleanup, test, clippy, fmt, audit]
+    needs: [test, clippy, fmt, audit]
 
     strategy:
       matrix:
@@ -380,14 +382,14 @@ jobs:
           binary_name: ${{ matrix.app_names }}
           vt_api_key: ${{ secrets.VT_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          release_name: ${{ needs.release_cleanup.outputs.release_name }}
+          release_name: ${{ github.ref_type == 'tag' && github.ref_name || 'development' }}
           nexus_api_key: ${{ secrets.NEXUS_API_KEY }}
           nexus_group_ids: ${{ secrets.NEXUS_GROUP_IDS }}
 
   # Build, test, sign, package, & release Rust apps on Linux.
   # Runs inside AlmaLinux 8 (glibc 2.28) for maximum distribution compatibility.
   release-linux:
-    needs: [release_cleanup, test, clippy, fmt, audit]
+    needs: [test, clippy, fmt, audit]
 
     strategy:
       matrix:
@@ -410,9 +412,50 @@ jobs:
           binary_name: ${{ matrix.app_names }}
           vt_api_key: ${{ secrets.VT_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          release_name: ${{ needs.release_cleanup.outputs.release_name }}
+          release_name: ${{ github.ref_type == 'tag' && github.ref_name || 'development' }}
           nexus_api_key: ${{ secrets.NEXUS_API_KEY }}
           nexus_group_ids: ${{ secrets.NEXUS_GROUP_IDS }}
+
+  # Publish staged platform archives to the freshly-created GitHub Release.
+  github-publish:
+    if: github.event_name != 'pull_request'
+    needs: [release_cleanup]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download GitHub Release Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: github-release-*
+          path: .corprus-crucible/github-release-downloads
+          merge-multiple: true
+
+      - name: Collect VirusTotal Release Notes
+        id: release_body
+        shell: bash
+        run: |
+          body_file=.corprus-crucible/github-release-downloads/release-body.md
+          : > "$body_file"
+          shopt -s nullglob
+          for vt_file in .corprus-crucible/github-release-downloads/*.vt.md; do
+            if [ -s "$vt_file" ]; then
+              printf '%s\n' "$(< "$vt_file")" >> "$body_file"
+            fi
+          done
+          echo "body_path=$body_file" >> "$GITHUB_OUTPUT"
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ needs.release_cleanup.outputs.release_name }}
+          prerelease: ${{ github.ref_type != 'tag' }}
+          files: .corprus-crucible/github-release-downloads/*.zip
+          append_body: true
+          body_path: ${{ steps.release_body.outputs.body_path }}
 
   # Publish Nexus Mods files after all platform archives are built.
   nexus-publish:
