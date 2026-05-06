@@ -76,6 +76,12 @@ on:
         default: true
         description: "Generate a discord notification to DreamWeave upon success."
 
+      enable_android:
+        type: boolean
+        required: false
+        default: false
+        description: "Build and publish Android ARM64 ELF release artifacts targeting Android API level 23. This does not build an APK."
+
 concurrency:
   group: stroggforge-rust-global-${{ github.repository }}-${{ github.ref }}
   cancel-in-progress: true
@@ -84,8 +90,8 @@ jobs:
   # Ensure any previously-existing releases are deleted,
   # And create a new one with auto-generated changelog & workflow ID
   release_cleanup:
-    if: github.event_name != 'pull_request'
-    needs: [release, release-linux]
+    if: always() && github.event_name != 'pull_request' && needs.release.result == 'success' && needs.release-linux.result == 'success' && (!inputs.enable_android || needs.release-android.result == 'success')
+    needs: [release, release-linux, release-android]
     uses: DreamWeave-MP/StroggForge/.github/workflows/createRelease.yml@v31
     secrets: inherit
 
@@ -201,8 +207,8 @@ jobs:
 
   # Publish each crate to crates.io on tagged releases, after all release builds succeed.
   cargo-publish:
-    if: inputs.cargo_publish && github.ref_type == 'tag'
-    needs: [release, release-linux]
+    if: always() && inputs.cargo_publish && github.ref_type == 'tag' && needs.release.result == 'success' && needs.release-linux.result == 'success' && (!inputs.enable_android || needs.release-android.result == 'success')
+    needs: [release, release-linux, release-android]
     runs-on: ubuntu-22.04
     strategy:
       matrix:
@@ -414,6 +420,61 @@ jobs:
           nexus_api_key: ${{ secrets.NEXUS_API_KEY }}
           nexus_group_ids: ${{ secrets.NEXUS_GROUP_IDS }}
 
+  # Build, sign, scan, package, and stage Android ARM64 ELF artifacts.
+  # Android builds target API level 23. Keep this fixed until a consumer actually needs another minSdk.
+  # This deliberately does not build an APK; it only validates and publishes the native Rust artifact.
+  release-android:
+    if: inputs.enable_android
+    needs: [test, clippy, fmt, audit]
+
+    strategy:
+      matrix:
+        app_names: ${{ fromJson(inputs.binary_names) }}
+        android_target: [aarch64-linux-android]
+
+    runs-on: ubuntu-latest
+
+    env:
+      ANDROID_API_LEVEL: '23'
+
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - name: Install Archive Dependencies
+        run: sudo apt-get update && sudo apt-get install -y p7zip-full
+      - uses: actions/checkout@v6
+      - name: Setup Android NDK
+        id: setup_ndk
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r27c
+      - name: Run Corprus Crucible
+        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v31
+        env:
+          ANDROID_NDK_HOME: ${{ steps.setup_ndk.outputs.ndk-path }}
+          NDK_HOME: ${{ steps.setup_ndk.outputs.ndk-path }}
+          CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER: ${{ steps.setup_ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android${{ env.ANDROID_API_LEVEL }}-clang
+          CARGO_TARGET_AARCH64_LINUX_ANDROID_AR: ${{ steps.setup_ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
+          CC_aarch64_linux_android: ${{ steps.setup_ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android${{ env.ANDROID_API_LEVEL }}-clang
+          CXX_aarch64_linux_android: ${{ steps.setup_ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android${{ env.ANDROID_API_LEVEL }}-clang++
+          AR_aarch64_linux_android: ${{ steps.setup_ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
+          CMAKE_TOOLCHAIN_FILE: ${{ steps.setup_ndk.outputs.ndk-path }}/build/cmake/android.toolchain.cmake
+          ANDROID_ABI: arm64-v8a
+          ANDROID_PLATFORM: android-${{ env.ANDROID_API_LEVEL }}
+          BINDGEN_EXTRA_CLANG_ARGS: --sysroot=${{ steps.setup_ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/sysroot
+          PKG_CONFIG_ALLOW_CROSS: '1'
+        with:
+          binary_name: ${{ matrix.app_names }}
+          vt_api_key: ${{ secrets.VT_API_KEY }}
+          release_name: ${{ github.ref_type == 'tag' && github.ref_name || 'development' }}
+          nexus_api_key: ${{ secrets.NEXUS_API_KEY }}
+          nexus_group_ids: ${{ secrets.NEXUS_GROUP_IDS }}
+          platform_os: Android
+          platform_arch: ARM64
+          rust_target: ${{ matrix.android_target }}
+
   # Publish staged platform archives to the freshly-created GitHub Release.
   github-publish:
     if: github.event_name != 'pull_request'
@@ -457,8 +518,8 @@ jobs:
 
   # Publish Nexus Mods files after all platform archives are built.
   nexus-publish:
-    if: github.event_name != 'pull_request'
-    needs: [release, release-linux]
+    if: always() && github.event_name != 'pull_request' && needs.release.result == 'success' && needs.release-linux.result == 'success' && (!inputs.enable_android || needs.release-android.result == 'success')
+    needs: [release, release-linux, release-android]
     runs-on: ubuntu-latest
     env:
       NEXUS_API_KEY: ${{ secrets.NEXUS_API_KEY }}
@@ -477,6 +538,8 @@ jobs:
             arch: X64
           - os: Linux
             arch: X64
+          - os: Android
+            arch: ARM64
 
     steps:
       - uses: actions/checkout@v6
@@ -518,8 +581,8 @@ jobs:
   # update the AUR package as well.
   aur-publish:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && inputs.aur_package_name != ''
-    needs: [release, release-linux]
+    if: always() && github.event_name == 'push' && inputs.aur_package_name != '' && needs.release.result == 'success' && needs.release-linux.result == 'success' && (!inputs.enable_android || needs.release-android.result == 'success')
+    needs: [release, release-linux, release-android]
     environment: AUR
 
     steps:
