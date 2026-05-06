@@ -21,7 +21,8 @@ if [ -n "$include_files" ]; then
     file=${file%"${file##*[![:space:]]}"}
     if [ -f "./$build_dir/$file" ]; then
       include_name=$(basename "$file")
-      case "${include_name,,}" in
+      include_name_lower=$(printf '%s' "$include_name" | tr '[:upper:]' '[:lower:]')
+      case "$include_name_lower" in
         readme.md)
           include_name="$binary_name-README.md"
           ;;
