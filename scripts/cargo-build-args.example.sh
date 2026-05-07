@@ -22,13 +22,17 @@ binary_name=${4:?binary-name}
 : "$rust_target" "$binary_name"
 
 case "${platform_os}-${platform_arch}" in
-  Android-ARM64|Portmaster-ARM64)
-    printf '%s\n' --no-default-features
-    ;;
-  *)
+  macOS-ARM64|macOS-x64|Windows-x64|Linux-x64)
     # The gui feature is a default feature in the common DreamWeave desktop shape,
     # but listing it here makes the platform policy visible instead of implicit.
     printf '%s\n' --features
     printf '%s\n' gui
+    ;;
+  Android-ARM64|Portmaster-ARM64)
+    printf '%s\n' --no-default-features
+    ;;
+  *)
+    printf 'unsupported StroggForge platform tuple: %s-%s\n' "$platform_os" "$platform_arch" >&2
+    exit 1
     ;;
 esac
