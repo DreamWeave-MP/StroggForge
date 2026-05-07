@@ -17,7 +17,7 @@ IFS=',' read -r -a entries <<< "$analysis"
 for entry in "${entries[@]}"; do
   IFS='=' read -r _file url <<< "$entry"
   analysis_text+="- [${display_filename} on VirusTotal](${url})"$'\n'
-  analysis_bbcode+="[LIST][*][URL=${url}]${display_filename} on VirusTotal[/URL][/LIST]"$'\n'
+  analysis_bbcode+="[URL=${url}]${display_filename} on VirusTotal[/URL]"$'\n'
 done
 
 {
