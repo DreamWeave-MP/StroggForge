@@ -32,10 +32,9 @@ The pipeline runs these jobs:
 - Quality gates (parallel, block release): `test` (full platform matrix), `fmt`, `clippy` (pedantic), `audit` (RustSec)
 - Informational (parallel, does not block): `cargo-publish-dry-run`
 - Release builds (after gates pass): `release` (macOS ARM + Intel, Windows), `release-linux` (AlmaLinux 8 container for glibc 2.28 compatibility), optional `release-android` (Android ARM64 ELF targeting API level 23, not APK), and optional `release-portmaster` (AArch64 GNU/Linux with an AlmaLinux 8 sysroot) build, sign, scan, package, and stage platform archives as workflow artifacts. They do not mutate the GitHub Release directly.
-- Release preparation: `release_cleanup` runs after the application release builds succeed and refreshes the current tag or shared `development` release.
-- GitHub Release publish: `github-publish` uploads the staged platform archives and VirusTotal notes after `release_cleanup` succeeds.
+- GitHub Release publish: `github-publish` runs after all required application release builds succeed. It refreshes the current tag release or shared `development` release, exposes `release_name`, then uploads the staged platform archives and VirusTotal notes.
 - Doc/artifact generation: `docs` deploys GitHub Pages on main pushes after gates pass; `changelog` and `benchmarks` upload release files after `github-publish` succeeds.
-- External publish/notification: `cargo-publish` (crates.io, tag only), `aur-publish`, and `nexus-publish` fan out after builds; `call-discord-webhook` waits for the mandatory release path, changelog, and optional external publish jobs so it can report their failures, while `nag-dependents` waits for the GitHub Release publish boundary.
+- External publish/notification: `cargo-publish` (crates.io, tag only), `aur-publish`, and `nexus-publish` fan out after builds; `call-discord-webhook` waits for changelog when enabled and optional external publish jobs so it can report their failures, while `nag-dependents` waits for the GitHub Release publish boundary.
 
 ## [./.github/workflows/libGlobalBuild.yml](./.github/workflows/libGlobalBuild.yml)
 
@@ -79,7 +78,7 @@ The hook is deliberately narrow: it may only choose Cargo feature flags. Think o
 
 Stable platform tuples currently passed to the hook are `macOS-ARM64`, `macOS-x64`, `Windows-x64`, `Linux-x64`, `Android-ARM64`, and `Portmaster-ARM64`. Native desktop builds pass an empty Rust target; Android passes `aarch64-linux-android`; Portmaster passes `aarch64-unknown-linux-gnu`.
 
-On pull requests, signing, VirusTotal scanning, Nexus Mods artifact staging, and GitHub Release artifact staging are skipped; the binary is uploaded as a workflow artifact instead. On release builds, Corprus Crucible stages GitHub Release archives as workflow artifacts; `rustGlobalBuild.yml` publishes them later after release cleanup succeeds.
+On pull requests, signing, VirusTotal scanning, Nexus Mods artifact staging, and GitHub Release artifact staging are skipped; the binary is uploaded as a workflow artifact instead. On release builds, Corprus Crucible stages GitHub Release archives as workflow artifacts; `rustGlobalBuild.yml` publishes them later from `github-publish` after that job refreshes the release.
 
 Nexus Mods upload is enabled by setting both `NEXUS_API_KEY` and `NEXUS_GROUP_IDS` secrets on the consuming repository or organization. `NEXUS_GROUP_IDS` is a JSON object keyed by `{platform}-{channel}`; use `.github/nexus_group_ids.template.json` as the template. Supported platform keys are `linux-x64`, `windows-x64`, `macos-x64`, `macos-arm64`, `android-arm64`, and `portmaster-arm64`, with `stable` for tagged releases and `dev` for the `development` release. Stable keys are required for tagged releases for every enabled release platform; optional platform keys such as `android-arm64` and `portmaster-arm64` are only required when those builds are enabled. Development keys are optional; missing development keys skip Nexus upload for that platform. Each platform archive is copied to a Nexus-specific filename of `{binary}-{platform}-{release}.zip`, uploaded with that display name, and uses the release name as the Nexus version. Development builds set `archive_existing_file` so the previous development upload for that file group is archived. The Nexus file description includes BBCode-formatted VirusTotal analysis links generated earlier in the release pipeline; GitHub Release notes keep the Markdown version.
 
@@ -87,7 +86,7 @@ Corprus Crucible shell implementation details live under `scripts/corprus-crucib
 
 ## [./.github/workflows/createRelease.yml](./.github/workflows/createRelease.yml)
 
-Reusable workflow used by release-producing jobs after their mandatory prerequisites pass. Deletes any existing release matching the current tag (or `development` on non-tag pushes), then creates a fresh one with auto-generated changelog and a workflow run ID marker.
+Reusable workflow used by library release workflows to refresh the current tag release, or the shared `development` release on non-tag pushes. Application workflows perform the same refresh inside `rustGlobalBuild.yml`'s `github-publish` job before uploading platform archives.
 
 Output: `release_name` — the tag name on tag pushes, `development` otherwise.
 
@@ -106,7 +105,7 @@ Inputs:
 
 Secrets:
 
-1. `WEBHOOK_URL`: Required. Use the org-level secret unless there is a specific reason not to.
+1. `WEBHOOK_URL`: Optional. If omitted, the workflow logs a skip and sends no Discord notification. Callers usually pass `DISCORD_CHANNEL_WEBHOOK || DW_TOOLS_CHANNEL_WEBHOOK`.
 
 ## [./.github/workflows/dependent.yml](./.github/workflows/dependent.yml)
 

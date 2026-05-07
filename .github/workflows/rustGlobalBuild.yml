@@ -93,14 +93,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Ensure any previously-existing releases are deleted,
-  # And create a new one with auto-generated changelog & workflow ID
-  release_cleanup:
-    if: always() && github.event_name != 'pull_request' && needs.release.result == 'success' && needs.release-linux.result == 'success' && (!inputs.enable_android || needs.release-android.result == 'success') && (!inputs.enable_portmaster || needs.release-portmaster.result == 'success')
-    needs: [release, release-linux, release-android, release-portmaster]
-    uses: DreamWeave-MP/StroggForge/.github/workflows/createRelease.yml@v35
-    secrets: inherit
-
   # Run the full test suite on all platforms. Blocks release.
   test:
     strategy:
@@ -304,7 +296,7 @@ jobs:
   # Generate a CHANGELOG.md from git history and upload it to the release.
   changelog:
     if: inputs.generate_changelog && github.event_name != 'pull_request'
-    needs: [github-publish, release_cleanup]
+    needs: [github-publish]
     runs-on: ubuntu-22.04
     permissions:
       contents: write
@@ -324,13 +316,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ needs.release_cleanup.outputs.release_name }}
+          tag_name: ${{ needs['github-publish'].outputs.release_name }}
           files: CHANGELOG.md
 
   # Run cargo bench, generate BENCHMARKS.md from Criterion output or the raw benchmark log, and upload to the release.
   benchmarks:
     if: inputs.generate_benchmarks && github.event_name != 'pull_request'
-    needs: [github-publish, release_cleanup]
+    needs: [github-publish]
     runs-on: ubuntu-22.04
     permissions:
       contents: write
@@ -368,7 +360,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ needs.release_cleanup.outputs.release_name }}
+          tag_name: ${{ needs['github-publish'].outputs.release_name }}
           files: BENCHMARKS.md
 
   # Build, sign, scan, package, and stage Rust app archives on macOS and Windows.
@@ -535,15 +527,44 @@ jobs:
           platform_arch: ARM64
           rust_target: aarch64-unknown-linux-gnu
 
-  # Publish staged platform archives to the freshly-created GitHub Release.
+  # Refresh the GitHub Release, then publish the staged platform archives to it.
   github-publish:
-    if: github.event_name != 'pull_request'
-    needs: [release_cleanup]
-    runs-on: ubuntu-latest
+    if: always() && github.event_name != 'pull_request' && needs.release.result == 'success' && needs.release-linux.result == 'success' && (!inputs.enable_android || needs.release-android.result == 'success') && (!inputs.enable_portmaster || needs.release-portmaster.result == 'success')
+    needs: [release, release-linux, release-android, release-portmaster]
+    runs-on: ubuntu-slim
+    outputs:
+      release_name: ${{ steps.release.outputs.release_name }}
     permissions:
       contents: write
 
     steps:
+      - uses: actions/checkout@v6
+        with:
+          repository: DreamWeave-MP/StroggForge
+          ref: v35
+          path: .stroggforge
+
+      - name: Refresh GitHub Release
+        id: release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_IS_TAG: ${{ startsWith(github.ref, 'refs/tags/') }}
+          RELEASE_REF_NAME: ${{ github.ref_name }}
+          WORKFLOW_RUN_ID: ${{ github.run_id }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
+        run: |
+          if [[ "$RELEASE_IS_TAG" == true ]]; then
+            release_name="$RELEASE_REF_NAME"
+          else
+            release_name=development
+          fi
+
+          echo "release_name=$release_name" >> "$GITHUB_OUTPUT"
+
+          bash .stroggforge/scripts/shared/refresh-github-release.sh "$release_name" "$WORKFLOW_RUN_ID" "$RELEASE_REPOSITORY"
+
       - name: Download GitHub Release Artifacts
         uses: actions/download-artifact@v8.0.1
         with:
@@ -570,7 +591,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ needs.release_cleanup.outputs.release_name }}
+          tag_name: ${{ steps.release.outputs.release_name }}
           prerelease: ${{ github.ref_type != 'tag' }}
           files: .corprus-crucible/github-release-downloads/*.zip
           append_body: true

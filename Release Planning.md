@@ -12,12 +12,9 @@ Please make sure to reference this document when creating releases to ensure we 
 2. Make sure the version number in Cargo.toml matches the one you wish to tag.
 3. Run the following build command for all affected crates: `cargo test --all-targets --all-features -- --show-output && cargo build --release`
 4. If *all* tests passed and the app built, it's okay to make a tag now.
-5. Push the tag to the target repository. StroggForge will handle building, testing, signing, and packaging your release for all platforms.
-6. Check whether the app you just updated is available on crates.io:
-  - S3LightFixes
-  - VFSTool
-  - VFSTool_lib
-7. If it IS available on crates.io, run a `cargo publish`
+5. Push the tag to the target repository. StroggForge will handle building, testing, signing, packaging, GitHub Release publishing, and configured external publishing for all platforms.
+6. If the repo publishes to crates.io, make sure `cargo_publish` is enabled and `CARGO_REGISTRY_TOKEN` is available. If it does not publish to crates.io, set `cargo_publish: false`. StroggForge publishes to crates.io on tagged releases when publishing is enabled and the token is present.
+7. Only publish manually if CI publishing is disabled, or if it failed in a recoverable way after the tag was already pushed.
 
 ## AUR PKGBUILDs
 
