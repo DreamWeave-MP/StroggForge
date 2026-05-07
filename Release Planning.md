@@ -13,7 +13,7 @@ Please make sure to reference this document when creating releases to ensure we 
 3. Run the following build command for all affected crates: `cargo test --all-targets --all-features -- --show-output && cargo build --release`
 4. If *all* tests passed and the app built, it's okay to make a tag now.
 5. Push the tag to the target repository. StroggForge will handle building, testing, signing, packaging, GitHub Release publishing, and configured external publishing for all platforms.
-6. If the repo publishes to crates.io, make sure `cargo_publish` is enabled and `CARGO_REGISTRY_TOKEN` is available. StroggForge publishes to crates.io on tagged releases when both are configured.
+6. If the repo publishes to crates.io, make sure `cargo_publish` is enabled and `CARGO_REGISTRY_TOKEN` is available. If it does not publish to crates.io, set `cargo_publish: false`. StroggForge publishes to crates.io on tagged releases when publishing is enabled and the token is present.
 7. Only publish manually if CI publishing is disabled, or if it failed in a recoverable way after the tag was already pushed.
 
 ## AUR PKGBUILDs
