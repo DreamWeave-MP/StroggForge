@@ -52,9 +52,9 @@ jobs:
       # enable_portmaster: true
 
       # Optional: copy StroggForge's scripts/cargo-build-args.example.sh to
-      # .stroggforge/cargo-build-args.sh and make it executable if release builds need
-      # platform-specific Cargo features. Corprus Crucible runs it automatically when present
-      # and only accepts Cargo feature arguments from it.
+      # .stroggforge/cargo-build-args.sh and run chmod +x on it if release builds
+      # need platform-specific Cargo features. Corprus Crucible runs it automatically
+      # when present and only accepts Cargo feature arguments from stdout.
 
       # Optional: set false if the project is not hosted by DreamWeave or does not use discord notifications
       # generate_discord_notification: false
