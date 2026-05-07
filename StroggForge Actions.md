@@ -86,7 +86,7 @@ Corprus Crucible shell implementation details live under `scripts/corprus-crucib
 
 ## [./.github/workflows/createRelease.yml](./.github/workflows/createRelease.yml)
 
-Reusable workflow used by release-producing jobs after their mandatory prerequisites pass. Deletes any existing release matching the current tag (or `development` on non-tag pushes), then creates a fresh one with auto-generated changelog and a workflow run ID marker.
+Reusable workflow used by library release workflows to refresh the current tag release, or the shared `development` release on non-tag pushes. Application workflows perform the same refresh inside `rustGlobalBuild.yml`'s `github-publish` job before uploading platform archives.
 
 Output: `release_name` — the tag name on tag pushes, `development` otherwise.
 

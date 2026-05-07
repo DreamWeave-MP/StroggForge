@@ -52,8 +52,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Ensure any previously-existing releases are deleted,
-  # And create a new one with auto-generated changelog & workflow ID
+  # Ensure any previously-existing release is deleted,
+  # then create a fresh release with GitHub-generated notes and workflow ID.
   release_cleanup:
     if: github.event_name != 'pull_request'
     needs: [test, clippy, fmt, audit]
