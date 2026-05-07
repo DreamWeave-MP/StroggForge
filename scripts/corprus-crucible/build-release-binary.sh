@@ -19,6 +19,21 @@ fi
 release_binary="$dist_dir/$built_binary_name"
 cargo_args_hook=.stroggforge/cargo-build-args.sh
 feature_cargo_args=()
+hook_platform_os=$platform_os
+hook_platform_arch=$platform_arch
+
+case "$hook_platform_arch" in
+  X64)
+    if [ "$hook_platform_os" = macOS ]; then
+      hook_platform_arch=Intel
+    else
+      hook_platform_arch=x64
+    fi
+    ;;
+  X86)
+    hook_platform_arch=x86
+    ;;
+esac
 
 if [ -f "$cargo_args_hook" ]; then
   if [ ! -x "$cargo_args_hook" ]; then
@@ -28,7 +43,7 @@ if [ -f "$cargo_args_hook" ]; then
 
   echo "Using Cargo feature args from $cargo_args_hook"
   hook_output=$(mktemp)
-  "$cargo_args_hook" "$platform_os" "$platform_arch" "$rust_target" "$binary_name" > "$hook_output"
+  "$cargo_args_hook" "$hook_platform_os" "$hook_platform_arch" "$rust_target" "$binary_name" > "$hook_output"
 
   expecting_features_value=false
   while IFS= read -r cargo_arg || [ -n "$cargo_arg" ]; do
