@@ -259,7 +259,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v36
+          ref: v37
           path: .stroggforge
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
@@ -307,7 +307,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v36
+          ref: v37
           path: .stroggforge
       - name: Generate Changelog
         run: bash .stroggforge/scripts/shared/changelog.sh CHANGELOG.md
@@ -331,7 +331,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v36
+          ref: v37
           path: .stroggforge
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
@@ -381,7 +381,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Run Corprus Crucible
-        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v36
+        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v37
         with:
           binary_name: ${{ matrix.app_names }}
           vt_api_key: ${{ secrets.VT_API_KEY }}
@@ -410,7 +410,7 @@ jobs:
         run: dnf install -y epel-release && dnf install -y git python3 gcc gcc-c++ make gettext glibc-devel pkgconf-pkg-config openssl-devel p7zip p7zip-plugins && mkdir -p /home/runner/work && { [ -e /home/runner/work/_actions ] || ln -s /__w/_actions /home/runner/work/_actions; }
       - uses: actions/checkout@v6
       - name: Run Corprus Crucible
-        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v36
+        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v37
         with:
           binary_name: ${{ matrix.app_names }}
           vt_api_key: ${{ secrets.VT_API_KEY }}
@@ -449,7 +449,7 @@ jobs:
         with:
           ndk-version: r27c
       - name: Run Corprus Crucible
-        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v36
+        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v37
         env:
           ANDROID_NDK_HOME: ${{ steps.setup_ndk.outputs.ndk-path }}
           NDK_HOME: ${{ steps.setup_ndk.outputs.ndk-path }}
@@ -504,7 +504,7 @@ jobs:
           && { [ -e /home/runner/work/_actions ] || ln -s /__w/_actions /home/runner/work/_actions; }
       - uses: actions/checkout@v6
       - name: Run Corprus Crucible
-        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v36
+        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v37
         env:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_RUSTFLAGS: -C link-arg=--sysroot=/usr/aarch64-linux-gnu/sys-root
@@ -541,7 +541,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v36
+          ref: v37
           path: .stroggforge
 
       - name: Refresh GitHub Release
@@ -629,7 +629,7 @@ jobs:
         if: (env.NEXUS_API_KEY != '' || env.NEXUS_GROUP_IDS != '') && (matrix.platform.os != 'Portmaster' || inputs.enable_portmaster)
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v36
+          ref: v37
           path: .stroggforge
 
       - name: Download Nexus Mods Upload Artifact
@@ -681,7 +681,7 @@ jobs:
   call-discord-webhook:
     if: always() && inputs.generate_discord_notification && github.event_name == 'push'
     needs: [changelog, nexus-publish, cargo-publish, aur-publish]
-    uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v36
+    uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v37
     secrets:
       WEBHOOK_URL: ${{ secrets.DISCORD_CHANNEL_WEBHOOK || secrets.DW_TOOLS_CHANNEL_WEBHOOK }}
     with:
@@ -694,7 +694,7 @@ jobs:
     if: success() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && inputs.dependent_repo_names != '' && inputs.dependent_repo_names != '[]'
     needs: [github-publish]
 
-    uses: DreamWeave-MP/StroggForge/.github/workflows/dependent.yml@v36
+    uses: DreamWeave-MP/StroggForge/.github/workflows/dependent.yml@v37
 
     secrets:
       DW_BOT_PAT: ${{ secrets.DW_BOT_PAT }}
