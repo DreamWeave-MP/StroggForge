@@ -97,6 +97,8 @@ runs:
         "${{ steps.context.outputs.target_dir }}"
         "${{ steps.context.outputs.dist_dir }}"
         "${{ inputs.rust_target }}"
+        "${{ inputs.platform_os || runner.os }}"
+        "${{ inputs.platform_arch || runner.arch }}"
 
     - name: ⚡ Save Cargo target cache
       uses: actions/cache/save@v5.0.5
