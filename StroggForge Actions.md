@@ -105,7 +105,7 @@ Inputs:
 
 Secrets:
 
-1. `WEBHOOK_URL`: Required. Use the org-level secret unless there is a specific reason not to.
+1. `WEBHOOK_URL`: Optional. If omitted, the workflow logs a skip and sends no Discord notification. Callers usually pass `DISCORD_CHANNEL_WEBHOOK || DW_TOOLS_CHANNEL_WEBHOOK`.
 
 ## [./.github/workflows/dependent.yml](./.github/workflows/dependent.yml)
 
