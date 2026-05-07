@@ -19,6 +19,7 @@ fi
 release_binary="$dist_dir/$built_binary_name"
 cargo_args_hook=.stroggforge/cargo-build-args.sh
 feature_cargo_args=()
+feature_cargo_arg_count=0
 hook_platform_os=$platform_os
 hook_platform_arch=$platform_arch
 
@@ -48,6 +49,7 @@ if [ -f "$cargo_args_hook" ]; then
 
     if [ "$expecting_features_value" = true ]; then
       feature_cargo_args+=("$cargo_arg")
+      feature_cargo_arg_count=$((feature_cargo_arg_count + 1))
       expecting_features_value=false
       continue
     fi
@@ -55,10 +57,12 @@ if [ -f "$cargo_args_hook" ]; then
     case "$cargo_arg" in
       --features|-F)
         feature_cargo_args+=("$cargo_arg")
+        feature_cargo_arg_count=$((feature_cargo_arg_count + 1))
         expecting_features_value=true
         ;;
       --features=*|-F=*|--no-default-features|--all-features)
         feature_cargo_args+=("$cargo_arg")
+        feature_cargo_arg_count=$((feature_cargo_arg_count + 1))
         ;;
       *)
         echo "::error::$cargo_args_hook emitted non-feature Cargo argument '$cargo_arg'; only --features, -F, --no-default-features, and --all-features are allowed"
@@ -73,7 +77,7 @@ if [ -f "$cargo_args_hook" ]; then
     exit 1
   fi
 
-  if [ "${#feature_cargo_args[@]}" -gt 0 ]; then
+  if [ "$feature_cargo_arg_count" -gt 0 ]; then
     printf 'Extra Cargo feature args from %s:\n' "$cargo_args_hook"
     printf '  %s\n' "${feature_cargo_args[@]}"
   else
@@ -83,10 +87,14 @@ fi
 
 mkdir -p "$target_dir" "$dist_dir"
 rm -f "$built_binary"
+cargo_build=(cargo build --release)
+if [ "$feature_cargo_arg_count" -gt 0 ]; then
+  cargo_build+=("${feature_cargo_args[@]}")
+fi
 if [ -n "$rust_target" ]; then
-  CARGO_TARGET_DIR="$target_dir" cargo build --release "${feature_cargo_args[@]}" --target "$rust_target" --manifest-path "$build_dir/Cargo.toml"
+  CARGO_TARGET_DIR="$target_dir" "${cargo_build[@]}" --target "$rust_target" --manifest-path "$build_dir/Cargo.toml"
 else
-  CARGO_TARGET_DIR="$target_dir" cargo build --release "${feature_cargo_args[@]}" --manifest-path "$build_dir/Cargo.toml"
+  CARGO_TARGET_DIR="$target_dir" "${cargo_build[@]}" --manifest-path "$build_dir/Cargo.toml"
 fi
 
 if [ ! -f "$built_binary" ]; then
