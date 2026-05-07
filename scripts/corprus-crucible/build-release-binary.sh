@@ -24,11 +24,7 @@ hook_platform_arch=$platform_arch
 
 case "$hook_platform_arch" in
   X64)
-    if [ "$hook_platform_os" = macOS ]; then
-      hook_platform_arch=Intel
-    else
-      hook_platform_arch=x64
-    fi
+    hook_platform_arch=x64
     ;;
   X86)
     hook_platform_arch=x86
