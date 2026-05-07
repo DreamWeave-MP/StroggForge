@@ -43,6 +43,7 @@ if [ -f "$cargo_args_hook" ]; then
 
   echo "Using Cargo feature args from $cargo_args_hook"
   hook_output=$(mktemp)
+  trap 'rm -f "$hook_output"' EXIT
   "$cargo_args_hook" "$hook_platform_os" "$hook_platform_arch" "$rust_target" "$binary_name" > "$hook_output"
 
   expecting_features_value=false
