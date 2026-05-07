@@ -15,7 +15,7 @@ vt_analysis_bbcode=${VT_ANALYSIS_BBCODE:-}
 artifact_name="nexus-${binary_name}-${runner_os}-${runner_arch}"
 artifact_dir=".corprus-crucible/nexus-artifacts/${artifact_name}"
 archive_existing_file=false
-github_release_url="https://github.com/${github_repository}/releases/tag/${release_name}"
+github_changelog_url="https://github.com/${github_repository}/releases/download/${release_name}/CHANGELOG.md"
 
 if [ "$release_name" = development ]; then
   archive_existing_file=true
@@ -40,7 +40,7 @@ cp "$nexus_archive" "$artifact_dir/"
 
 {
   printf '%s release archive for %s-%s.\n\n' "$binary_name" "$runner_os" "$runner_arch"
-  printf '[URL=%s]GitHub changelog and release notes[/URL]\n\n' "$github_release_url"
+  printf '[URL=%s]View the full changelog on GitHub[/URL]\n\n' "$github_changelog_url"
   printf '%s\n' "$vt_analysis_bbcode"
 } > "$artifact_dir/description.bbcode"
 
