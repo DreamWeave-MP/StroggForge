@@ -6,7 +6,8 @@ set -euo pipefail
 #
 #   .stroggforge/cargo-build-args.sh "$platform_os" "$platform_arch" "$rust_target" "$binary_name"
 #
-# Print one extra Cargo argument per line. Do not print shell-quoted strings.
+# Print one extra Cargo feature argument per line. Do not print shell-quoted strings.
+# Only --features, -F, --no-default-features, and --all-features are allowed.
 
 platform_os=${1:?platform-os}
 platform_arch=${2:?platform-arch}

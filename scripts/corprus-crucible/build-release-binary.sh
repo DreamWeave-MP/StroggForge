@@ -18,7 +18,7 @@ else
 fi
 release_binary="$dist_dir/$built_binary_name"
 cargo_args_hook=.stroggforge/cargo-build-args.sh
-extra_cargo_args=()
+feature_cargo_args=()
 
 if [ -f "$cargo_args_hook" ]; then
   if [ ! -x "$cargo_args_hook" ]; then
@@ -26,35 +26,55 @@ if [ -f "$cargo_args_hook" ]; then
     exit 1
   fi
 
-  echo "Using Cargo build args from $cargo_args_hook"
+  echo "Using Cargo feature args from $cargo_args_hook"
   hook_output=$(mktemp)
   "$cargo_args_hook" "$platform_os" "$platform_arch" "$rust_target" "$binary_name" > "$hook_output"
 
+  expecting_features_value=false
   while IFS= read -r cargo_arg || [ -n "$cargo_arg" ]; do
     [ -n "$cargo_arg" ] || continue
+
+    if [ "$expecting_features_value" = true ]; then
+      feature_cargo_args+=("$cargo_arg")
+      expecting_features_value=false
+      continue
+    fi
+
     case "$cargo_arg" in
-      --manifest-path|--manifest-path=*|--target|--target=*|--target-dir|--target-dir=*|--release|--bin|--bin=*)
-        echo "::error::$cargo_args_hook emitted structural Cargo argument '$cargo_arg'; StroggForge owns build location, target, profile, and expected binary path"
+      --features|-F)
+        feature_cargo_args+=("$cargo_arg")
+        expecting_features_value=true
+        ;;
+      --features=*|-F=*|--no-default-features|--all-features)
+        feature_cargo_args+=("$cargo_arg")
+        ;;
+      *)
+        echo "::error::$cargo_args_hook emitted non-feature Cargo argument '$cargo_arg'; only --features, -F, --no-default-features, and --all-features are allowed"
         exit 1
         ;;
     esac
-    extra_cargo_args+=("$cargo_arg")
   done < "$hook_output"
   rm -f "$hook_output"
 
-  if [ "${#extra_cargo_args[@]}" -gt 0 ]; then
-    printf 'Extra Cargo build args from %s:\n' "$cargo_args_hook"
-    printf '  %s\n' "${extra_cargo_args[@]}"
+  if [ "$expecting_features_value" = true ]; then
+    echo "::error::$cargo_args_hook ended after --features/-F without a feature list"
+    exit 1
+  fi
+
+  if [ "${#feature_cargo_args[@]}" -gt 0 ]; then
+    printf 'Extra Cargo feature args from %s:\n' "$cargo_args_hook"
+    printf '  %s\n' "${feature_cargo_args[@]}"
   else
-    echo "$cargo_args_hook emitted no extra Cargo build args"
+    echo "$cargo_args_hook emitted no extra Cargo feature args"
   fi
 fi
 
 mkdir -p "$target_dir" "$dist_dir"
+rm -f "$built_binary"
 if [ -n "$rust_target" ]; then
-  CARGO_TARGET_DIR="$target_dir" cargo build --release "${extra_cargo_args[@]}" --target "$rust_target" --manifest-path "$build_dir/Cargo.toml"
+  CARGO_TARGET_DIR="$target_dir" cargo build --release "${feature_cargo_args[@]}" --target "$rust_target" --manifest-path "$build_dir/Cargo.toml"
 else
-  CARGO_TARGET_DIR="$target_dir" cargo build --release "${extra_cargo_args[@]}" --manifest-path "$build_dir/Cargo.toml"
+  CARGO_TARGET_DIR="$target_dir" cargo build --release "${feature_cargo_args[@]}" --manifest-path "$build_dir/Cargo.toml"
 fi
 
 if [ ! -f "$built_binary" ]; then

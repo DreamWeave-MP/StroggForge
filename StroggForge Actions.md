@@ -75,7 +75,7 @@ Release builds may customize Cargo feature policy by adding an executable `.stro
 .stroggforge/cargo-build-args.sh "$platform_os" "$platform_arch" "$rust_target" "$binary_name"
 ```
 
-The script must print one extra Cargo argument per line. Blank lines are ignored; shell quoting is not interpreted. Corprus Crucible still owns `--release`, `--target`, `--target-dir`, `--manifest-path`, and the expected binary path, so the hook may not emit structural build-location arguments such as `--manifest-path`, `--target`, `--target-dir`, `--release`, or `--bin`. Use `scripts/cargo-build-args.example.sh` as a starting point; it demonstrates desktop builds using the `gui` feature and Android/Portmaster builds using `--no-default-features`.
+The script must print one extra Cargo feature argument per line. Blank lines are ignored; shell quoting is not interpreted. Only `--features`, `-F`, `--no-default-features`, and `--all-features` are accepted; everything else fails the build. Corprus Crucible still owns `--release`, `--target`, `--target-dir`, `--manifest-path`, package selection, binary selection, and the expected binary path. Use `scripts/cargo-build-args.example.sh` as a starting point; it demonstrates desktop builds using the `gui` feature and Android/Portmaster builds using `--no-default-features`.
 
 Stable platform tuples currently passed to the hook are `macOS-ARM64`, `macOS-Intel`, `Windows-x64`, `Linux-x64`, `Android-ARM64`, and `Portmaster-ARM64`. Native desktop builds pass an empty Rust target; Android passes `aarch64-linux-android`; Portmaster passes `aarch64-unknown-linux-gnu`.
 
