@@ -34,7 +34,7 @@ The pipeline runs these jobs:
 - Release builds (after gates pass): `release` (macOS ARM + Intel, Windows), `release-linux` (AlmaLinux 8 container for glibc 2.28 compatibility), optional `release-android` (Android ARM64 ELF targeting API level 23, not APK), and optional `release-portmaster` (AArch64 GNU/Linux with an AlmaLinux 8 sysroot) build, sign, scan, package, and stage platform archives as workflow artifacts. They do not mutate the GitHub Release directly.
 - GitHub Release publish: `github-publish` runs after all required application release builds succeed. It refreshes the current tag release or shared `development` release, exposes `release_name`, then uploads the staged platform archives and VirusTotal notes.
 - Doc/artifact generation: `docs` deploys GitHub Pages on main pushes after gates pass; `changelog` and `benchmarks` upload release files after `github-publish` succeeds.
-- External publish/notification: `cargo-publish` (crates.io, tag only), `aur-publish`, and `nexus-publish` fan out after builds; `call-discord-webhook` waits for the mandatory release path, changelog, and optional external publish jobs so it can report their failures, while `nag-dependents` waits for the GitHub Release publish boundary.
+- External publish/notification: `cargo-publish` (crates.io, tag only), `aur-publish`, and `nexus-publish` fan out after builds; `call-discord-webhook` waits for changelog when enabled and optional external publish jobs so it can report their failures, while `nag-dependents` waits for the GitHub Release publish boundary.
 
 ## [./.github/workflows/libGlobalBuild.yml](./.github/workflows/libGlobalBuild.yml)
 
