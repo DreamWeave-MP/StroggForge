@@ -24,9 +24,12 @@ jobs:
 
       - name: Setup Release Environment
         id: setup
+        env:
+          RELEASE_IS_TAG: ${{ startsWith(github.ref, 'refs/tags/') }}
+          RELEASE_REF_NAME: ${{ github.ref_name }}
         run: |
-          if ${{ startsWith(github.ref, 'refs/tags/') }}; then
-            RELEASE_NAME="${{ github.ref_name }}"
+          if [[ "$RELEASE_IS_TAG" == true ]]; then
+            RELEASE_NAME="$RELEASE_REF_NAME"
           else
             RELEASE_NAME=development
           fi
@@ -36,4 +39,7 @@ jobs:
       - name: Ensure Fresh Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bash .stroggforge/scripts/shared/refresh-github-release.sh "${{ steps.setup.outputs.release_name }}" "${{ github.run_id }}" "${{ github.repository }}"
+          RELEASE_NAME: ${{ steps.setup.outputs.release_name }}
+          WORKFLOW_RUN_ID: ${{ github.run_id }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
+        run: bash .stroggforge/scripts/shared/refresh-github-release.sh "$RELEASE_NAME" "$WORKFLOW_RUN_ID" "$RELEASE_REPOSITORY"

@@ -16,7 +16,17 @@ if gh release view "$release_name" --repo "$github_repository" --json body >/dev
   gh release delete "$release_name" --repo "$github_repository" --yes 2>/dev/null || exit 255
 
   if [[ "$release_name" == development ]]; then
-    gh api -X DELETE "repos/${github_repository}/git/refs/tags/${release_name}" 2>/dev/null || true
+    tag_delete_error=$(mktemp)
+    if ! gh api -X DELETE "repos/${github_repository}/git/refs/tags/${release_name}" 2>"$tag_delete_error"; then
+      if grep -q 'Not Found' "$tag_delete_error"; then
+        echo "Development tag was already absent."
+      else
+        cat "$tag_delete_error" >&2
+        rm -f "$tag_delete_error"
+        exit 255
+      fi
+    fi
+    rm -f "$tag_delete_error"
   fi
 else
   echo "No existing release found."

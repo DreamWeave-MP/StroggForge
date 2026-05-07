@@ -550,16 +550,20 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
+          RELEASE_IS_TAG: ${{ startsWith(github.ref, 'refs/tags/') }}
+          RELEASE_REF_NAME: ${{ github.ref_name }}
+          WORKFLOW_RUN_ID: ${{ github.run_id }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
         run: |
-          if ${{ startsWith(github.ref, 'refs/tags/') }}; then
-            release_name=${{ github.ref_name }}
+          if [[ "$RELEASE_IS_TAG" == true ]]; then
+            release_name="$RELEASE_REF_NAME"
           else
             release_name=development
           fi
 
           echo "release_name=$release_name" >> "$GITHUB_OUTPUT"
 
-          bash .stroggforge/scripts/shared/refresh-github-release.sh "$release_name" "${{ github.run_id }}" "${{ github.repository }}"
+          bash .stroggforge/scripts/shared/refresh-github-release.sh "$release_name" "$WORKFLOW_RUN_ID" "$RELEASE_REPOSITORY"
 
       - name: Download GitHub Release Artifacts
         uses: actions/download-artifact@v8.0.1
