@@ -40,7 +40,7 @@ cp "$nexus_archive" "$artifact_dir/"
 
 {
   printf '%s release archive for %s-%s.\n\n' "$binary_name" "$runner_os" "$runner_arch"
-  printf '[URL=%s]GitHub changelog[/URL]\n\n' "$github_changelog_url"
+  printf '[URL=%s]View the full changelog on GitHub[/URL]\n\n' "$github_changelog_url"
   printf '%s\n' "$vt_analysis_bbcode"
 } > "$artifact_dir/description.bbcode"
 
