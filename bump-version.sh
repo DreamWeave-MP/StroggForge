@@ -25,6 +25,7 @@ FILES=(
 )
 
 LINUX_BUILDER_IMAGE="ghcr.io/dreamweave-mp/stroggforge-linux-x86_64-almalinux8-builder"
+PORTMASTER_BUILDER_IMAGE="ghcr.io/dreamweave-mp/stroggforge-portmaster-aarch64-almalinux8-builder"
 
 echo ""
 echo "Replacing '${OLD_TAG}' → '${NEW_TAG}' in StroggForge self-references..."
@@ -38,6 +39,7 @@ for f in "${FILES[@]}"; do
     -e "s|StroggForge/\(.*\)@${OLD_TAG}|StroggForge/\1@${NEW_TAG}|g" \
     -e "s|ref: ${OLD_TAG}$|ref: ${NEW_TAG}|g" \
     -e "s|${LINUX_BUILDER_IMAGE}:${OLD_TAG}|${LINUX_BUILDER_IMAGE}:${NEW_TAG}|g" \
+    -e "s|${PORTMASTER_BUILDER_IMAGE}:${OLD_TAG}|${PORTMASTER_BUILDER_IMAGE}:${NEW_TAG}|g" \
     -e "s|\`@${OLD_TAG}\`|\`@${NEW_TAG}\`|g" \
     "$f"
   echo "  updated: $f"
@@ -46,7 +48,7 @@ done
 echo ""
 echo "Verifying no StroggForge self-references to '${OLD_TAG}' remain..."
 LEFTOVERS=$(grep -rn --include="*.yml" --include="*.yaml" --include="*.md" \
-  -E "StroggForge/.*@${OLD_TAG}|ref: ${OLD_TAG}$|${LINUX_BUILDER_IMAGE}:${OLD_TAG}" "${FILES[@]}" 2>/dev/null || true)
+  -E "StroggForge/.*@${OLD_TAG}|ref: ${OLD_TAG}$|${LINUX_BUILDER_IMAGE}:${OLD_TAG}|${PORTMASTER_BUILDER_IMAGE}:${OLD_TAG}" "${FILES[@]}" 2>/dev/null || true)
 
 if [[ -n "$LEFTOVERS" ]]; then
   echo "WARNING: leftover references found:"
