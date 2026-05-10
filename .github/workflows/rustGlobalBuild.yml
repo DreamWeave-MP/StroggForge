@@ -578,15 +578,15 @@ jobs:
           echo "body_path=$body_file" >> "$GITHUB_OUTPUT"
 
       - name: Upload to GitHub Release
-        uses: softprops/action-gh-release@v3
+        shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.release.outputs.release_name }}
-          prerelease: ${{ github.ref_type != 'tag' }}
-          files: .corprus-crucible/github-release-downloads/*.zip
-          append_body: true
-          body_path: ${{ steps.release_body.outputs.body_path }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >-
+          bash .stroggforge/scripts/shared/publish-github-release-artifacts.sh
+          "${{ steps.release.outputs.release_name }}"
+          "${{ steps.release_body.outputs.body_path }}"
+          .corprus-crucible/github-release-downloads
+          "${{ github.repository }}"
 
   # Publish Nexus Mods files after all platform archives are built.
   nexus-publish:
