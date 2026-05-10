@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# bump-version.sh — update StroggForge self-referential version pins and tag the release.
+# bump-version.sh — update StroggForge self-referential version pins.
 set -euo pipefail
 
 read -rp "Current version tag (e.g. v8): " OLD_TAG
@@ -18,9 +18,13 @@ fi
 FILES=(
   .github/workflows/rustGlobalBuild.yml
   .github/workflows/libGlobalBuild.yml
+  .github/workflows/createRelease.yml
+  .github/workflows/dependent.yml
   .github/action_templates/rust_template.yaml
   .github/action_templates/lib_template.yaml
 )
+
+LINUX_BUILDER_IMAGE="ghcr.io/dreamweave-mp/stroggforge-linux-x86_64-almalinux8-builder"
 
 echo ""
 echo "Replacing '${OLD_TAG}' → '${NEW_TAG}' in StroggForge self-references..."
@@ -33,7 +37,7 @@ for f in "${FILES[@]}"; do
   sed -i \
     -e "s|StroggForge/\(.*\)@${OLD_TAG}|StroggForge/\1@${NEW_TAG}|g" \
     -e "s|ref: ${OLD_TAG}$|ref: ${NEW_TAG}|g" \
-    -e "s|ghcr.io/dreamweave-mp/stroggforge-linux-x86_64-almalinux8-builder:${OLD_TAG}|ghcr.io/dreamweave-mp/stroggforge-linux-x86_64-almalinux8-builder:${NEW_TAG}|g" \
+    -e "s|${LINUX_BUILDER_IMAGE}:${OLD_TAG}|${LINUX_BUILDER_IMAGE}:${NEW_TAG}|g" \
     -e "s|\`@${OLD_TAG}\`|\`@${NEW_TAG}\`|g" \
     "$f"
   echo "  updated: $f"
@@ -42,7 +46,7 @@ done
 echo ""
 echo "Verifying no StroggForge self-references to '${OLD_TAG}' remain..."
 LEFTOVERS=$(grep -rn --include="*.yml" --include="*.yaml" --include="*.md" \
-  -E "StroggForge/.*@${OLD_TAG}|ref: ${OLD_TAG}$" "${FILES[@]}" 2>/dev/null || true)
+  -E "StroggForge/.*@${OLD_TAG}|ref: ${OLD_TAG}$|${LINUX_BUILDER_IMAGE}:${OLD_TAG}" "${FILES[@]}" 2>/dev/null || true)
 
 if [[ -n "$LEFTOVERS" ]]; then
   echo "WARNING: leftover references found:"
@@ -63,5 +67,7 @@ git commit -m "RELEASE: Bump self-referential version pins from ${OLD_TAG} to ${
 git tag "${NEW_TAG}"
 
 echo ""
-echo "Done. Committed and tagged '${NEW_TAG}'."
-echo "Push with: git push && git push origin ${NEW_TAG}"
+echo "Done. Commit and tag '${NEW_TAG}' created."
+echo "Push with:"
+echo "  git push origin HEAD"
+echo "  git push origin ${NEW_TAG}"
