@@ -399,15 +399,14 @@ jobs:
         app_names: ${{ fromJson(inputs.binary_names) }}
 
     runs-on: ubuntu-latest
-    container: almalinux:8
+    # Contains the former dnf dependency set while preserving the AlmaLinux 8 glibc 2.28 target.
+    container: ghcr.io/dreamweave-mp/stroggforge-linux-x86_64-almalinux8-builder:v37
 
     permissions:
       contents: write
       id-token: write
 
     steps:
-      - name: Install Build Dependencies
-        run: dnf install -y epel-release && dnf install -y git python3 gcc gcc-c++ make gettext glibc-devel pkgconf-pkg-config openssl-devel p7zip p7zip-plugins && mkdir -p /home/runner/work && { [ -e /home/runner/work/_actions ] || ln -s /__w/_actions /home/runner/work/_actions; }
       - uses: actions/checkout@v6
       - name: Run Corprus Crucible
         uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v37

@@ -33,6 +33,7 @@ for f in "${FILES[@]}"; do
   sed -i \
     -e "s|StroggForge/\(.*\)@${OLD_TAG}|StroggForge/\1@${NEW_TAG}|g" \
     -e "s|ref: ${OLD_TAG}$|ref: ${NEW_TAG}|g" \
+    -e "s|ghcr.io/dreamweave-mp/stroggforge-linux-x86_64-almalinux8-builder:${OLD_TAG}|ghcr.io/dreamweave-mp/stroggforge-linux-x86_64-almalinux8-builder:${NEW_TAG}|g" \
     -e "s|\`@${OLD_TAG}\`|\`@${NEW_TAG}\`|g" \
     "$f"
   echo "  updated: $f"
