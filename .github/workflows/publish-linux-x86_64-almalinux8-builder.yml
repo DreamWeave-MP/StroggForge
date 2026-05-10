@@ -40,13 +40,19 @@ jobs:
           REF_TYPE: ${{ github.ref_type }}
           SHA: ${{ github.sha }}
         run: |
+          SHORT_SHA="${SHA::12}"
+
           if [[ "$REF_TYPE" == tag ]]; then
-            echo "tags=$IMAGE_NAME:$REF_NAME" >> "$GITHUB_OUTPUT"
+            {
+              echo 'tags<<EOF'
+              echo "$IMAGE_NAME:$REF_NAME"
+              echo "$IMAGE_NAME:sha-${SHORT_SHA}"
+              echo 'EOF'
+            } >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
           SAFE_REF="$(printf '%s' "$REF_NAME" | tr '/[:upper:]' '-[:lower:]' | tr -cd 'a-z0-9_.-')"
-          SHORT_SHA="${SHA::12}"
 
           {
             echo 'tags<<EOF'
