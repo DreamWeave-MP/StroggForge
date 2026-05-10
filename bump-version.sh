@@ -58,7 +58,7 @@ fi
 echo ""
 read -rp "Commit changes and create git tag '${NEW_TAG}'? [y/N] " CONFIRM
 if [[ "${CONFIRM,,}" != "y" ]]; then
-  echo "Skipped commit/tag. Changes are staged on disk only."
+  echo "Skipped commit/tag. Changes remain in the working tree."
   exit 0
 fi
 
