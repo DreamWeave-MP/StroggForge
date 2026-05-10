@@ -484,24 +484,15 @@ jobs:
         app_names: ${{ fromJson(inputs.binary_names) }}
 
     runs-on: ubuntu-latest
-    container: almalinux:8
+    # This builder image is versioned with the StroggForge release tag and contains the former
+    # AlmaLinux 8 Portmaster aarch64 sysroot/toolchain setup while preserving the glibc 2.28 target.
+    container: ghcr.io/dreamweave-mp/stroggforge-portmaster-aarch64-almalinux8-builder:v38
 
     permissions:
       contents: write
       id-token: write
 
     steps:
-      - name: Install Build Dependencies
-        run: >-
-          dnf install -y epel-release
-          && { dnf --installroot=/usr/aarch64-linux-gnu/sys-root --releasever=8 --forcearch=aarch64 --setopt=tsflags=noscripts --setopt=install_weak_deps=False install -y glibc-devel libstdc++-devel libgcc openssl-devel
-          || { test -f /usr/aarch64-linux-gnu/sys-root/usr/lib64/crt1.o && test -f /usr/aarch64-linux-gnu/sys-root/lib64/libgcc_s.so.1 && test -f /usr/aarch64-linux-gnu/sys-root/usr/include/openssl/ssl.h && test -f /usr/aarch64-linux-gnu/sys-root/usr/lib64/pkgconfig/openssl.pc; }; }
-          && ln -sf ../usr/lib64/libc.so.6 /usr/aarch64-linux-gnu/sys-root/lib64/libc.so.6
-          && ln -sf ../usr/lib64/ld-2.28.so /usr/aarch64-linux-gnu/sys-root/lib64/ld-2.28.so
-          && ln -sf libgcc_s.so.1 /usr/aarch64-linux-gnu/sys-root/lib64/libgcc_s.so
-          && dnf install -y git python3 make gettext pkgconf-pkg-config p7zip p7zip-plugins clang clang-devel gcc-aarch64-linux-gnu gcc-c++-aarch64-linux-gnu binutils-aarch64-linux-gnu
-          && mkdir -p /home/runner/work
-          && { [ -e /home/runner/work/_actions ] || ln -s /__w/_actions /home/runner/work/_actions; }
       - uses: actions/checkout@v6
       - name: Run Corprus Crucible
         uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v38
