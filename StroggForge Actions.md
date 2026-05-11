@@ -58,7 +58,7 @@ Composite action used internally by `rustGlobalBuild.yml`. Handles the release a
 Inputs:
 
 1. `binary_name`: Required. The executable name to build, without platform extension.
-1. `include_files`: Optional. Comma-separated list of additional files to include in the release zip. Paths are relative to the build directory. Defaults to `Readme.md,LICENSE`. Included `README.md`/`Readme.md` and `LICENSE` files are archived as `{binary}-README.md` and `{binary}-LICENSE` so multiple application archives can be unpacked into the same directory without their docs trampling each other.
+1. `include_files`: Optional. Comma-separated list of additional files to include in the release zip. Paths are relative to the build directory. Defaults to `README.md,LICENSE`. Included `README.md`/`Readme.md` and `LICENSE` files are archived as `{binary}-README.md` and `{binary}-LICENSE` so multiple application archives can be unpacked into the same directory without their docs trampling each other. File-name matching falls back to case-insensitive lookup, so existing consumers that pass `Readme.md` still package a conventional `README.md` on Linux.
 1. `vt_api_key`: Required for non-PR release builds. VirusTotal API key.
 1. `release_name`: Required. Caller-supplied release identifier — either the tag name or `development`.
 1. `nexus_api_key`: Optional. Nexus Mods API key. Provide with `nexus_group_ids` to upload release archives to Nexus Mods. Passed through the environment so JSON secrets are not damaged by shell quoting.

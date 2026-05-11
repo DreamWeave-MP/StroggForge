@@ -8,7 +8,7 @@ inputs:
   include_files:
     description: 'Additional files to include in archives (comma-separated)'
     required: false
-    default: 'Readme.md,LICENSE'
+    default: 'README.md,LICENSE'
   vt_api_key:
     description: 'VirusTotal API key (REQUIRED)'
     required: true
