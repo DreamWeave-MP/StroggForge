@@ -140,7 +140,7 @@ runs:
       with:
         update_release_body: false
         vt_api_key: ${{ inputs.vt_api_key }}
-        files: ${{ steps.build_release.outputs.release_binary }}
+        files: ${{ github.workspace }}/${{ inputs.binary_name }}-${{ inputs.platform_os || runner.os }}-${{ inputs.platform_arch || runner.arch }}.zip
 
     - name: Format VirusTotal Links
       if: github.event_name != 'pull_request'
