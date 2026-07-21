@@ -259,7 +259,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v39
+          ref: v40
           path: .stroggforge
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
@@ -307,7 +307,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v39
+          ref: v40
           path: .stroggforge
       - name: Generate Changelog
         run: bash .stroggforge/scripts/shared/changelog.sh CHANGELOG.md
@@ -331,7 +331,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v39
+          ref: v40
           path: .stroggforge
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
@@ -381,7 +381,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Run Corprus Crucible
-        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v39
+        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v40
         with:
           binary_name: ${{ matrix.app_names }}
           vt_api_key: ${{ secrets.VT_API_KEY }}
@@ -401,7 +401,7 @@ jobs:
     runs-on: ubuntu-latest
     # This builder image is versioned with the StroggForge release tag and contains the former AlmaLinux 8 dnf dependency set
     # while preserving the glibc 2.28 target.
-    container: ghcr.io/dreamweave-mp/stroggforge-linux-x86_64-almalinux8-builder:v39
+    container: ghcr.io/dreamweave-mp/stroggforge-linux-x86_64-almalinux8-builder:v40
 
     permissions:
       contents: write
@@ -410,7 +410,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Run Corprus Crucible
-        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v39
+        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v40
         with:
           binary_name: ${{ matrix.app_names }}
           vt_api_key: ${{ secrets.VT_API_KEY }}
@@ -449,7 +449,7 @@ jobs:
         with:
           ndk-version: r27c
       - name: Run Corprus Crucible
-        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v39
+        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v40
         env:
           ANDROID_NDK_HOME: ${{ steps.setup_ndk.outputs.ndk-path }}
           NDK_HOME: ${{ steps.setup_ndk.outputs.ndk-path }}
@@ -486,7 +486,7 @@ jobs:
     runs-on: ubuntu-latest
     # This builder image is versioned with the StroggForge release tag and contains the former
     # AlmaLinux 8 Portmaster aarch64 sysroot/toolchain setup while preserving the glibc 2.28 target.
-    container: ghcr.io/dreamweave-mp/stroggforge-portmaster-aarch64-almalinux8-builder:v39
+    container: ghcr.io/dreamweave-mp/stroggforge-portmaster-aarch64-almalinux8-builder:v40
 
     permissions:
       contents: write
@@ -495,7 +495,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Run Corprus Crucible
-        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v39
+        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v40
         env:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_RUSTFLAGS: -C link-arg=--sysroot=/usr/aarch64-linux-gnu/sys-root
@@ -532,7 +532,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v39
+          ref: v40
           path: .stroggforge
 
       - name: Refresh GitHub Release
@@ -620,7 +620,7 @@ jobs:
         if: (env.NEXUS_API_KEY != '' || env.NEXUS_GROUP_IDS != '') && (matrix.platform.os != 'Portmaster' || inputs.enable_portmaster)
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v39
+          ref: v40
           path: .stroggforge
 
       - name: Download Nexus Mods Upload Artifact
@@ -672,7 +672,7 @@ jobs:
   call-discord-webhook:
     if: always() && inputs.generate_discord_notification && github.event_name == 'push'
     needs: [changelog, nexus-publish, cargo-publish, aur-publish]
-    uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v39
+    uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v40
     secrets:
       WEBHOOK_URL: ${{ secrets.DISCORD_CHANNEL_WEBHOOK || secrets.DW_TOOLS_CHANNEL_WEBHOOK }}
     with:
@@ -685,7 +685,7 @@ jobs:
     if: success() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && inputs.dependent_repo_names != '' && inputs.dependent_repo_names != '[]'
     needs: [github-publish]
 
-    uses: DreamWeave-MP/StroggForge/.github/workflows/dependent.yml@v39
+    uses: DreamWeave-MP/StroggForge/.github/workflows/dependent.yml@v40
 
     secrets:
       DW_BOT_PAT: ${{ secrets.DW_BOT_PAT }}
