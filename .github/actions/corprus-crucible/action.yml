@@ -6,7 +6,7 @@ inputs:
     description: "Name of the binary (without platform suffix)"
     required: true
   include_files:
-    description: "Additional files to include in archives (comma-separated)"
+    description: "Additional files or directories to include in archives (comma-separated)"
     required: false
     default: "README.md,LICENSE"
   vt_api_key:

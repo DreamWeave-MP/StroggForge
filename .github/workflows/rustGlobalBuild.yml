@@ -25,6 +25,12 @@ on:
         description: "JSON array of binary names to compile."
         required: true
 
+      include_files:
+        type: string
+        description: "Additional files or directories to include in platform archives (comma-separated)."
+        required: false
+        default: "README.md,LICENSE"
+
       aur_package_name:
         type: string
         required: false
@@ -384,6 +390,7 @@ jobs:
         uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v41
         with:
           binary_name: ${{ matrix.app_names }}
+          include_files: ${{ inputs.include_files }}
           vt_api_key: ${{ secrets.VT_API_KEY }}
           release_name: ${{ github.ref_type == 'tag' && github.ref_name || 'development' }}
           nexus_api_key: ${{ secrets.NEXUS_API_KEY }}
@@ -413,6 +420,7 @@ jobs:
         uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v41
         with:
           binary_name: ${{ matrix.app_names }}
+          include_files: ${{ inputs.include_files }}
           vt_api_key: ${{ secrets.VT_API_KEY }}
           release_name: ${{ github.ref_type == 'tag' && github.ref_name || 'development' }}
           nexus_api_key: ${{ secrets.NEXUS_API_KEY }}
@@ -465,6 +473,7 @@ jobs:
           PKG_CONFIG_ALLOW_CROSS: '1'
         with:
           binary_name: ${{ matrix.app_names }}
+          include_files: ${{ inputs.include_files }}
           vt_api_key: ${{ secrets.VT_API_KEY }}
           release_name: ${{ github.ref_type == 'tag' && github.ref_name || 'development' }}
           nexus_api_key: ${{ secrets.NEXUS_API_KEY }}
@@ -510,6 +519,7 @@ jobs:
           PKG_CONFIG_LIBDIR: /usr/aarch64-linux-gnu/sys-root/usr/lib64/pkgconfig:/usr/aarch64-linux-gnu/sys-root/usr/share/pkgconfig
         with:
           binary_name: ${{ matrix.app_names }}
+          include_files: ${{ inputs.include_files }}
           vt_api_key: ${{ secrets.VT_API_KEY }}
           release_name: ${{ github.ref_type == 'tag' && github.ref_name || 'development' }}
           nexus_api_key: ${{ secrets.NEXUS_API_KEY }}
