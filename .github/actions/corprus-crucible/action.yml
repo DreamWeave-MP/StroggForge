@@ -1,40 +1,40 @@
-name: 'Corprus Crucible'
-description: 'Strogg manufacturing system for Rust binaries - builds, signs, scans, packages, and stages release artifacts'
+name: "Corprus Crucible"
+description: "Strogg manufacturing system for Rust binaries - builds, signs, scans, packages, and stages release artifacts"
 
 inputs:
   binary_name:
-    description: 'Name of the binary (without platform suffix)'
+    description: "Name of the binary (without platform suffix)"
     required: true
   include_files:
-    description: 'Additional files to include in archives (comma-separated)'
+    description: "Additional files to include in archives (comma-separated)"
     required: false
-    default: 'README.md,LICENSE'
+    default: "README.md,LICENSE"
   vt_api_key:
-    description: 'VirusTotal API key (REQUIRED)'
+    description: "VirusTotal API key (REQUIRED)"
     required: true
   release_name:
-    description: 'Name of the release (tag or development)'
+    description: "Name of the release (tag or development)"
     required: true
   nexus_api_key:
-    description: 'Nexus Mods API key. Provide with nexus_group_ids to upload release archives to Nexus Mods.'
+    description: "Nexus Mods API key. Provide with nexus_group_ids to upload release archives to Nexus Mods."
     required: false
-    default: ''
+    default: ""
   nexus_group_ids:
-    description: 'Nexus Mods file group IDs as JSON. Provide with nexus_api_key to upload release archives to Nexus Mods.'
+    description: "Nexus Mods file group IDs as JSON. Provide with nexus_api_key to upload release archives to Nexus Mods."
     required: false
-    default: ''
+    default: ""
   platform_os:
-    description: 'Release platform name used for artifacts. Defaults to the runner OS for native builds.'
+    description: "Release platform name used for artifacts. Defaults to the runner OS for native builds."
     required: false
-    default: ''
+    default: ""
   platform_arch:
-    description: 'Release platform architecture used for artifacts. Defaults to the runner architecture for native builds.'
+    description: "Release platform architecture used for artifacts. Defaults to the runner architecture for native builds."
     required: false
-    default: ''
+    default: ""
   rust_target:
-    description: 'Optional Rust target triple for cross-compiled release builds.'
+    description: "Optional Rust target triple for cross-compiled release builds."
     required: false
-    default: ''
+    default: ""
 
 runs:
   using: composite
