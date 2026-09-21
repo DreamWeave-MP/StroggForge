@@ -17,6 +17,7 @@ The full pipeline orchestrator. This is what downstream repositories call — ev
 Inputs:
 
 1. `binary_names`: Required. JSON array of binary names to build, e.g. `'["my-app"]'`. Add multiple entries for monorepos.
+1. `include_files`: Optional. Comma-separated files or directories to include in every platform archive, relative to the detected build directory. Defaults to `README.md,LICENSE`.
 1. `aur_package_name`: Optional. AUR package name. Omit if the project is not on the AUR.
 1. `dependent_repo_names`: Optional. Repositories to notify via issue on tagged releases, one `Owner/Repo` per line. JSON arrays are still accepted for compatibility. When set, requires `DW_BOT_PAT`.
 1. `git_username` / `git_email`: Optional. AUR commit identity. Defaults to the DreamWeave maintainer values.
@@ -58,7 +59,7 @@ Composite action used internally by `rustGlobalBuild.yml`. Handles the release a
 Inputs:
 
 1. `binary_name`: Required. The executable name to build, without platform extension.
-1. `include_files`: Optional. Comma-separated list of additional files to include in the release zip. Paths are relative to the build directory. Defaults to `README.md,LICENSE`. Included `README.md`/`Readme.md` and `LICENSE` files are archived as `{binary}-README.md` and `{binary}-LICENSE` so multiple application archives can be unpacked into the same directory without their docs trampling each other. File-name matching falls back to case-insensitive lookup, so existing consumers that pass `Readme.md` still package a conventional `README.md` on Linux.
+1. `include_files`: Optional. Comma-separated list of additional files or directories to include in the release zip. Paths are relative to the build directory. Defaults to `README.md,LICENSE`. Included `README.md`/`Readme.md` and `LICENSE` files are archived as `{binary}-README.md` and `{binary}-LICENSE` so multiple application archives can be unpacked into the same directory without their docs trampling each other. Directories are copied recursively with their relative paths preserved. File-name matching falls back to case-insensitive lookup, so existing consumers that pass `Readme.md` still package a conventional `README.md` on Linux.
 1. `vt_api_key`: Required for non-PR release builds. VirusTotal API key.
 1. `release_name`: Required. Caller-supplied release identifier — either the tag name or `development`.
 1. `nexus_api_key`: Optional. Nexus Mods API key. Provide with `nexus_group_ids` to upload release archives to Nexus Mods. Passed through the environment so JSON secrets are not damaged by shell quoting.
