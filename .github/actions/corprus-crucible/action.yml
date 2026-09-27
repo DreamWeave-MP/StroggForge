@@ -35,6 +35,10 @@ inputs:
     description: "Optional Rust target triple for cross-compiled release builds."
     required: false
     default: ""
+  cargo_package:
+    description: "Optional Cargo package that provides the binary, built from the repository root with `--package <name> --bin <binary_name>`. `workspace` builds with `--workspace --bin <binary_name>` instead. Empty keeps directory detection."
+    required: false
+    default: ""
 
 runs:
   using: composite
@@ -53,7 +57,7 @@ runs:
     - name: Determine Build Context
       id: context
       shell: bash
-      run: bash "${{ github.action_path }}/../../../scripts/corprus-crucible/resolve-build-context.sh" "${{ inputs.binary_name }}"
+      run: bash "${{ github.action_path }}/../../../scripts/corprus-crucible/resolve-build-context.sh" "${{ inputs.binary_name }}" "${{ inputs.cargo_package }}"
 
     # Build steps
     - name: Setup Rust
@@ -72,7 +76,7 @@ runs:
         path: |
           ~/.cargo/registry
           ~/.cargo/git
-        key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
 
     - name: ⚡ Restore Cargo target cache
       id: cache_release_target
@@ -81,7 +85,7 @@ runs:
       with:
         path: |
           ${{ steps.context.outputs.target_dir }}
-        key: ${{ inputs.platform_os || runner.os }}-${{ inputs.platform_arch || runner.arch }}-release-target-${{ inputs.binary_name }}-${{ inputs.rust_target || 'native' }}-${{ steps.rust_toolchain.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ inputs.platform_os || runner.os }}-${{ inputs.platform_arch || runner.arch }}-release-target-${{ inputs.binary_name }}-${{ inputs.rust_target || 'native' }}-${{ steps.rust_toolchain.outputs.cachekey }}-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
         restore-keys: |
           ${{ inputs.platform_os || runner.os }}-${{ inputs.platform_arch || runner.arch }}-release-target-${{ inputs.binary_name }}-${{ inputs.rust_target || 'native' }}-${{ steps.rust_toolchain.outputs.cachekey }}-
           ${{ inputs.platform_os || runner.os }}-${{ inputs.platform_arch || runner.arch }}-release-target-${{ inputs.binary_name }}-${{ inputs.rust_target || 'native' }}-
@@ -99,6 +103,7 @@ runs:
         "${{ inputs.rust_target }}"
         "${{ inputs.platform_os || runner.os }}"
         "${{ inputs.platform_arch || runner.arch }}"
+        "${{ inputs.cargo_package }}"
 
     - name: ⚡ Save Cargo target cache
       uses: actions/cache/save@v5.0.5

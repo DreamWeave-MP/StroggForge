@@ -25,6 +25,12 @@ on:
         description: "JSON array of binary names to compile."
         required: true
 
+      binary_package:
+        type: string
+        description: "Cargo package that provides the binaries, built from the repository root with `--package <name> --bin <binary>`. Set `workspace` to build with `--workspace --bin <binary>`. Empty keeps directory detection."
+        required: false
+        default: ''
+
       include_files:
         type: string
         description: "Additional files or directories to include in platform archives (comma-separated)."
@@ -63,6 +69,18 @@ on:
         required: false
         default: true
         description: "Publish to crates.io on tagged releases; run a dry-run on all other pushes. Requires CARGO_REGISTRY_TOKEN secret."
+
+      cargo_publish_workspace:
+        type: boolean
+        required: false
+        default: false
+        description: "Publish every publishable workspace member in dependency order instead of one crate per binary name. Skips versions already on crates.io and waits out crates.io rate limits."
+
+      msrv:
+        type: string
+        required: false
+        default: ''
+        description: "Minimum supported Rust version to check the workspace against before release, e.g. '1.88'. 'auto' reads rust-version from Cargo.toml. Empty skips the check."
 
       generate_changelog:
         type: boolean
@@ -115,13 +133,13 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
       - name: Cache Cargo target directory
         uses: actions/cache@v5.0.5
         with:
           path: |
             target
-          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
           restore-keys: |
             ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-
             ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-
@@ -150,13 +168,13 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
       - name: Cache Cargo target directory
         uses: actions/cache@v5.0.5
         with:
           path: |
             target
-          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
           restore-keys: |
             ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-
             ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-
@@ -169,14 +187,75 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
+      - name: Generate Cargo.lock
+        run: |
+          if [ ! -f Cargo.lock ]; then
+            cargo generate-lockfile
+          fi
       - uses: taiki-e/install-action@cargo-audit
       - name: Run Cargo audit
         run: cargo audit
         working-directory: ${{ github.workspace }}
 
+  # Check the workspace on its minimum supported Rust version. Blocks release.
+  # Always runs so release jobs can depend on it; with no msrv input it only logs a skip.
+  msrv:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Skip MSRV Check
+        if: inputs.msrv == ''
+        run: echo "msrv input is empty; skipping the MSRV check."
+      - uses: actions/checkout@v6
+        if: inputs.msrv != ''
+      - uses: actions/checkout@v6
+        if: inputs.msrv != ''
+        with:
+          repository: DreamWeave-MP/StroggForge
+          ref: v42
+          path: .stroggforge
+      - uses: dtolnay/rust-toolchain@stable
+        if: inputs.msrv != ''
+      - name: Resolve MSRV
+        if: inputs.msrv != ''
+        id: msrv
+        env:
+          MSRV_INPUT: ${{ inputs.msrv }}
+        run: bash .stroggforge/scripts/shared/resolve-msrv.sh "$MSRV_INPUT"
+      - uses: dtolnay/rust-toolchain@master
+        if: inputs.msrv != ''
+        id: rust_toolchain
+        with:
+          toolchain: ${{ steps.msrv.outputs.toolchain }}
+      - name: Cache Cargo registry
+        if: inputs.msrv != ''
+        uses: actions/cache@v5.0.5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-msrv-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-cargo-registry-msrv-
+      - name: Cache Cargo target directory
+        if: inputs.msrv != ''
+        uses: actions/cache@v5.0.5
+        with:
+          path: |
+            target
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-
+      - name: Check on MSRV
+        if: inputs.msrv != ''
+        env:
+          # Without a Cargo.lock, resolve dependency versions that still build on the MSRV.
+          CARGO_RESOLVER_INCOMPATIBLE_RUST_VERSIONS: fallback
+          MSRV_TOOLCHAIN: ${{ steps.msrv.outputs.toolchain }}
+        run: cargo "+$MSRV_TOOLCHAIN" check --workspace --all-features --all-targets
+
   # Verify each crate would be publishable to crates.io. Informational — does not block release.
   cargo-publish-dry-run:
-    if: inputs.cargo_publish && github.ref_type != 'tag'
+    if: inputs.cargo_publish && !inputs.cargo_publish_workspace && github.ref_type != 'tag'
     runs-on: ubuntu-22.04
     strategy:
       matrix:
@@ -191,19 +270,23 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
       - name: Cache Cargo target directory
         uses: actions/cache@v5.0.5
         with:
           path: |
             target
-          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
           restore-keys: |
             ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-
             ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-
       - name: Publish Dry Run
+        env:
+          BINARY_PACKAGE: ${{ inputs.binary_package }}
         run: |
-          if [ -d "${{ matrix.app_names }}" ]; then
+          if [ -n "$BINARY_PACKAGE" ] && [ "$BINARY_PACKAGE" != workspace ]; then
+            cargo publish --dry-run --package "$BINARY_PACKAGE"
+          elif [ -d "${{ matrix.app_names }}" ]; then
             cargo publish --dry-run --manifest-path ${{ matrix.app_names }}/Cargo.toml
           else
             cargo publish --dry-run
@@ -211,7 +294,7 @@ jobs:
 
   # Publish each crate to crates.io on tagged releases, after all release builds succeed.
   cargo-publish:
-    if: always() && inputs.cargo_publish && github.ref_type == 'tag' && needs.release.result == 'success' && needs.release-linux.result == 'success' && (!inputs.enable_android || needs.release-android.result == 'success') && (!inputs.enable_portmaster || needs.release-portmaster.result == 'success')
+    if: always() && inputs.cargo_publish && !inputs.cargo_publish_workspace && github.ref_type == 'tag' && needs.release.result == 'success' && needs.release-linux.result == 'success' && (!inputs.enable_android || needs.release-android.result == 'success') && (!inputs.enable_portmaster || needs.release-portmaster.result == 'success')
     needs: [release, release-linux, release-android, release-portmaster]
     runs-on: ubuntu-22.04
     strategy:
@@ -227,31 +310,104 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
       - name: Cache Cargo target directory
         uses: actions/cache@v5.0.5
         with:
           path: |
             target
-          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
           restore-keys: |
             ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-
             ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-
       - name: Publish to crates.io
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          BINARY_PACKAGE: ${{ inputs.binary_package }}
         run: |
-          if [ -d "${{ matrix.app_names }}" ]; then
+          if [ -n "$BINARY_PACKAGE" ] && [ "$BINARY_PACKAGE" != workspace ]; then
+            cargo publish --package "$BINARY_PACKAGE"
+          elif [ -d "${{ matrix.app_names }}" ]; then
             cargo publish --manifest-path ${{ matrix.app_names }}/Cargo.toml
           else
             cargo publish
           fi
 
+  # Package and verify every publishable workspace member against the others. Informational — does not block release.
+  cargo-publish-workspace-dry-run:
+    if: inputs.cargo_publish && inputs.cargo_publish_workspace && github.ref_type != 'tag'
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+        id: rust_toolchain
+      - name: Cache Cargo registry
+        uses: actions/cache@v5.0.5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
+      - name: Cache Cargo target directory
+        uses: actions/cache@v5.0.5
+        with:
+          path: |
+            target
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-
+            ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-
+      - name: Publish Dry Run
+        run: cargo publish --workspace --dry-run
+
+  # Publish every publishable workspace member, dependencies first, on tagged releases after all release builds succeed.
+  # Rerunning is safe: versions already on crates.io are skipped, and crates.io's new-crate rate limit is waited out.
+  cargo-publish-workspace:
+    if: always() && inputs.cargo_publish && inputs.cargo_publish_workspace && github.ref_type == 'tag' && needs.release.result == 'success' && needs.release-linux.result == 'success' && (!inputs.enable_android || needs.release-android.result == 'success') && (!inputs.enable_portmaster || needs.release-portmaster.result == 'success')
+    needs: [release, release-linux, release-android, release-portmaster]
+    runs-on: ubuntu-22.04
+    timeout-minutes: 240
+    concurrency:
+      group: stroggforge-crates-io-${{ github.repository }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: DreamWeave-MP/StroggForge
+          ref: v42
+          path: .stroggforge
+      - uses: dtolnay/rust-toolchain@stable
+        id: rust_toolchain
+      - name: Cache Cargo registry
+        uses: actions/cache@v5.0.5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
+      - name: Cache Cargo target directory
+        uses: actions/cache@v5.0.5
+        with:
+          path: |
+            target
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-
+            ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-
+      - name: Publish Workspace to crates.io
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          cp .stroggforge/.github/scripts/publish_workspace.py "$RUNNER_TEMP/publish_workspace.py"
+          rm -rf .stroggforge
+          python3 "$RUNNER_TEMP/publish_workspace.py"
+
   # Build cargo doc and deploy to GitHub Pages.
   # Requires Pages to be enabled with "GitHub Actions" as the source in repo settings.
   docs:
     if: inputs.publish_docs && github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [test, clippy, fmt, audit]
+    needs: [test, clippy, fmt, audit, msrv]
     runs-on: ubuntu-22.04
     permissions:
       contents: read
@@ -275,13 +431,13 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
       - name: Cache Cargo target directory
         uses: actions/cache@v5.0.5
         with:
           path: |
             target
-          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
           restore-keys: |
             ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-
             ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-
@@ -347,13 +503,13 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
       - name: Cache Cargo target directory
         uses: actions/cache@v5.0.5
         with:
           path: |
             target
-          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
           restore-keys: |
             ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-
             ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-
@@ -371,7 +527,7 @@ jobs:
 
   # Build, sign, scan, package, and stage Rust app archives on macOS and Windows.
   release:
-    needs: [test, clippy, fmt, audit]
+    needs: [test, clippy, fmt, audit, msrv]
 
     strategy:
       matrix:
@@ -390,6 +546,7 @@ jobs:
         uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v42
         with:
           binary_name: ${{ matrix.app_names }}
+          cargo_package: ${{ inputs.binary_package }}
           include_files: ${{ inputs.include_files }}
           vt_api_key: ${{ secrets.VT_API_KEY }}
           release_name: ${{ github.ref_type == 'tag' && github.ref_name || 'development' }}
@@ -399,7 +556,7 @@ jobs:
   # Build, sign, scan, package, and stage Rust app archives on Linux.
   # Runs inside AlmaLinux 8 (glibc 2.28) for maximum distribution compatibility.
   release-linux:
-    needs: [test, clippy, fmt, audit]
+    needs: [test, clippy, fmt, audit, msrv]
 
     strategy:
       matrix:
@@ -420,6 +577,7 @@ jobs:
         uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v42
         with:
           binary_name: ${{ matrix.app_names }}
+          cargo_package: ${{ inputs.binary_package }}
           include_files: ${{ inputs.include_files }}
           vt_api_key: ${{ secrets.VT_API_KEY }}
           release_name: ${{ github.ref_type == 'tag' && github.ref_name || 'development' }}
@@ -431,7 +589,7 @@ jobs:
   # This deliberately does not build an APK; it only validates and publishes the native Rust artifact.
   release-android:
     if: inputs.enable_android
-    needs: [test, clippy, fmt, audit]
+    needs: [test, clippy, fmt, audit, msrv]
 
     strategy:
       matrix:
@@ -473,6 +631,7 @@ jobs:
           PKG_CONFIG_ALLOW_CROSS: '1'
         with:
           binary_name: ${{ matrix.app_names }}
+          cargo_package: ${{ inputs.binary_package }}
           include_files: ${{ inputs.include_files }}
           vt_api_key: ${{ secrets.VT_API_KEY }}
           release_name: ${{ github.ref_type == 'tag' && github.ref_name || 'development' }}
@@ -486,7 +645,7 @@ jobs:
   # Uses AlmaLinux 8 target libraries so the aarch64-unknown-linux-gnu artifact keeps the same old-glibc compatibility posture as the native Linux release.
   release-portmaster:
     if: inputs.enable_portmaster
-    needs: [test, clippy, fmt, audit]
+    needs: [test, clippy, fmt, audit, msrv]
 
     strategy:
       matrix:
@@ -519,6 +678,7 @@ jobs:
           PKG_CONFIG_LIBDIR: /usr/aarch64-linux-gnu/sys-root/usr/lib64/pkgconfig:/usr/aarch64-linux-gnu/sys-root/usr/share/pkgconfig
         with:
           binary_name: ${{ matrix.app_names }}
+          cargo_package: ${{ inputs.binary_package }}
           include_files: ${{ inputs.include_files }}
           vt_api_key: ${{ secrets.VT_API_KEY }}
           release_name: ${{ github.ref_type == 'tag' && github.ref_name || 'development' }}
@@ -678,16 +838,17 @@ jobs:
           git_username: ${{ inputs.git_username }}
           git_email: ${{ inputs.git_email }}
 
-  # For workflows where users may now receive a new deliverable, notify them about it!
+  # One notification per run, after every build, release, and publish job has finished, so it can report any failure.
+  # Superseded (cancelled) runs stay quiet; the run that replaced them reports instead.
   call-discord-webhook:
-    if: always() && inputs.generate_discord_notification && github.event_name == 'push'
-    needs: [changelog, nexus-publish, cargo-publish, aur-publish]
+    if: always() && !cancelled() && inputs.generate_discord_notification && github.event_name == 'push'
+    needs: [test, fmt, clippy, audit, msrv, release, release-linux, release-android, release-portmaster, github-publish, docs, changelog, benchmarks, nexus-publish, cargo-publish, cargo-publish-workspace, aur-publish]
     uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v42
     secrets:
       WEBHOOK_URL: ${{ secrets.DISCORD_CHANNEL_WEBHOOK || secrets.DW_TOOLS_CHANNEL_WEBHOOK }}
     with:
-      title: ${{ ((inputs.generate_changelog && needs.changelog.result != 'success') || needs['nexus-publish'].result == 'failure' || needs['cargo-publish'].result == 'failure' || needs['aur-publish'].result == 'failure') && format('{0} pipeline failed! 😭', github.event.repository.name) || '' }}
-      description: ${{ ((inputs.generate_changelog && needs.changelog.result != 'success') || needs['nexus-publish'].result == 'failure' || needs['cargo-publish'].result == 'failure' || needs['aur-publish'].result == 'failure') && format('[Workflow Results](https://github.com/{0}/actions/runs/{1})', github.repository, github.run_id) || (inputs.aur_package_name != '' && format('[{0}](https://github.com/{1}/releases/tag/{0}) is now available on GitHub and the AUR.', github.ref_type == 'tag' && github.ref_name || 'development', github.repository) || format('[{0}](https://github.com/{1}/releases/tag/{0}) is now available on GitHub.', github.ref_type == 'tag' && github.ref_name || 'development', github.repository)) }}
+      title: ${{ (contains(needs.*.result, 'failure') || (inputs.generate_changelog && needs.changelog.result != 'success')) && format('{0} pipeline failed! 😭', github.event.repository.name) || '' }}
+      description: ${{ (contains(needs.*.result, 'failure') || (inputs.generate_changelog && needs.changelog.result != 'success')) && format('[Workflow Results](https://github.com/{0}/actions/runs/{1})', github.repository, github.run_id) || format('[{0}](https://github.com/{1}/releases/tag/{0}) is now available on {2}.', github.ref_type == 'tag' && github.ref_name || 'development', github.repository, ((github.ref_type == 'tag' && (needs['cargo-publish'].result == 'success' || needs['cargo-publish-workspace'].result == 'success')) && inputs.aur_package_name != '' && 'GitHub, crates.io, and the AUR') || ((github.ref_type == 'tag' && (needs['cargo-publish'].result == 'success' || needs['cargo-publish-workspace'].result == 'success')) && 'GitHub and crates.io') || (inputs.aur_package_name != '' && 'GitHub and the AUR') || 'GitHub') }}
 
   # For any repositories which use this one as a dependent,
   # notify them by creating an issue within the DreamWeave org's scope.

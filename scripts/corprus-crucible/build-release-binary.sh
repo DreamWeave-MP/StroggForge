@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-binary_name=${1:?usage: build-release-binary.sh <binary-name> <suffix> <build-dir> <target-dir> <dist-dir> [rust-target] [platform-os] [platform-arch]}
+binary_name=${1:?usage: build-release-binary.sh <binary-name> <suffix> <build-dir> <target-dir> <dist-dir> [rust-target] [platform-os] [platform-arch] [cargo-package]}
 suffix=${2:-}
-build_dir=${3:?usage: build-release-binary.sh <binary-name> <suffix> <build-dir> <target-dir> <dist-dir> [rust-target] [platform-os] [platform-arch]}
-target_dir=${4:?usage: build-release-binary.sh <binary-name> <suffix> <build-dir> <target-dir> <dist-dir> [rust-target] [platform-os] [platform-arch]}
-dist_dir=${5:?usage: build-release-binary.sh <binary-name> <suffix> <build-dir> <target-dir> <dist-dir> [rust-target] [platform-os] [platform-arch]}
+build_dir=${3:?usage: build-release-binary.sh <binary-name> <suffix> <build-dir> <target-dir> <dist-dir> [rust-target] [platform-os] [platform-arch] [cargo-package]}
+target_dir=${4:?usage: build-release-binary.sh <binary-name> <suffix> <build-dir> <target-dir> <dist-dir> [rust-target] [platform-os] [platform-arch] [cargo-package]}
+dist_dir=${5:?usage: build-release-binary.sh <binary-name> <suffix> <build-dir> <target-dir> <dist-dir> [rust-target] [platform-os] [platform-arch] [cargo-package]}
 rust_target=${6:-}
 platform_os=${7:-}
 platform_arch=${8:-}
+cargo_package=${9:-}
 
 built_binary_name="${binary_name}${suffix}"
 if [ -n "$rust_target" ]; then
@@ -88,6 +89,17 @@ fi
 mkdir -p "$target_dir" "$dist_dir"
 rm -f "$built_binary"
 cargo_build=(cargo build --release)
+case "$cargo_package" in
+  "")
+    ;;
+  workspace)
+    # Any workspace member may provide the binary; --bin keeps the build to that one target.
+    cargo_build+=(--workspace --bin "$binary_name")
+    ;;
+  *)
+    cargo_build+=(--package "$cargo_package" --bin "$binary_name")
+    ;;
+esac
 if [ "$feature_cargo_arg_count" -gt 0 ]; then
   cargo_build+=("${feature_cargo_args[@]}")
 fi

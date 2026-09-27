@@ -35,6 +35,18 @@ on:
         default: true
         description: "Publish to crates.io on tagged releases; run a dry-run on all other pushes. Requires CARGO_REGISTRY_TOKEN secret."
 
+      cargo_publish_workspace:
+        type: boolean
+        required: false
+        default: false
+        description: "Publish every publishable workspace member in dependency order instead of one crate per crate name. Skips versions already on crates.io and waits out crates.io rate limits."
+
+      msrv:
+        type: string
+        required: false
+        default: ''
+        description: "Minimum supported Rust version to check the workspace against before release, e.g. '1.88'. 'auto' reads rust-version from Cargo.toml. Empty skips the check."
+
       generate_changelog:
         type: boolean
         required: false
@@ -47,6 +59,12 @@ on:
         default: false
         description: "Run cargo bench, generate BENCHMARKS.md from Criterion output or the raw benchmark log, and upload it to the release."
 
+      generate_discord_notification:
+        type: boolean
+        required: false
+        default: true
+        description: "Generate a discord notification to DreamWeave upon success."
+
 concurrency:
   group: stroggforge-lib-global-${{ github.repository }}-${{ github.ref }}
   cancel-in-progress: true
@@ -56,7 +74,7 @@ jobs:
   # then create a fresh release with GitHub-generated notes and workflow ID.
   release_cleanup:
     if: github.event_name != 'pull_request'
-    needs: [test, clippy, fmt, audit]
+    needs: [test, clippy, fmt, audit, msrv]
     uses: DreamWeave-MP/StroggForge/.github/workflows/createRelease.yml@v42
     secrets: inherit
 
@@ -76,13 +94,13 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
       - name: Cache Cargo target directory
         uses: actions/cache@v5.0.5
         with:
           path: |
             target
-          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
           restore-keys: |
             ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-
             ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-
@@ -111,13 +129,13 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
       - name: Cache Cargo target directory
         uses: actions/cache@v5.0.5
         with:
           path: |
             target
-          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
           restore-keys: |
             ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-
             ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-
@@ -137,9 +155,65 @@ jobs:
         run: cargo audit
         working-directory: ${{ github.workspace }}
 
+  # Check the workspace on its minimum supported Rust version. Blocks release.
+  # Always runs so release jobs can depend on it; with no msrv input it only logs a skip.
+  msrv:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Skip MSRV Check
+        if: inputs.msrv == ''
+        run: echo "msrv input is empty; skipping the MSRV check."
+      - uses: actions/checkout@v6
+        if: inputs.msrv != ''
+      - uses: actions/checkout@v6
+        if: inputs.msrv != ''
+        with:
+          repository: DreamWeave-MP/StroggForge
+          ref: v42
+          path: .stroggforge
+      - uses: dtolnay/rust-toolchain@stable
+        if: inputs.msrv != ''
+      - name: Resolve MSRV
+        if: inputs.msrv != ''
+        id: msrv
+        env:
+          MSRV_INPUT: ${{ inputs.msrv }}
+        run: bash .stroggforge/scripts/shared/resolve-msrv.sh "$MSRV_INPUT"
+      - uses: dtolnay/rust-toolchain@master
+        if: inputs.msrv != ''
+        id: rust_toolchain
+        with:
+          toolchain: ${{ steps.msrv.outputs.toolchain }}
+      - name: Cache Cargo registry
+        if: inputs.msrv != ''
+        uses: actions/cache@v5.0.5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-msrv-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-cargo-registry-msrv-
+      - name: Cache Cargo target directory
+        if: inputs.msrv != ''
+        uses: actions/cache@v5.0.5
+        with:
+          path: |
+            target
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-
+      - name: Check on MSRV
+        if: inputs.msrv != ''
+        env:
+          # Without a Cargo.lock, resolve dependency versions that still build on the MSRV.
+          CARGO_RESOLVER_INCOMPATIBLE_RUST_VERSIONS: fallback
+          MSRV_TOOLCHAIN: ${{ steps.msrv.outputs.toolchain }}
+        run: cargo "+$MSRV_TOOLCHAIN" check --workspace --all-features --all-targets
+
   # Verify each crate would be publishable to crates.io. Informational — does not block release.
   cargo-publish-dry-run:
-    if: inputs.cargo_publish && github.ref_type != 'tag'
+    if: inputs.cargo_publish && !inputs.cargo_publish_workspace && github.ref_type != 'tag'
     runs-on: ubuntu-22.04
     strategy:
       matrix:
@@ -159,13 +233,13 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
       - name: Cache Cargo target directory
         uses: actions/cache@v5.0.5
         with:
           path: |
             target
-          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
           restore-keys: |
             ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-
             ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-
@@ -177,8 +251,8 @@ jobs:
 
   # Publish each crate to crates.io on tagged releases, after all quality gates pass.
   cargo-publish:
-    if: inputs.cargo_publish && github.ref_type == 'tag'
-    needs: [test, clippy, fmt, audit]
+    if: inputs.cargo_publish && !inputs.cargo_publish_workspace && github.ref_type == 'tag'
+    needs: [test, clippy, fmt, audit, msrv]
     runs-on: ubuntu-22.04
     strategy:
       matrix:
@@ -198,13 +272,13 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
       - name: Cache Cargo target directory
         uses: actions/cache@v5.0.5
         with:
           path: |
             target
-          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
           restore-keys: |
             ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-
             ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-
@@ -216,11 +290,81 @@ jobs:
           rm -rf .stroggforge
           cargo publish --manifest-path "$MANIFEST"
 
+  # Package and verify every publishable workspace member against the others. Informational — does not block release.
+  cargo-publish-workspace-dry-run:
+    if: inputs.cargo_publish && inputs.cargo_publish_workspace && github.ref_type != 'tag'
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+        id: rust_toolchain
+      - name: Cache Cargo registry
+        uses: actions/cache@v5.0.5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
+      - name: Cache Cargo target directory
+        uses: actions/cache@v5.0.5
+        with:
+          path: |
+            target
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-
+            ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-
+      - name: Publish Dry Run
+        run: cargo publish --workspace --dry-run
+
+  # Publish every publishable workspace member, dependencies first, on tagged releases, after all quality gates pass.
+  # Rerunning is safe: versions already on crates.io are skipped, and crates.io's new-crate rate limit is waited out.
+  cargo-publish-workspace:
+    if: inputs.cargo_publish && inputs.cargo_publish_workspace && github.ref_type == 'tag'
+    needs: [test, clippy, fmt, audit, msrv]
+    runs-on: ubuntu-22.04
+    timeout-minutes: 240
+    concurrency:
+      group: stroggforge-crates-io-${{ github.repository }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: DreamWeave-MP/StroggForge
+          ref: v42
+          path: .stroggforge
+      - uses: dtolnay/rust-toolchain@stable
+        id: rust_toolchain
+      - name: Cache Cargo registry
+        uses: actions/cache@v5.0.5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
+      - name: Cache Cargo target directory
+        uses: actions/cache@v5.0.5
+        with:
+          path: |
+            target
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-
+            ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-
+      - name: Publish Workspace to crates.io
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          cp .stroggforge/.github/scripts/publish_workspace.py "$RUNNER_TEMP/publish_workspace.py"
+          rm -rf .stroggforge
+          python3 "$RUNNER_TEMP/publish_workspace.py"
+
   # Build cargo doc and deploy to GitHub Pages.
   # Requires Pages to be enabled with "GitHub Actions" as the source in repo settings.
   docs:
     if: inputs.publish_docs && github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [test, clippy, fmt, audit]
+    needs: [test, clippy, fmt, audit, msrv]
     runs-on: ubuntu-22.04
     permissions:
       contents: read
@@ -244,13 +388,13 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
       - name: Cache Cargo target directory
         uses: actions/cache@v5.0.5
         with:
           path: |
             target
-          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
           restore-keys: |
             ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-
             ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-
@@ -316,13 +460,13 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
       - name: Cache Cargo target directory
         uses: actions/cache@v5.0.5
         with:
           path: |
             target
-          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
           restore-keys: |
             ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-
             ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-
@@ -338,16 +482,17 @@ jobs:
           tag_name: ${{ needs.release_cleanup.outputs.release_name }}
           files: BENCHMARKS.md
 
-  # For workflows where users may now receive a new deliverable, notify them about it!
+  # One notification per run, after every release and publish job has finished, so it can report any failure.
+  # Superseded (cancelled) runs stay quiet; the run that replaced them reports instead.
   call-discord-webhook:
-    if: always() && github.event_name == 'push'
-    needs: [changelog, cargo-publish]
+    if: always() && !cancelled() && inputs.generate_discord_notification && github.event_name == 'push'
+    needs: [test, fmt, clippy, audit, msrv, release_cleanup, docs, changelog, benchmarks, cargo-publish, cargo-publish-workspace]
     uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v42
     secrets:
       WEBHOOK_URL: ${{ secrets.DISCORD_CHANNEL_WEBHOOK || secrets.DW_TOOLS_CHANNEL_WEBHOOK }}
     with:
-      title: ${{ ((inputs.generate_changelog && needs.changelog.result != 'success') || needs['cargo-publish'].result == 'failure') && format('{0} pipeline failed! 😭', github.event.repository.name) || '' }}
-      description: ${{ ((inputs.generate_changelog && needs.changelog.result != 'success') || needs['cargo-publish'].result == 'failure') && format('[Workflow Results](https://github.com/{0}/actions/runs/{1})', github.repository, github.run_id) || format('[{0}](https://github.com/{1}/releases/tag/{0}) is now available on GitHub.', github.ref_type == 'tag' && github.ref_name || 'development', github.repository) }}
+      title: ${{ (contains(needs.*.result, 'failure') || (inputs.generate_changelog && needs.changelog.result != 'success')) && format('{0} pipeline failed! 😭', github.event.repository.name) || '' }}
+      description: ${{ (contains(needs.*.result, 'failure') || (inputs.generate_changelog && needs.changelog.result != 'success')) && format('[Workflow Results](https://github.com/{0}/actions/runs/{1})', github.repository, github.run_id) || format('[{0}](https://github.com/{1}/releases/tag/{0}) is now available on {2}.', github.ref_type == 'tag' && github.ref_name || 'development', github.repository, ((github.ref_type == 'tag' && (needs['cargo-publish'].result == 'success' || needs['cargo-publish-workspace'].result == 'success')) && 'GitHub and crates.io') || 'GitHub') }}
 
   # For any repositories which use this one as a dependent,
   # notify them by creating an issue within the DreamWeave org's scope.

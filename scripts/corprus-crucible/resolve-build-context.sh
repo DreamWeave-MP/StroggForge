@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-binary_name=${1:?usage: resolve-build-context.sh <binary-name>}
+binary_name=${1:?usage: resolve-build-context.sh <binary-name> [cargo-package]}
+cargo_package=${2:-}
 
-# Auto-detect: if binary_name is a directory, build there.
-if [ -d "$binary_name" ]; then
+if [ -n "$cargo_package" ]; then
+  # An explicit Cargo package (or `workspace`) builds from the repository root with package
+  # selection, so the binary may live in any workspace member.
+  build_dir=.
+elif [ -d "$binary_name" ]; then
+  # Auto-detect: if binary_name is a directory, build there.
   build_dir=$binary_name
 else
   build_dir=.
