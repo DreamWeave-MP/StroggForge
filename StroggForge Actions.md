@@ -17,25 +17,30 @@ The full pipeline orchestrator. This is what downstream repositories call — ev
 Inputs:
 
 1. `binary_names`: Required. JSON array of binary names to build, e.g. `'["my-app"]'`. Add multiple entries for monorepos.
+1. `binary_package`: Optional, default empty. Cargo package that provides the binaries when they live in a workspace member other than the root, e.g. `jess-cli`. Release builds then run from the repository root as `cargo build --release --package <binary_package> --bin <binary>`, and `include_files` resolve from the repository root. Set `workspace` to build with `--workspace --bin <binary>` instead, which finds each binary in whichever member defines it. Left empty, the directory detection described under Corprus Crucible applies. With `cargo_publish` and without `cargo_publish_workspace`, a package name here is also what `cargo-publish` publishes.
 1. `include_files`: Optional. Comma-separated files or directories to include in every platform archive, relative to the detected build directory. Defaults to `README.md,LICENSE`.
 1. `aur_package_name`: Optional. AUR package name. Omit if the project is not on the AUR.
 1. `dependent_repo_names`: Optional. Repositories to notify via issue on tagged releases, one `Owner/Repo` per line. JSON arrays are still accepted for compatibility. When set, requires `DW_BOT_PAT`.
 1. `git_username` / `git_email`: Optional. AUR commit identity. Defaults to the DreamWeave maintainer values.
 1. `publish_docs`: Optional, default `true`. Set `false` if the project uses its own static site generator for documentation.
 1. `cargo_publish`: Optional, default `true`. Runs `cargo publish --dry-run` on every non-tag push, and `cargo publish` on tagged releases. Set `false` if the project does not publish to crates.io. Requires `CARGO_REGISTRY_TOKEN` secret.
+1. `cargo_publish_workspace`: Optional, default `false`. With `cargo_publish`, publishes every publishable workspace member instead of one crate per binary name. See [Workspace publishing](#workspace-publishing).
+1. `msrv`: Optional, default empty. Minimum supported Rust version, e.g. `'1.88'`, or `auto` to use the highest `rust-version` any workspace member declares. When set, the `msrv` job runs `cargo check --workspace --all-features --all-targets` on that toolchain and blocks release like the other quality gates. Without a `Cargo.lock`, dependencies resolve to versions that still support that Rust version (`CARGO_RESOLVER_INCOMPATIBLE_RUST_VERSIONS=fallback`). Empty skips the check; the job still runs so release jobs can depend on it, and only logs the skip.
 1. `generate_changelog`: Optional, default `true`. Generates `CHANGELOG.md` from git history and uploads it to the release.
 1. `generate_benchmarks`: Optional, default `false`. Runs `cargo bench`, generates `BENCHMARKS.md` from Criterion output when available, otherwise preserves the raw benchmark log, and uploads it to the release.
+1. `generate_discord_notification`: Optional, default `true`. Set `false` to skip the Discord notification, e.g. when another workflow in the same run already sends one.
 1. `enable_android`: Optional, default `false`. Builds Android ARM64 ELF release artifacts using the Android NDK at API level 23. This does not produce an APK.
 1. `enable_portmaster`: Optional, default `false`. Builds Portmaster ARM64 release artifacts for `aarch64-unknown-linux-gnu` using an AlmaLinux 8 AArch64 sysroot for old glibc compatibility.
 
 The pipeline runs these jobs:
 
-- Quality gates (parallel, block release): `test` (full platform matrix), `fmt`, `clippy` (pedantic), `audit` (RustSec)
-- Informational (parallel, does not block): `cargo-publish-dry-run`
+- Quality gates (parallel, block release): `test` (full platform matrix), `fmt`, `clippy` (pedantic), `audit` (RustSec, generating a `Cargo.lock` first when the repository does not commit one), `msrv` (only checks when `msrv` is set)
+- Informational (parallel, does not block): `cargo-publish-dry-run`, or `cargo-publish-workspace-dry-run` with `cargo_publish_workspace`
 - Release builds (after gates pass): `release` (macOS ARM + Intel, Windows), `release-linux` (AlmaLinux 8 container for glibc 2.28 compatibility), optional `release-android` (Android ARM64 ELF targeting API level 23, not APK), and optional `release-portmaster` (AArch64 GNU/Linux with an AlmaLinux 8 sysroot) build, sign, scan, package, and stage platform archives as workflow artifacts. They do not mutate the GitHub Release directly.
 - GitHub Release publish: `github-publish` runs after all required application release builds succeed. It refreshes the current tag release or shared `development` release, exposes `release_name`, then uploads the staged platform archives and VirusTotal notes.
 - Doc/artifact generation: `docs` deploys GitHub Pages on main pushes after gates pass; `changelog` and `benchmarks` upload release files after `github-publish` succeeds.
-- External publish/notification: `cargo-publish` (crates.io, tag only), `aur-publish`, and `nexus-publish` fan out after builds; `call-discord-webhook` waits for changelog when enabled and optional external publish jobs so it can report their failures, while `nag-dependents` waits for the GitHub Release publish boundary.
+- External publish/notification: `cargo-publish` or `cargo-publish-workspace` (crates.io, tag only), `aur-publish`, and `nexus-publish` fan out after builds; `nag-dependents` waits for the GitHub Release publish boundary.
+- Notification: `call-discord-webhook` sends exactly one Discord message per push, after every gate, build, release, docs, changelog, benchmark, and publish job has finished. Any failed job (or a missing changelog when `generate_changelog` is on) turns it into a failure message linking the workflow run; otherwise it links the release and names where it is available (GitHub, crates.io on tagged publishes, the AUR). Cancelled runs, such as ones superseded by a newer push, send nothing.
 
 ## [./.github/workflows/libGlobalBuild.yml](./.github/workflows/libGlobalBuild.yml)
 
@@ -49,8 +54,30 @@ Inputs:
 1. `dependent_repo_names`: Optional. Repositories to notify via issue on tagged releases, one `Owner/Repo` per line. JSON arrays are still accepted for compatibility. When set, requires `DW_BOT_PAT`.
 1. `publish_docs`: Optional, default `true`. Set `false` if using a custom SSG.
 1. `cargo_publish`: Optional, default `true`. Dry-run on non-tag pushes; real publish on tagged releases. Requires `CARGO_REGISTRY_TOKEN` secret.
+1. `cargo_publish_workspace`: Optional, default `false`. With `cargo_publish`, publishes every publishable workspace member in dependency order instead of the unordered one-job-per-crate matrix over `crate_names`. `crate_names` is then only used for the docs index redirect. See [Workspace publishing](#workspace-publishing).
+1. `msrv`: Optional, default empty. Same as the application workflow: checks the workspace on the given Rust version (or `auto`) and blocks release cleanup, publishing, and docs.
 1. `generate_changelog`: Optional, default `true`.
 1. `generate_benchmarks`: Optional, default `false`.
+1. `generate_discord_notification`: Optional, default `true`. Set `false` when the same repository also calls `rustGlobalBuild.yml` in one workflow, so each release sends one notification.
+
+The library Discord notification follows the same rules as the application one: one message after every job has finished, reporting any failure.
+
+## Workspace publishing
+
+`cargo_publish_workspace: true` (both workflows) replaces the per-name crates.io jobs with two workspace jobs:
+
+- `cargo-publish-workspace-dry-run` runs `cargo publish --workspace --dry-run` on non-tag pushes, which packages and verifies every member against the others even before any of them is on crates.io. Informational, like the per-crate dry run.
+- `cargo-publish-workspace` runs [`.github/scripts/publish_workspace.py`](./.github/scripts/publish_workspace.py) on tagged releases: after the release builds for applications, after the quality gates for libraries. It publishes one crate at a time in dependency order read from `cargo metadata`, so a crate is only uploaded once everything it depends on is on crates.io.
+
+What the publish script does:
+
+- Leaves out members with `publish = false`, or a `publish` list without `crates-io`. That is the way to keep a member off crates.io; there is no separate exclude input.
+- Orders by normal, build, and versioned dev-dependencies. Path-only dev-dependencies are ignored because Cargo strips them when packaging; a cycle through versioned dependencies fails the job with the cycle printed.
+- Skips any crate whose version is already in the crates.io index, so a run that failed halfway can simply be rerun.
+- Retries on crates.io 429 responses, waiting until the time crates.io names in the error (ten minutes if it names none), up to 30 attempts per crate. crates.io lets an account publish a small burst of new crates and then roughly one new crate per ten minutes, so a first release of a large workspace can take a while; the job has a 240-minute timeout and never runs two workspace publishes for the same repository at once.
+- Waits for each uploaded crate to appear in the crates.io index before building the next one.
+
+Run it locally from a workspace root to see the plan: `python3 .github/scripts/publish_workspace.py --list` prints the order without touching the network, and `--dry-run` also checks the crates.io index and reports which crates would be uploaded.
 
 ## [./.github/actions/corprus-crucible/action.yml](./.github/actions/corprus-crucible/action.yml)
 
@@ -59,15 +86,18 @@ Composite action used internally by `rustGlobalBuild.yml`. Handles the release a
 Inputs:
 
 1. `binary_name`: Required. The executable name to build, without platform extension.
-1. `include_files`: Optional. Comma-separated list of additional files or directories to include in the release zip. Paths are relative to the build directory. Defaults to `README.md,LICENSE`. Included `README.md`/`Readme.md` and `LICENSE` files are archived as `{binary}-README.md` and `{binary}-LICENSE` so multiple application archives can be unpacked into the same directory without their docs trampling each other. Directories are copied recursively with their relative paths preserved. File-name matching falls back to case-insensitive lookup, so existing consumers that pass `Readme.md` still package a conventional `README.md` on Linux.
+1. `include_files`: Optional. Comma-separated list of additional files or directories to include in the release zip. Paths are relative to the build directory. Defaults to `README.md,LICENSE`. Included `README.md`/`Readme.md` and `LICENSE` files are archived as `{binary}-README.md` and `{binary}-LICENSE` so multiple application archives can be unpacked into the same directory without their docs trampling each other. Directories are copied recursively with their relative paths preserved; files inside subdirectories (e.g. `libs/lua/jess.d.luau`) land at the archive root under their own name. Other license files such as `LICENSE-MIT` and `LICENSE-APACHE` keep their names, so dual-licensed projects list both. File-name matching falls back to case-insensitive lookup, so existing consumers that pass `Readme.md` still package a conventional `README.md` on Linux.
 1. `vt_api_key`: Required for non-PR release builds. VirusTotal API key.
 1. `release_name`: Required. Caller-supplied release identifier — either the tag name or `development`.
 1. `nexus_api_key`: Optional. Nexus Mods API key. Provide with `nexus_group_ids` to upload release archives to Nexus Mods. Passed through the environment so JSON secrets are not damaged by shell quoting.
 1. `nexus_group_ids`: Optional. Nexus Mods file group IDs as JSON. Provide with `nexus_api_key` to upload release archives to Nexus Mods. Values may be strings or integers; booleans are rejected so `false` cannot accidentally become a file group ID.
 1. `platform_os` / `platform_arch`: Optional. Override artifact platform naming for cross builds. Native builds default to the runner OS and architecture.
 1. `rust_target`: Optional. Rust target triple for cross-compiled release builds, e.g. `aarch64-linux-android`.
+1. `cargo_package`: Optional. Cargo package that provides the binary. When set, the action builds from `.` with `--package <cargo_package> --bin <binary_name>`, or with `--workspace --bin <binary_name>` when set to `workspace`. `rustGlobalBuild.yml` passes its `binary_package` input here.
 
-Build context detection: if `binary_name` matches a directory at the repo root, the action builds from that directory. Otherwise builds from `.`. This handles monorepos transparently.
+Build context detection: with no `cargo_package`, if `binary_name` matches a directory at the repo root, the action builds from that directory. Otherwise builds from `.`. This handles monorepos transparently. When the binary lives in a workspace member whose directory is not named after it (say `libs/cli` building `jess`), set `cargo_package` instead.
+
+Registry and target caches are keyed on `Cargo.lock`, or on the `Cargo.toml` files when the repository does not commit a lockfile, so lockfile-less workspaces still get fresh caches when their manifests change.
 
 Release builds may customize Cargo feature policy by adding an executable `.stroggforge/cargo-build-args.sh` script to the consuming repository. This is a fixed convention, not another workflow input pretending to be useful. If the file exists, Corprus Crucible calls it before `cargo build` as:
 
@@ -75,7 +105,7 @@ Release builds may customize Cargo feature policy by adding an executable `.stro
 .stroggforge/cargo-build-args.sh "$platform_os" "$platform_arch" "$rust_target" "$binary_name"
 ```
 
-The hook is deliberately narrow: it may only choose Cargo feature flags. Think of it as a small platform policy script, not a way to replace the release build command. Its stdout is parsed as Cargo arguments, so it must print one extra Cargo feature argument per line and send any diagnostics to stderr. Blank lines are ignored; shell quoting is not interpreted. Only `--features`, `-F`, `--no-default-features`, and `--all-features` are accepted; everything else fails the build. For `--features` or `-F`, print the feature list on the next line, or use `--features=gui` / `-F=gui`. Corprus Crucible still owns `--release`, `--target`, `--target-dir`, `--manifest-path`, package selection, binary selection, and the expected binary path. Use `scripts/cargo-build-args.example.sh` as a starting point; it demonstrates desktop builds using the `gui` feature and Android/Portmaster builds using `--no-default-features`.
+The hook is deliberately narrow: it may only choose Cargo feature flags. Think of it as a small platform policy script, not a way to replace the release build command. Its stdout is parsed as Cargo arguments, so it must print one extra Cargo feature argument per line and send any diagnostics to stderr. Blank lines are ignored; shell quoting is not interpreted. Only `--features`, `-F`, `--no-default-features`, and `--all-features` are accepted; everything else fails the build. For `--features` or `-F`, print the feature list on the next line, or use `--features=gui` / `-F=gui`. Corprus Crucible still owns `--release`, `--target`, `--target-dir`, `--manifest-path`, package selection, binary selection, and the expected binary path. With `cargo_package` set, feature names are resolved against the selected package; with `workspace`, use the `package/feature` form so it is unambiguous which member a feature belongs to. Use `scripts/cargo-build-args.example.sh` as a starting point; it demonstrates desktop builds using the `gui` feature and Android/Portmaster builds using `--no-default-features`.
 
 Stable platform tuples currently passed to the hook are `macOS-ARM64`, `macOS-x64`, `Windows-x64`, `Linux-x64`, `Android-ARM64`, and `Portmaster-ARM64`. Native desktop builds pass an empty Rust target; Android passes `aarch64-linux-android`; Portmaster passes `aarch64-unknown-linux-gnu`.
 

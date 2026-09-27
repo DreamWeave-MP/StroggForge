@@ -21,6 +21,14 @@ jobs:
       # Required: JSON array of binary names to build. Add more for monorepos.
       binary_names: '["ENTER_BINARY_NAME_HERE"]'
 
+      # Optional: the Cargo package that provides the binaries, when they live in a workspace
+      # member rather than the root package or a directory named after the binary.
+      # Use `workspace` to build each binary from whichever member defines it.
+      # binary_package: ENTER_PACKAGE_NAME_HERE
+
+      # Optional: extra files or directories for every release archive.
+      # include_files: "README.md,LICENSE"
+
       # Optional: uncomment if the package is published to the AUR.
       # aur_package_name: ENTER_PACKAGE_NAME_HERE
       # git_username: ENTER_USERNAME_HERE
@@ -39,6 +47,13 @@ jobs:
 
       # Optional: set false if this project does not publish to crates.io.
       # cargo_publish: false
+
+      # Optional: publish every workspace member in dependency order instead of one crate per binary.
+      # cargo_publish_workspace: true
+
+      # Optional: check the workspace on its minimum supported Rust version before release.
+      # Use a version such as '1.88', or `auto` to read rust-version from Cargo.toml.
+      # msrv: auto
 
       # Optional: set true if this project has Criterion benchmarks.
       # generate_benchmarks: true
