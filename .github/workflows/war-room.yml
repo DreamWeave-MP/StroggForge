@@ -21,20 +21,24 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '22'
           cache: npm
       - uses: taiki-e/install-action@v2
         with:
-          tool: zola@0.22.1,actionlint
+          tool: zola@0.22.1
       - name: Rust quality
         run: |
           cargo fmt --all --check
           cargo test --locked --workspace --all-features
           cargo clippy --locked --workspace --all-targets --all-features -- -W clippy::pedantic -D warnings
+      # actionlint is a Go tool that install-action and cargo-binstall do not carry; use the
+      # author's installer, pinned to a release.
       - name: Workflow validation
-        run: actionlint
+        run: |
+          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12 "$RUNNER_TEMP"
+          "$RUNNER_TEMP/actionlint" -color
       - name: Generate site content
         run: cargo run --locked -p stroggforge-war-room -- build
       - name: Install build-only diagram tooling
