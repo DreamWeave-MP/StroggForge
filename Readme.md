@@ -5,11 +5,10 @@ and Rust ecosystem components: reusable GitHub workflows, the Corprus Crucible c
 action, the `setup-llvm` action, and the shell helpers they run. It verifies, builds, signs,
 packages, documents and publishes the Rust side of DreamWeave.
 
-It also hosts the **DreamWeave War Room** — <https://dreamweave-mp.github.io/StroggForge/> —
-the engineering console for the whole ecosystem: what exists, how it relates, what is being
-released, what is blocked, which toolchains and platforms are standard, and what has been
-retired. The site documents the Lua(u)/OpenMW and web sides of DreamWeave too, without
-making them depend on the Rust supply line.
+It also hosts the **DreamWeave War Room** at <https://dreamweave-mp.github.io/StroggForge/>:
+what DreamWeave contains, what depends on what, what ships next, what is stuck, and which
+platforms and toolchains are standard. It covers the Lua(u)/OpenMW and web sides of
+DreamWeave too, without pretending they run through the Rust supply line.
 
 ## Using the workflows
 
@@ -24,25 +23,24 @@ The war room's generated contract pages list every input, secret, job and condit
 
 | Where | What |
 |---|---|
-| `war-room/ecosystem.toml` | Projects, domains, lifecycles, relationships, retired infrastructure, change digest |
+| `war-room/ecosystem.toml` | Projects, domains, lifecycles, relationships, retired infrastructure, change log |
 | `war-room/plans.toml` | Releases and campaigns, with requirements and blockers |
-| `war-room/toolchains.toml` | Platform and compiler policy, asserted against the workflows |
-| `war-room/sources/` | Captured Cargo/workflow snapshots and the organization census |
-| `.github/war-room-workflows.toml` | Workflow operating notes and supply-chain stages |
-| `tools/war-room/` | The Rust generator and validator |
+| `war-room/toolchains.toml` | Target platforms and compiler policy |
+| `war-room/workflows.toml` | Workflow operating notes and supply-chain stages |
+| `tools/war-room/` | The Rust generator: validates references, writes the site's pages |
 | `site/` | Zola site on the DreamWeave Mod Template docs shell |
 
 ```sh
 npm ci
-cargo run --locked -p stroggforge-war-room -- build
+cargo run -p stroggforge-war-room -- build
 npm run diagrams
 zola --root site serve
 ```
 
-Maintenance loops (adding a project, retiring one, planning a release, changing a
-workflow) are documented on the site under *Contributing → Maintain the war room*, and in
-[`site/pages/contributing/maintenance.md`](site/pages/contributing/maintenance.md). The
-source-of-truth contract is [`site/pages/engineering/architecture.md`](site/pages/engineering/architecture.md).
+The maintenance loops (adding a project, planning a release, changing a workflow) are in
+[`site/pages/contributing/maintenance.md`](site/pages/contributing/maintenance.md), and
+where everything lives is in
+[`site/pages/engineering/architecture.md`](site/pages/engineering/architecture.md).
 
 ## Other notebooks
 
