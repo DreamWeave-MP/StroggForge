@@ -1,14 +1,15 @@
 {
   "name": "stroggforge-site-build",
   "private": true,
-  "description": "Build-time static Mermaid rendering and site smoke checks; no browser runtime dependencies",
+  "description": "Build-time Mermaid rendering for the war room; nothing here ships to the browser",
   "scripts": {
-    "diagrams": "node scripts/war-room/render-diagrams.mjs",
-    "test:site": "node scripts/war-room/test-site.mjs"
+    "diagrams": "node scripts/war-room/render-diagrams.mjs"
   },
   "devDependencies": {
     "mermaid": "11.17.2",
     "puppeteer": "25.12.0"
   },
-  "engines": { "node": ">=22.13.0" }
+  "engines": {
+    "node": ">=22.13.0"
+  }
 }

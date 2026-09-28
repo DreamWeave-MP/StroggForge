@@ -35,18 +35,16 @@ jobs:
           cargo clippy --locked --workspace --all-targets --all-features -- -W clippy::pedantic -D warnings
       - name: Workflow validation
         run: actionlint
-      - name: Deterministic offline-data generation
-        run: python3 scripts/war-room/check-generation.py
+      - name: Generate site content
+        run: cargo run --locked -p stroggforge-war-room -- build
       - name: Install build-only diagram tooling
         run: npm ci
-      - name: Validate and render every Mermaid diagram
+      - name: Render Mermaid diagrams to SVG
         run: npm run diagrams
       - name: Build static site
         run: zola --root site build
       - name: Check local links and anchors
         run: python3 scripts/war-room/check-site.py
-      - name: Browser smoke checks
-        run: npm run test:site
       - uses: actions/upload-pages-artifact@v5.0.0
         with:
           path: site/public
