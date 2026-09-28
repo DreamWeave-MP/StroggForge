@@ -92,6 +92,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: true
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
       - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v44
@@ -120,6 +122,8 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: true
       - uses: dtolnay/rust-toolchain@stable
       - name: Check Formatting
         run: cargo fmt --all --check
@@ -129,6 +133,8 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: true
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
       - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v44
@@ -157,6 +163,8 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: true
       - uses: dtolnay/rust-toolchain@stable
       - name: Generate Cargo.lock
         run: cargo generate-lockfile
@@ -175,6 +183,8 @@ jobs:
         run: echo "msrv input is empty; skipping the MSRV check."
       - uses: actions/checkout@v6
         if: inputs.msrv != ''
+        with:
+          submodules: true
       - uses: actions/checkout@v6
         if: inputs.msrv != ''
         with:
@@ -234,6 +244,8 @@ jobs:
         crate_names: ${{ fromJson(inputs.crate_names) }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: true
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
@@ -275,6 +287,8 @@ jobs:
         crate_names: ${{ fromJson(inputs.crate_names) }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: true
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
@@ -314,6 +328,8 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: true
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
       - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v44
@@ -349,6 +365,8 @@ jobs:
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: true
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
@@ -397,6 +415,8 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: true
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
@@ -446,6 +466,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          submodules: true
           fetch-depth: 0
       - uses: actions/checkout@v6
         with:
@@ -471,6 +492,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: true
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
