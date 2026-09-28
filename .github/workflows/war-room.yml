@@ -34,7 +34,7 @@ jobs:
           cargo test --locked --workspace --all-features
           cargo clippy --locked --workspace --all-targets --all-features -- -W clippy::pedantic -D warnings
       - name: Workflow validation
-        run: actionlint .github/workflows/war-room.yml
+        run: actionlint
       - name: Deterministic offline-data generation
         run: python3 scripts/war-room/check-generation.py
       - name: Install build-only diagram tooling
