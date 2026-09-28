@@ -66,6 +66,8 @@ The library Discord notification follows the same rules as the application one: 
 
 Every DreamWeave crate builds with clang and lld whose LLVM matches rustc's (22.1.8 at the time of writing). It is not optional. Every job that compiles (`test`, `clippy`, `msrv`, the publish jobs, `docs`, `benchmarks`, and every release build through Corprus Crucible) runs the [`setup-llvm`](#githubactionssetup-llvmactionyml) action first, which fails the job if it cannot put a matching clang and lld on `PATH`. The `msrv` job matches the MSRV toolchain's LLVM, not stable's. The EL9 release builders (`release-linux`, and `release-portmaster` cross-compiling to AArch64) carry the stream's clang and lld, and the same check fails clearly if the stream's LLVM major and rustc's ever differ.
 
+On Apple targets a crate's `.cargo/config.toml` links with clang and lld but leaves out `-Clinker-plugin-lto`: rustc passes that flag's GNU `-plugin-opt` arguments to the linker, and `ld64.lld` rejects them.
+
 StroggForge supplies the compilers; each repository decides how its build uses them, in its own `.cargo/config.toml` (Cargo does not inherit a dependency's). l3i's `TOOLCHAIN.md` has the `rustflags` and `CXX` lines its dependents carry.
 
 ## Submodules
@@ -142,7 +144,7 @@ How it installs, per runner OS (all in [`scripts/shared/setup-llvm.sh`](./script
 - Linux with dnf (the EL9 builder image): `dnf install clang lld` from the stream's AppStream, which tracks current LLVM releases.
 - Linux with neither: the official `LLVM-<version>-Linux-X64.tar.xz` release, added to `PATH`. Those binaries need glibc 2.34 and GCC 12's libstdc++ (Ubuntu 22.04 or Debian 12; no EL release qualifies).
 - macOS: Homebrew `llvm@<major>` and `lld@<major>`, or `llvm` and `lld` when no versioned formula exists, with both `bin` directories on `PATH`. Homebrew ships lld as a separate formula; it provides the `ld64.lld` that `clang -fuse-ld=lld` needs for Mach-O. Apple's own clang is never used: its version numbers are not LLVM's.
-- Windows: the official `clang+llvm-<version>-<arch>-pc-windows-msvc.tar.xz` release, extracted with 7-Zip and added to `PATH`. Dependents build their C++ with `clang-cl` and link with `lld-link` there.
+- Windows: the official `clang+llvm-<version>-<arch>-pc-windows-msvc.tar.xz` release, extracted with 7-Zip and added to `PATH`. Dependents build their C++ with `clang-cl` and link with `lld-link` there. The script also sets `CARGO_BUILD_TARGET` to the host triple for the rest of the job: without an explicit target, Cargo applies `[target]` rustflags to build scripts and proc macros, and rustc refuses `-Clinker-plugin-lto` on MSVC proc macros, which Cargo builds with `-Cprefer-dynamic`. Build output lands under `target/<triple>/` as a result, and Corprus Crucible looks for the release binary there.
 
 When rustc's exact LLVM version has no release (a snapshot), the newest release of the same major is used; only the major has to match.
 
@@ -200,7 +202,7 @@ Shared shell script used by both application and library benchmark jobs. Runs `c
 
 ## [./scripts/shared/setup-llvm.sh](./scripts/shared/setup-llvm.sh)
 
-Shared shell script behind the `setup-llvm` action and the LLVM step of every Corprus Crucible build. Takes an optional rustup toolchain name and an optional LLVM version override, reads `rustc -vV` for the LLVM version, installs a matching clang and lld for the runner OS, verifies the result, and writes `llvm_major`/`llvm_version` to `GITHUB_OUTPUT`.
+Shared shell script behind the `setup-llvm` action and the LLVM step of every Corprus Crucible build. Takes an optional rustup toolchain name and an optional LLVM version override, reads `rustc -vV` for the LLVM version, installs a matching clang and lld for the runner OS, pins `CARGO_BUILD_TARGET` on Windows, verifies the result, and writes `llvm_major`/`llvm_version` to `GITHUB_OUTPUT`.
 
 ## [./scripts/shared/changelog.sh](./scripts/shared/changelog.sh)
 

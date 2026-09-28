@@ -11,9 +11,12 @@ platform_os=${7:-}
 platform_arch=${8:-}
 cargo_package=${9:-}
 
+# setup-llvm pins CARGO_BUILD_TARGET on Windows, which moves the output under the triple too.
+cargo_target=${rust_target:-${CARGO_BUILD_TARGET:-}}
+
 built_binary_name="${binary_name}${suffix}"
-if [ -n "$rust_target" ]; then
-  built_binary="$target_dir/$rust_target/release/$built_binary_name"
+if [ -n "$cargo_target" ]; then
+  built_binary="$target_dir/$cargo_target/release/$built_binary_name"
 else
   built_binary="$target_dir/release/$built_binary_name"
 fi

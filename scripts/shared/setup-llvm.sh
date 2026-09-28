@@ -120,10 +120,23 @@ install_windows() {
   add_path "$(cygpath -w "$inner/bin" 2>/dev/null || echo "$inner/bin")"
 }
 
+# On Windows, pin Cargo to an explicit --target (the host triple) for the rest of the job. Without
+# one, Cargo applies the [target] rustflags to build scripts and proc macros too, and rustc refuses
+# -Clinker-plugin-lto on proc macros for MSVC targets, because Cargo builds them with
+# -Cprefer-dynamic. With an explicit target the rustflags only reach the target's own artifacts.
+pin_windows_target() {
+  local host
+  host=$("${rustc_cmd[@]}" -vV | sed -n 's/^host: //p')
+  if [[ -n "${GITHUB_ENV:-}" ]]; then
+    echo "CARGO_BUILD_TARGET=$host" >> "$GITHUB_ENV"
+  fi
+  echo "setup-llvm: CARGO_BUILD_TARGET=$host"
+}
+
 case "${RUNNER_OS:-$(uname -s)}" in
   Linux) install_linux ;;
   macOS|Darwin) install_macos ;;
-  Windows|MINGW*|MSYS*|CYGWIN*) install_windows ;;
+  Windows|MINGW*|MSYS*|CYGWIN*) install_windows; pin_windows_target ;;
   *)
     echo "setup-llvm: unsupported runner OS '${RUNNER_OS:-$(uname -s)}'" >&2
     exit 1
