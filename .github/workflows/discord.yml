@@ -40,42 +40,61 @@ jobs:
         if: env.WEBHOOK_URL == ''
         run: echo "Discord webhook secret was not provided; skipping notification."
 
+      # Expressions reach the shell through env, never by splicing into the script text:
+      # a title or description containing quotes or $(...) must stay data.
       - name: Detect Release URL
         if: env.WEBHOOK_URL != ''
         id: detect
+        env:
+          REF: ${{ github.ref }}
+          REF_NAME: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
         run: |
-          echo "release_time=$(date -u "+%F %T")" >> $GITHUB_OUTPUT
-
-          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            echo "release_name=${{ github.ref_name }}" >> $GITHUB_OUTPUT
-            echo "display_name=${{ github.ref_name }}" >> $GITHUB_OUTPUT
-          else
-            github_sha_hash=${{ github.sha }}
-            echo "release_name=development" >> $GITHUB_OUTPUT
-            echo "display_name=${github_sha_hash:0:7}" >> $GITHUB_OUTPUT
-          fi
+          {
+            echo "release_time=$(date -u "+%F %T")"
+            if [[ "$REF" == refs/tags/* ]]; then
+              echo "release_name=$REF_NAME"
+              echo "display_name=$REF_NAME"
+            else
+              echo "release_name=development"
+              echo "display_name=${SHA:0:7}"
+            fi
+          } >> "$GITHUB_OUTPUT"
 
       - name: Initialize Empty Fields
         if: env.WEBHOOK_URL != ''
         id: format
+        env:
+          TITLE: ${{ inputs.title }}
+          DESCRIPTION: ${{ inputs.description }}
+          FOOTER_TEXT: ${{ inputs.footer_text }}
+          REPOSITORY_NAME: ${{ github.event.repository.name }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          ACTOR: ${{ github.triggering_actor }}
+          DISPLAY_NAME: ${{ steps.detect.outputs.display_name }}
+          RELEASE_NAME: ${{ steps.detect.outputs.release_name }}
+          RELEASE_TIME: ${{ steps.detect.outputs.release_time }}
         run: |
-          if [[ -z "${{ inputs.title }}" ]]; then
-            echo "title=${{ github.event.repository.name }} has been updated." >> $GITHUB_OUTPUT
-          else
-            echo "title=${{ inputs.title }}" >> $GITHUB_OUTPUT
-          fi
+          {
+            if [[ -z "$TITLE" ]]; then
+              echo "title=$REPOSITORY_NAME has been updated."
+            else
+              echo "title=$TITLE"
+            fi
 
-          if [[ -z "${{ inputs.description }}" ]]; then
-            echo "description=[${{ steps.detect.outputs.display_name }}](https://github.com/${{ github.repository }}/releases/tag/${{ steps.detect.outputs.release_name }}) is now available on GitHub and the AUR." >> $GITHUB_OUTPUT
-          else
-            echo "description=${{ inputs.description }}" >> $GITHUB_OUTPUT
-          fi
+            if [[ -z "$DESCRIPTION" ]]; then
+              echo "description=[$DISPLAY_NAME](https://github.com/$REPOSITORY/releases/tag/$RELEASE_NAME) is now available on GitHub and the AUR."
+            else
+              echo "description=$DESCRIPTION"
+            fi
 
-          if [[ -z "${{ inputs.footer_text}}" ]]; then
-            echo "footer_text=Workflow: ${{ github.run_id }} by: ${{ github.triggering_actor }} at: ${{ steps.detect.outputs.release_time }}" >> $GITHUB_OUTPUT
-          else
-            echo "footer_text=${{ inputs.footer_text }}" >> $GITHUB_OUTPUT
-          fi
+            if [[ -z "$FOOTER_TEXT" ]]; then
+              echo "footer_text=Workflow: $RUN_ID by: $ACTOR at: $RELEASE_TIME"
+            else
+              echo "footer_text=$FOOTER_TEXT"
+            fi
+          } >> "$GITHUB_OUTPUT"
 
       - name: Discord Webhook Action
         if: env.WEBHOOK_URL != ''
