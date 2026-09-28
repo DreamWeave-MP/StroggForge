@@ -65,12 +65,6 @@ on:
         default: true
         description: "Generate a discord notification to DreamWeave upon success."
 
-      llvm_toolchain:
-        type: boolean
-        required: false
-        default: false
-        description: "Install clang and lld matching the Rust toolchain's LLVM before every job that compiles, for crates built under cross-language LTO (l3i and its dependents)."
-
 concurrency:
   group: stroggforge-lib-global-${{ github.repository }}-${{ github.ref }}
   cancel-in-progress: true
@@ -97,7 +91,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
       - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v46
-        if: inputs.llvm_toolchain
       - name: Cache Cargo registry
         uses: actions/cache@v5.0.5
         with:
@@ -138,7 +131,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
       - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v46
-        if: inputs.llvm_toolchain
       - name: Cache Cargo registry
         uses: actions/cache@v5.0.5
         with:
@@ -205,7 +197,7 @@ jobs:
         with:
           toolchain: ${{ steps.msrv.outputs.toolchain }}
       - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v46
-        if: inputs.msrv != '' && inputs.llvm_toolchain
+        if: inputs.msrv != ''
         with:
           toolchain: ${{ steps.msrv.outputs.toolchain }}
       - name: Cache Cargo registry
@@ -254,7 +246,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
       - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v46
-        if: inputs.llvm_toolchain
       - name: Cache Cargo registry
         uses: actions/cache@v5.0.5
         with:
@@ -297,7 +288,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
       - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v46
-        if: inputs.llvm_toolchain
       - name: Cache Cargo registry
         uses: actions/cache@v5.0.5
         with:
@@ -333,7 +323,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
       - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v46
-        if: inputs.llvm_toolchain
       - name: Cache Cargo registry
         uses: actions/cache@v5.0.5
         with:
@@ -375,7 +364,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
       - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v46
-        if: inputs.llvm_toolchain
       - name: Cache Cargo registry
         uses: actions/cache@v5.0.5
         with:
@@ -425,7 +413,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
       - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v46
-        if: inputs.llvm_toolchain
       - name: Cache Cargo registry
         uses: actions/cache@v5.0.5
         with:
@@ -502,7 +489,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
       - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v46
-        if: inputs.llvm_toolchain
       - name: Cache Cargo registry
         uses: actions/cache@v5.0.5
         with:

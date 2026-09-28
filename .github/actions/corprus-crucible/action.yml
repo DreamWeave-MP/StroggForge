@@ -39,10 +39,6 @@ inputs:
     description: "Optional Cargo package that provides the binary, built from the repository root with `--package <name> --bin <binary_name>`. `workspace` builds with `--workspace --bin <binary_name>` instead. Empty keeps directory detection."
     required: false
     default: ""
-  llvm_toolchain:
-    description: "Set to 'true' to install clang and lld matching the Rust toolchain's LLVM before building, for binaries built under cross-language LTO (l3i dependents). The EL9 Linux builder image already carries them."
-    required: false
-    default: "false"
 
 runs:
   using: composite
@@ -69,7 +65,6 @@ runs:
       id: rust_toolchain
 
     - name: Setup LLVM
-      if: inputs.llvm_toolchain == 'true'
       shell: bash
       run: bash "${{ github.action_path }}/../../../scripts/shared/setup-llvm.sh" "" ""
 

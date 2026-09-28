@@ -112,12 +112,6 @@ on:
         default: false
         description: "Build and publish Portmaster ARM64 release artifacts targeting aarch64-unknown-linux-gnu with an AlmaLinux 8 sysroot."
 
-      llvm_toolchain:
-        type: boolean
-        required: false
-        default: false
-        description: "Install clang and lld matching the Rust toolchain's LLVM before every job that compiles, for crates built under cross-language LTO (l3i and its dependents)."
-
 concurrency:
   group: stroggforge-rust-global-${{ github.repository }}-${{ github.ref }}
   cancel-in-progress: true
@@ -136,7 +130,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
       - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v46
-        if: inputs.llvm_toolchain
       - name: Cache Cargo registry
         uses: actions/cache@v5.0.5
         with:
@@ -177,7 +170,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
       - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v46
-        if: inputs.llvm_toolchain
       - name: Cache Cargo registry
         uses: actions/cache@v5.0.5
         with:
@@ -247,7 +239,7 @@ jobs:
         with:
           toolchain: ${{ steps.msrv.outputs.toolchain }}
       - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v46
-        if: inputs.msrv != '' && inputs.llvm_toolchain
+        if: inputs.msrv != ''
         with:
           toolchain: ${{ steps.msrv.outputs.toolchain }}
       - name: Cache Cargo registry
@@ -291,7 +283,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
       - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v46
-        if: inputs.llvm_toolchain
       - name: Cache Cargo registry
         uses: actions/cache@v5.0.5
         with:
@@ -335,7 +326,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
       - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v46
-        if: inputs.llvm_toolchain
       - name: Cache Cargo registry
         uses: actions/cache@v5.0.5
         with:
@@ -376,7 +366,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
       - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v46
-        if: inputs.llvm_toolchain
       - name: Cache Cargo registry
         uses: actions/cache@v5.0.5
         with:
@@ -418,7 +407,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
       - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v46
-        if: inputs.llvm_toolchain
       - name: Cache Cargo registry
         uses: actions/cache@v5.0.5
         with:
@@ -468,7 +456,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
       - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v46
-        if: inputs.llvm_toolchain
       - name: Cache Cargo registry
         uses: actions/cache@v5.0.5
         with:
@@ -545,7 +532,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
       - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v46
-        if: inputs.llvm_toolchain
       - name: Cache Cargo registry
         uses: actions/cache@v5.0.5
         with:
@@ -599,7 +585,6 @@ jobs:
           binary_name: ${{ matrix.app_names }}
           cargo_package: ${{ inputs.binary_package }}
           include_files: ${{ inputs.include_files }}
-          llvm_toolchain: ${{ inputs.llvm_toolchain }}
           vt_api_key: ${{ secrets.VT_API_KEY }}
           release_name: ${{ github.ref_type == 'tag' && github.ref_name || 'development' }}
           nexus_api_key: ${{ secrets.NEXUS_API_KEY }}
@@ -634,7 +619,6 @@ jobs:
           binary_name: ${{ matrix.app_names }}
           cargo_package: ${{ inputs.binary_package }}
           include_files: ${{ inputs.include_files }}
-          llvm_toolchain: ${{ inputs.llvm_toolchain }}
           vt_api_key: ${{ secrets.VT_API_KEY }}
           release_name: ${{ github.ref_type == 'tag' && github.ref_name || 'development' }}
           nexus_api_key: ${{ secrets.NEXUS_API_KEY }}

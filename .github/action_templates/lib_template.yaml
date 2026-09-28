@@ -42,9 +42,5 @@ jobs:
       # Optional: set true if this project has Criterion benchmarks.
       # generate_benchmarks: true
 
-      # Optional: set true for crates built under the clang cross-language LTO policy (l3i and
-      # everything depending on it): installs clang and lld matching rustc's LLVM before compiling.
-      # llvm_toolchain: true
-
       # Optional: set false if another workflow in the same run already sends the discord notification.
       # generate_discord_notification: false

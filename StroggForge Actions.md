@@ -31,7 +31,6 @@ Inputs:
 1. `generate_discord_notification`: Optional, default `true`. Set `false` to skip the Discord notification, e.g. when another workflow in the same run already sends one.
 1. `enable_android`: Optional, default `false`. Builds Android ARM64 ELF release artifacts using the Android NDK at API level 23. This does not produce an APK.
 1. `enable_portmaster`: Optional, default `false`. Builds Portmaster ARM64 release artifacts for `aarch64-unknown-linux-gnu` using an AlmaLinux 8 AArch64 sysroot for old glibc compatibility.
-1. `llvm_toolchain`: Optional, default `false`. Before every job that compiles (`test`, `clippy`, `msrv`, the publish jobs, `docs`, `benchmarks`, and the native and Linux release builds), installs clang and lld whose LLVM major matches the active Rust toolchain through the [`setup-llvm`](#githubactionssetup-llvmactionyml) action. For crates built under the clang cross-language LTO policy (l3i and everything depending on it), whose build scripts refuse any other toolchain. The `msrv` job matches the MSRV toolchain's LLVM, not stable's. The EL9 Linux release builder carries the stream's clang and lld, so `release-linux` builds under the policy too; the install step fails clearly if the stream's LLVM major and rustc's ever differ.
 
 The pipeline runs these jobs:
 
@@ -60,9 +59,14 @@ Inputs:
 1. `generate_changelog`: Optional, default `true`.
 1. `generate_benchmarks`: Optional, default `false`.
 1. `generate_discord_notification`: Optional, default `true`. Set `false` when the same repository also calls `rustGlobalBuild.yml` in one workflow, so each release sends one notification.
-1. `llvm_toolchain`: Optional, default `false`. As in the application workflow: installs clang and lld matching the Rust toolchain's LLVM before `test`, `clippy`, `msrv`, the publish jobs, `docs`, and `benchmarks`.
 
 The library Discord notification follows the same rules as the application one: one message after every job has finished, reporting any failure.
+
+## LLVM Toolchain
+
+Every DreamWeave crate builds with clang and lld whose LLVM matches rustc's (22.1.8 at the time of writing). It is not optional. Every job that compiles (`test`, `clippy`, `msrv`, the publish jobs, `docs`, `benchmarks`, and every release build through Corprus Crucible) runs the [`setup-llvm`](#githubactionssetup-llvmactionyml) action first, which fails the job if it cannot put a matching clang and lld on `PATH`. The `msrv` job matches the MSRV toolchain's LLVM, not stable's. The EL9 release builders (`release-linux`, and `release-portmaster` cross-compiling to AArch64) carry the stream's clang and lld, and the same check fails clearly if the stream's LLVM major and rustc's ever differ.
+
+StroggForge supplies the compilers; each repository decides how its build uses them, in its own `.cargo/config.toml` (Cargo does not inherit a dependency's). l3i's `TOOLCHAIN.md` has the `rustflags` and `CXX` lines its dependents carry.
 
 ## Submodules
 
@@ -100,7 +104,6 @@ Inputs:
 1. `platform_os` / `platform_arch`: Optional. Override artifact platform naming for cross builds. Native builds default to the runner OS and architecture.
 1. `rust_target`: Optional. Rust target triple for cross-compiled release builds, e.g. `aarch64-linux-android`.
 1. `cargo_package`: Optional. Cargo package that provides the binary. When set, the action builds from `.` with `--package <cargo_package> --bin <binary_name>`, or with `--workspace --bin <binary_name>` when set to `workspace`. `rustGlobalBuild.yml` passes its `binary_package` input here.
-1. `llvm_toolchain`: Optional, default `"false"`. `"true"` runs `scripts/shared/setup-llvm.sh` after the Rust toolchain is installed, so the release build links under the clang cross-language LTO policy. `rustGlobalBuild.yml` passes its `llvm_toolchain` input for the native and Linux release jobs.
 
 Build context detection: with no `cargo_package`, if `binary_name` matches a directory at the repo root, the action builds from that directory. Otherwise builds from `.`. This handles monorepos transparently. When the binary lives in a workspace member whose directory is not named after it (say `libs/cli` building `jess`), set `cargo_package` instead.
 
@@ -124,7 +127,7 @@ Corprus Crucible shell implementation details live under `scripts/corprus-crucib
 
 ## [./.github/actions/setup-llvm/action.yml](./.github/actions/setup-llvm/action.yml)
 
-Composite action that installs clang and lld whose LLVM major matches a Rust toolchain's LLVM, then verifies the `clang` on `PATH` really is that major and that `ld.lld` (or `lld-link`) is present. It exists for crates built under the clang cross-language LTO policy: l3i's build script refuses to build unless clang++ compiles the C++ side, rustc links through clang and lld with `-Clinker-plugin-lto`, and both share an LLVM major (see l3i's `TOOLCHAIN.md`). Cargo does not inherit a dependency's `.cargo/config.toml`, so every dependent repository carries the `rustflags` and `CXX` lines itself; this action only supplies the compilers.
+Composite action that installs clang and lld whose LLVM major matches a Rust toolchain's LLVM, then verifies that the `clang` and the `ld.lld` (or `lld-link`) on `PATH` really are that major. Every compiling job in both workflows runs it (see [LLVM Toolchain](#llvm-toolchain)). l3i's build script refuses to build unless clang++ compiles the C++ side, rustc links through clang and lld with `-Clinker-plugin-lto`, and both share an LLVM major (see l3i's `TOOLCHAIN.md`). Cargo does not inherit a dependency's `.cargo/config.toml`, so every repository carries the `rustflags` and `CXX` lines itself; this action only supplies the compilers.
 
 Inputs:
 
@@ -138,7 +141,7 @@ How it installs, per runner OS (all in [`scripts/shared/setup-llvm.sh`](./script
 - Linux with apt: `apt.llvm.org`'s `llvm.sh <major>` plus `clang-<major>` and `lld-<major>`, then unsuffixed `clang`, `clang++`, `ld.lld`, `lld`, `lld-link`, and `llvm-*` links in `/usr/local/bin`.
 - Linux with dnf (the EL9 builder image): `dnf install clang lld` from the stream's AppStream, which tracks current LLVM releases.
 - Linux with neither: the official `LLVM-<version>-Linux-X64.tar.xz` release, added to `PATH`. Those binaries need glibc 2.34 and GCC 12's libstdc++ (Ubuntu 22.04 or Debian 12; no EL release qualifies).
-- macOS: Homebrew `llvm@<major>`, or `llvm` when no versioned formula exists, with its `bin` on `PATH`. Apple's own clang is never used: its version numbers are not LLVM's.
+- macOS: Homebrew `llvm@<major>` and `lld@<major>`, or `llvm` and `lld` when no versioned formula exists, with both `bin` directories on `PATH`. Homebrew ships lld as a separate formula; it provides the `ld64.lld` that `clang -fuse-ld=lld` needs for Mach-O. Apple's own clang is never used: its version numbers are not LLVM's.
 - Windows: the official `clang+llvm-<version>-<arch>-pc-windows-msvc.tar.xz` release, extracted with 7-Zip and added to `PATH`. Dependents build their C++ with `clang-cl` and link with `lld-link` there.
 
 When rustc's exact LLVM version has no release (a snapshot), the newest release of the same major is used; only the major has to match.
@@ -197,7 +200,7 @@ Shared shell script used by both application and library benchmark jobs. Runs `c
 
 ## [./scripts/shared/setup-llvm.sh](./scripts/shared/setup-llvm.sh)
 
-Shared shell script behind the `setup-llvm` action and the Corprus Crucible `llvm_toolchain` input. Takes an optional rustup toolchain name and an optional LLVM version override, reads `rustc -vV` for the LLVM version, installs a matching clang and lld for the runner OS, verifies the result, and writes `llvm_major`/`llvm_version` to `GITHUB_OUTPUT`.
+Shared shell script behind the `setup-llvm` action and the LLVM step of every Corprus Crucible build. Takes an optional rustup toolchain name and an optional LLVM version override, reads `rustc -vV` for the LLVM version, installs a matching clang and lld for the runner OS, verifies the result, and writes `llvm_major`/`llvm_version` to `GITHUB_OUTPUT`.
 
 ## [./scripts/shared/changelog.sh](./scripts/shared/changelog.sh)
 
