@@ -1,0 +1,67 @@
+name: War room site
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: war-room-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: zola@0.22.1,actionlint
+      - name: Rust quality
+        run: |
+          cargo fmt --all --check
+          cargo test --locked --workspace --all-features
+          cargo clippy --locked --workspace --all-targets --all-features -- -W clippy::pedantic -D warnings
+      - name: Workflow validation
+        run: actionlint .github/workflows/war-room.yml
+      - name: Deterministic offline-data generation
+        run: python3 scripts/war-room/check-generation.py
+      - name: Install build-only diagram tooling
+        run: npm ci
+      - name: Validate and render every Mermaid diagram
+        run: npm run diagrams
+      - name: Build static site
+        run: zola --root site build
+      - name: Check local links and anchors
+        run: python3 scripts/war-room/check-site.py
+      - name: Browser smoke checks
+        run: npm run test:site
+      - uses: actions/upload-pages-artifact@v5.0.0
+        with:
+          path: site/public
+
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: validate
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy static war room
+        id: deployment
+        uses: actions/deploy-pages@v5.0.0
