@@ -1,0 +1,13 @@
+flowchart LR
+  cargo["Project Cargo source"] --> rustdoc["cargo doc / API docs"]
+  rustdoc --> api["Consumer GitHub Pages"]
+  metadata["Inventory + plans + source snapshots"] --> rust["Rust war-room generator"]
+  rust --> markdown["Generated Markdown / JSON / Mermaid"]
+  manuals["Hand-authored Markdown"] --> shell["DreamWeave docs shell"]
+  markdown --> shell
+  template["DreamWeave-Mod-Template"] -.-> shell
+  shell --> zola["Zola static output"]
+  zola --> pages["StroggForge GitHub Pages"]
+  stash["St4sh / Cod3x content"] --> stashshell["Same docs shell in St4sh"]
+  stashshell --> stashpages["St4sh Zola / Pages"]
+  pages -.->|"links to"| api

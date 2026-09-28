@@ -1,0 +1,9 @@
+{% set summary = load_data(path="static/generated/summary.json") %}
+<dl class="pulse-strip" aria-label="Engineering snapshot">
+  <div><dt>Blocked</dt><dd><a class="status {% if summary.blocked_plans > 0 %}status--blocked{% else %}status--unknown{% endif %}" href="#attention-required">{{ summary.blocked_plans }} plan{{ summary.blocked_plans | pluralize }}</a></dd></div>
+  <div><dt>Campaigns</dt><dd><a href="{{ get_url(path='@/releases/board.md') }}#cross-project-campaigns">{{ summary.open_campaigns }} open</a></dd></div>
+  <div><dt>Releases</dt><dd><a href="{{ get_url(path='@/releases/board.md') }}">{% if summary.planned_releases > 0 %}{{ summary.planned_releases }} planned{% else %}none planned{% endif %}</a></dd></div>
+  <div><dt>Supply line</dt><dd><a href="{{ get_url(path='@/stroggforge/integration.md') }}#verified-callers">{{ summary.consumers }} verified caller{{ summary.consumers | pluralize }}</a></dd></div>
+  <div><dt>Targets</dt><dd><a href="{{ get_url(path='@/releases/platforms.md') }}">{{ summary.platforms }} configured · {{ summary.validated_platforms }} validated</a></dd></div>
+  <div><dt>Inventory</dt><dd><a href="{{ get_url(path='@/ecosystem/overview.md') }}">{{ summary.components }} current · reviewed {{ summary.reviewed }}</a></dd></div>
+</dl>

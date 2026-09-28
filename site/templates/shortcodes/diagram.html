@@ -1,0 +1,7 @@
+<figure class="system-map">
+  <a href="{{ get_url(path='generated/maps/' ~ name ~ '.svg') }}" aria-label="Open full-size {{ name }} diagram">
+    <img src="{{ get_url(path='generated/maps/' ~ name ~ '.svg') }}" alt="{{ name }} relationship diagram. Its textual ledger or workflow contract is on this page or linked below." loading="lazy">
+  </a>
+  <figcaption>{{ name | replace(from="-", to=" ") }} · <a href="{{ get_url(path='generated/maps/' ~ name ~ '.mmd') }}">Mermaid source</a> · <a href="{{ get_url(path='generated/maps/' ~ name ~ '.svg') }}">Full-size SVG</a></figcaption>
+  <details><summary>Read diagram source</summary><pre><code>{{ load_data(path='static/generated/maps/' ~ name ~ '.mmd', format='plain') }}</code></pre></details>
+</figure>

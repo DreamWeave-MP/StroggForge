@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="{% if page %}{{ page.description | default(value=config.description) }}{% elif section %}{{ section.description | default(value=config.description) }}{% else %}{{ config.description }}{% endif %}">
+  <title>{% block title %}{{ config.title }}{% endblock title %}</title>
+  <link rel="icon" href="{{ get_url(path='forge.svg') }}" type="image/svg+xml">
+  {% block extra_head %}{% endblock extra_head %}
+</head>
+<body class="war-room">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="container">
+    {% block header %}{% endblock header %}
+    {% block content %}{% endblock content %}
+    {% block footer %}{% endblock footer %}
+  </div>
+  {% block page_feature_scripts %}{% endblock page_feature_scripts %}
+  {% block extra_body %}
+  <script src="{{ get_url(path='war-room.js') }}" data-index="{{ get_url(path='search_index.en.json') }}" defer></script>
+  {% endblock extra_body %}
+</body>
+</html>
