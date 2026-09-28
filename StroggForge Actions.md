@@ -31,6 +31,7 @@ Inputs:
 1. `generate_discord_notification`: Optional, default `true`. Set `false` to skip the Discord notification, e.g. when another workflow in the same run already sends one.
 1. `enable_android`: Optional, default `false`. Builds Android ARM64 ELF release artifacts using the Android NDK at API level 23. This does not produce an APK.
 1. `enable_portmaster`: Optional, default `false`. Builds Portmaster ARM64 release artifacts for `aarch64-unknown-linux-gnu` using an AlmaLinux 8 AArch64 sysroot for old glibc compatibility.
+1. `llvm_toolchain`: Optional, default `false`. Before every job that compiles (`test`, `clippy`, `msrv`, the publish jobs, `docs`, `benchmarks`, and the native and Linux release builds), installs clang and lld whose LLVM major matches the active Rust toolchain through the [`setup-llvm`](#githubactionssetup-llvmactionyml) action. For crates built under the clang cross-language LTO policy (l3i and everything depending on it), whose build scripts refuse any other toolchain. The `msrv` job matches the MSRV toolchain's LLVM, not stable's. The AlmaLinux 8 Linux release builder cannot run the LLVM release binaries (they need a newer glibc), so `release-linux` fails with a clear message until that image carries a matching LLVM.
 
 The pipeline runs these jobs:
 
@@ -59,6 +60,7 @@ Inputs:
 1. `generate_changelog`: Optional, default `true`.
 1. `generate_benchmarks`: Optional, default `false`.
 1. `generate_discord_notification`: Optional, default `true`. Set `false` when the same repository also calls `rustGlobalBuild.yml` in one workflow, so each release sends one notification.
+1. `llvm_toolchain`: Optional, default `false`. As in the application workflow: installs clang and lld matching the Rust toolchain's LLVM before `test`, `clippy`, `msrv`, the publish jobs, `docs`, and `benchmarks`.
 
 The library Discord notification follows the same rules as the application one: one message after every job has finished, reporting any failure.
 
@@ -94,6 +96,7 @@ Inputs:
 1. `platform_os` / `platform_arch`: Optional. Override artifact platform naming for cross builds. Native builds default to the runner OS and architecture.
 1. `rust_target`: Optional. Rust target triple for cross-compiled release builds, e.g. `aarch64-linux-android`.
 1. `cargo_package`: Optional. Cargo package that provides the binary. When set, the action builds from `.` with `--package <cargo_package> --bin <binary_name>`, or with `--workspace --bin <binary_name>` when set to `workspace`. `rustGlobalBuild.yml` passes its `binary_package` input here.
+1. `llvm_toolchain`: Optional, default `"false"`. `"true"` runs `scripts/shared/setup-llvm.sh` after the Rust toolchain is installed, so the release build links under the clang cross-language LTO policy. `rustGlobalBuild.yml` passes its `llvm_toolchain` input for the native and Linux release jobs.
 
 Build context detection: with no `cargo_package`, if `binary_name` matches a directory at the repo root, the action builds from that directory. Otherwise builds from `.`. This handles monorepos transparently. When the binary lives in a workspace member whose directory is not named after it (say `libs/cli` building `jess`), set `cargo_package` instead.
 
@@ -114,6 +117,26 @@ On pull requests, signing, VirusTotal scanning, Nexus Mods artifact staging, and
 Nexus Mods upload is enabled by setting both `NEXUS_API_KEY` and `NEXUS_GROUP_IDS` secrets on the consuming repository or organization. `NEXUS_GROUP_IDS` is a JSON object keyed by `{platform}-{channel}`; use `.github/nexus_group_ids.template.json` as the template. Supported platform keys are `linux-x64`, `windows-x64`, `macos-x64`, `macos-arm64`, `android-arm64`, and `portmaster-arm64`, with `stable` for tagged releases and `dev` for the `development` release. Stable keys are required for tagged releases for every enabled release platform; optional platform keys such as `android-arm64` and `portmaster-arm64` are only required when those builds are enabled. Development keys are optional; missing development keys skip Nexus upload for that platform. Each platform archive is copied to a Nexus-specific filename of `{binary}-{platform}-{release}.zip`, uploaded with that display name, and uses the release name as the Nexus version. Development builds set `archive_existing_file` so the previous development upload for that file group is archived. The Nexus file description includes BBCode-formatted VirusTotal analysis links generated earlier in the release pipeline; GitHub Release notes keep the Markdown version.
 
 Corprus Crucible shell implementation details live under `scripts/corprus-crucible/`. The composite action owns GitHub Actions orchestration; the scripts own validation, build context detection, binary suffix detection, release binary staging, signing, archive creation, VirusTotal link formatting, GitHub Release artifact staging, and Nexus Mods archive preparation.
+
+## [./.github/actions/setup-llvm/action.yml](./.github/actions/setup-llvm/action.yml)
+
+Composite action that installs clang and lld whose LLVM major matches a Rust toolchain's LLVM, then verifies the `clang` on `PATH` really is that major and that `ld.lld` (or `lld-link`) is present. It exists for crates built under the clang cross-language LTO policy: l3i's build script refuses to build unless clang++ compiles the C++ side, rustc links through clang and lld with `-Clinker-plugin-lto`, and both share an LLVM major (see l3i's `TOOLCHAIN.md`). Cargo does not inherit a dependency's `.cargo/config.toml`, so every dependent repository carries the `rustflags` and `CXX` lines itself; this action only supplies the compilers.
+
+Inputs:
+
+1. `toolchain`: Optional. The rustup toolchain whose LLVM major to match, e.g. `1.88`. Empty uses the default `rustc`. The `msrv` jobs pass the resolved MSRV toolchain.
+1. `llvm_version`: Optional. A full LLVM release to install instead of the one rustc reports, e.g. `22.1.8`.
+
+Outputs: `llvm_major`, `llvm_version`.
+
+How it installs, per runner OS (all in [`scripts/shared/setup-llvm.sh`](./scripts/shared/setup-llvm.sh)):
+
+- Linux with apt: `apt.llvm.org`'s `llvm.sh <major>` plus `clang-<major>` and `lld-<major>`, then unsuffixed `clang`, `clang++`, `ld.lld`, `lld`, `lld-link`, and `llvm-*` links in `/usr/local/bin`.
+- Linux without apt (a container): the official `LLVM-<version>-Linux-X64.tar.xz` release, added to `PATH`. Those binaries need a recent glibc, so on AlmaLinux 8 this fails; the message says so.
+- macOS: Homebrew `llvm@<major>`, or `llvm` when no versioned formula exists, with its `bin` on `PATH`. Apple's own clang is never used: its version numbers are not LLVM's.
+- Windows: the official `clang+llvm-<version>-<arch>-pc-windows-msvc.tar.xz` release, extracted with 7-Zip and added to `PATH`. Dependents build their C++ with `clang-cl` and link with `lld-link` there.
+
+When rustc's exact LLVM version has no release (a snapshot), the newest release of the same major is used; only the major has to match.
 
 ## [./.github/workflows/createRelease.yml](./.github/workflows/createRelease.yml)
 
@@ -166,6 +189,10 @@ python3 /path/to/StroggForge/.github/scripts/gen_benchmarks.py
 ## [./scripts/shared/generate-benchmark-docs.sh](./scripts/shared/generate-benchmark-docs.sh)
 
 Shared shell script used by both application and library benchmark jobs. Runs `cargo bench`, preserves the raw log in `benchmark-output.txt`, then runs the Python benchmark documentation generator to create `BENCHMARKS.md`.
+
+## [./scripts/shared/setup-llvm.sh](./scripts/shared/setup-llvm.sh)
+
+Shared shell script behind the `setup-llvm` action and the Corprus Crucible `llvm_toolchain` input. Takes an optional rustup toolchain name and an optional LLVM version override, reads `rustc -vV` for the LLVM version, installs a matching clang and lld for the runner OS, verifies the result, and writes `llvm_major`/`llvm_version` to `GITHUB_OUTPUT`.
 
 ## [./scripts/shared/changelog.sh](./scripts/shared/changelog.sh)
 
