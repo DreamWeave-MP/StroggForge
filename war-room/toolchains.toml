@@ -1,7 +1,7 @@
 reviewed = "2026-09-28"
-rust_policy = "Reusable workflows select Rust stable. MSRV is a per-consumer input (empty skips, auto reads rust-version); package declarations are listed separately. Stable is moving, not a reproducible version pin."
-llvm_policy = "Migration in progress. setup-llvm is mandatory in compiling jobs and checks clang/lld against the active rustc LLVM major. MSRV jobs must select the older toolchain's LLVM. Configuration alone is not release validation."
-reference = "L3i TOOLCHAIN.md: rustc 1.98.1 (LLVM 22), clang/lld 22.1.8, Luau 0.740; measured Linux reference, not an organization-wide patch-version pin."
+rust_policy = "The reusable workflows build with stable Rust, which moves. MSRV is a per-consumer input: empty skips the check, auto reads rust-version from Cargo.toml."
+llvm_policy = "Every compiling job runs setup-llvm, which installs clang and lld and fails unless they match the LLVM major of the rustc in use. MSRV jobs get the older rustc's LLVM. The rollout is still in progress; see the LLVM campaign."
+reference = "rustc 1.98.1 (LLVM 22), clang/lld 22.1.8 and Luau 0.740, measured on Linux for L3i. A reference point, not an organization-wide pin."
 
 [[platforms]]
 id = "linux-x64"
@@ -12,8 +12,7 @@ job = "release-linux"
 baseline = "CentOS Stream 9 / EL9; glibc 2.34"
 compiler = "Stream clang/lld must match rustc LLVM major"
 validation = "unknown"
-notes = "Intentional RHEL/AlmaLinux 9, Ubuntu 22.04 and Debian 12 compatibility floor. Stream and stable Rust can move independently: mismatch must fail loudly."
-assertions = [{ file = ".github/workflows/rustGlobalBuild.yml", contains = "stroggforge-linux-x86_64-el9-builder:" }]
+notes = "The floor is deliberate: RHEL/AlmaLinux 9, Ubuntu 22.04, Debian 12 and newer. CentOS Stream and stable Rust move independently, so when their LLVM majors drift apart the build fails loudly on purpose."
 
 [[platforms]]
 id = "portmaster-arm64"
@@ -24,8 +23,7 @@ job = "release-portmaster"
 baseline = "EL9 aarch64 sysroot; glibc 2.34"
 compiler = "clang/lld + cross-language thin LTO"
 validation = "blocked"
-notes = "enable_portmaster opts in. EL8/glibc 2.28 is historical. Device compatibility and successful new artifacts still need campaign evidence; generic PortMaster hardware compatibility is not asserted."
-assertions = [{ file = ".github/workflows/rustGlobalBuild.yml", contains = "stroggforge-portmaster-aarch64-el9-builder:" }, { file = ".github/workflows/rustGlobalBuild.yml", contains = "CXX_aarch64_unknown_linux_gnu: clang++" }]
+notes = "Opt in with enable_portmaster. Builds now target glibc 2.34; the EL8 floor of 2.28 is gone. Nobody has run the new artifact on a device yet, so which handhelds it supports is an open question."
 
 [[platforms]]
 id = "android-arm64"
@@ -36,8 +34,7 @@ job = "release-android"
 baseline = "NDK r27c / Android API 23"
 compiler = "NDK target clang; host LLVM setup also runs"
 validation = "unknown"
-notes = "enable_android produces an ELF, not an APK. Matching host LLVM does not prove NDK bitcode compatibility with l3i."
-assertions = [{ file = ".github/workflows/rustGlobalBuild.yml", contains = "ndk-version: r27c" }, { file = ".github/workflows/rustGlobalBuild.yml", contains = "ANDROID_API_LEVEL: '23'" }]
+notes = "Opt in with enable_android. You get a native ELF, not an APK. Matching the host's LLVM says nothing about whether NDK bitcode links with l3i's."
 
 [[platforms]]
 id = "macos-arm64"
@@ -48,8 +45,7 @@ job = "release"
 baseline = "macos-latest hosted runner"
 compiler = "Homebrew upstream LLVM / lld matched to rustc"
 validation = "unknown"
-notes = "Apple clang is not the upstream LLVM toolchain policy. Intentional difference: consumer .cargo/config.toml links Apple targets with clang and lld but omits -Clinker-plugin-lto, because rustc passes GNU -plugin-opt arguments that ld64.lld rejects. Hosted runner image and deployment floor require consumer verification."
-assertions = [{ file = ".github/workflows/rustGlobalBuild.yml", contains = "macos-latest" }]
+notes = "Upstream LLVM from Homebrew, never Apple clang, whose version numbers are not LLVM's. Intentional difference: Apple consumers link with clang and lld but leave out -Clinker-plugin-lto, because rustc passes it GNU -plugin-opt arguments that ld64.lld rejects. The deployment floor follows the hosted runner image."
 
 [[platforms]]
 id = "macos-x64"
@@ -60,8 +56,7 @@ job = "release"
 baseline = "macos-15-intel hosted runner"
 compiler = "Homebrew upstream LLVM / lld matched to rustc"
 validation = "unknown"
-notes = "Separate Intel release runner; not an ARM binary assumed to work under translation. Shares the Apple linker-plugin-lto exception described for ARM64."
-assertions = [{ file = ".github/workflows/rustGlobalBuild.yml", contains = "macos-15-intel" }]
+notes = "Built on its own Intel runner rather than trusting the ARM binary under Rosetta. Same linker-plugin-lto exception as ARM64."
 
 [[platforms]]
 id = "windows-x64"
@@ -72,5 +67,4 @@ job = "release"
 baseline = "windows-2025-vs2026 hosted runner"
 compiler = "Upstream LLVM; clang-cl / lld-link for MSVC"
 validation = "unknown"
-notes = "LLVM release archive installation and MSVC environment differ from Unix clang driver linking. Intentional difference: setup-llvm pins CARGO_BUILD_TARGET to the host triple, so target rustflags skip MSVC proc macros (which rustc refuses to build with -Clinker-plugin-lto) and release output lands under target/<triple>/release."
-assertions = [{ file = ".github/workflows/rustGlobalBuild.yml", contains = "windows-2025-vs2026" }, { file = "scripts/shared/setup-llvm.sh", contains = "CARGO_BUILD_TARGET=$host" }, { file = "scripts/corprus-crucible/build-release-binary.sh", contains = "cargo_target=${rust_target:-${CARGO_BUILD_TARGET:-}}" }]
+notes = "LLVM comes from the upstream release archive, and C++ builds with clang-cl and links with lld-link. Intentional difference: setup-llvm pins CARGO_BUILD_TARGET to the host triple, so target rustflags stop reaching proc macros, which rustc refuses to build with -Clinker-plugin-lto on MSVC. The side effect is that output lands in target/<triple>/release."

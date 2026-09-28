@@ -1,10 +1,10 @@
+# Canonical DreamWeave inventory: reviewed human intent. Facts about StroggForge itself
+# (workflow inputs, jobs, runners) are read from this checkout, not recorded here.
 schema = 1
-organization = "DreamWeave-MP"
 reviewed = "2026-09-28"
-scope = "Reviewed engineering core and its local source evidence, not an exhaustive organization census. Unlisted repositories are not implicitly retired. Lifecycle is reviewed policy; captured Cargo versions are not release announcements."
+scope = "Every current DreamWeave component that gets engineered, by domain. This is not a dump of every repository in the organization, and a lifecycle is a maintainer's call, not a guess from the last commit date."
 
-# Reviewed digest of infrastructure changes that alter what consumers get. Newest first.
-# Git remains the complete history; each entry names the commits that carry the change.
+# Infrastructure changes that alter what consumers get. Git holds the full history.
 [[updates]]
 date = "2026-09-28"
 title = "Self-referential pins move to v48"
@@ -51,126 +51,13 @@ title = "Workspace publishing, MSRV checks and package-selected binaries"
 detail = "cargo_publish_workspace publishes in dependency order; the msrv job checks a declared or explicit MSRV; binary_package builds a binary from any workspace package; Discord receives one aggregated notification."
 commits = ["a2fd779"]
 
-[[sources]]
-id = "stroggforge"
-checkout = "rust-reimplementations/StroggForge"
-repository = "https://github.com/DreamWeave-MP/StroggForge"
-manifests = []
-evidence_files = []
-
-[[sources]]
-id = "mod-template"
-checkout = "DreamWeave-Mod-Template"
-repository = "https://github.com/DreamWeave-MP/DreamWeave-Mod-Template"
-manifests = []
-evidence_files = ["config.toml", "LICENSE"]
-
-[[sources]]
-id = "stash"
-checkout = "s3stash"
-repository = "https://github.com/DreamWeave-MP/S3ctors-S3cret-St4sh"
-manifests = []
-evidence_files = ["content/cod3x/docs/_index.md"]
-
-[[sources]]
-id = "dream-path"
-checkout = "rust-reimplementations/dream-path"
-repository = "https://github.com/DreamWeave-MP/dream_path"
-manifests = ["Cargo.toml"]
-evidence_files = []
-
-[[sources]]
-id = "dream-archive"
-checkout = "rust-reimplementations/dream_archive"
-repository = "https://github.com/DreamWeave-MP/dream_archive"
-manifests = ["Cargo.toml"]
-evidence_files = []
-
-[[sources]]
-id = "vfstool"
-checkout = "rust-reimplementations/vfstool"
-repository = "https://github.com/DreamWeave-MP/vfstool"
-manifests = ["Cargo.toml"]
-evidence_files = []
-
-[[sources]]
-id = "openmw-config"
-checkout = "rust-reimplementations/openmw_config"
-repository = "https://github.com/DreamWeave-MP/Openmw_Config"
-manifests = ["Cargo.toml"]
-evidence_files = []
-
-[[sources]]
-id = "s3lightfixes"
-checkout = "rust-reimplementations/s3-lightfixes"
-repository = "https://github.com/DreamWeave-MP/S3LightFixes"
-manifests = ["Cargo.toml"]
-evidence_files = []
-
-[[sources]]
-id = "morrobroom"
-checkout = "rust-reimplementations/morrobroom"
-repository = "https://github.com/DreamWeave-MP/Morrobroom"
-manifests = ["Cargo.toml"]
-evidence_files = []
-
-[[sources]]
-id = "greenmote"
-checkout = "rust-reimplementations/greenmote"
-repository = "https://github.com/DreamWeave-MP/greenmote"
-manifests = ["Cargo.toml"]
-evidence_files = []
-
-[[sources]]
-id = "dream-ini"
-checkout = "rust-reimplementations/rome-ini"
-repository = "https://github.com/DreamWeave-MP/dream-ini"
-manifests = ["Cargo.toml"]
-evidence_files = []
-
-[[sources]]
-id = "archive-tool"
-checkout = "rust-reimplementations/dream_archivetool"
-repository = "https://github.com/DreamWeave-MP/dream_archivetool"
-manifests = ["Cargo.toml"]
-evidence_files = []
-
-[[sources]]
-id = "dream-web"
-checkout = "rust-reimplementations/dreamweave-web"
-repository = "https://github.com/DreamWeave-MP/dreamweave-web"
-manifests = ["manager/Cargo.toml"]
-evidence_files = ["manager/architecture.md"]
-
-[[sources]]
-id = "l3i"
-checkout = "rust-reimplementations/dream-binder"
-repository = "local-only"
-manifests = ["Cargo.toml"]
-evidence_files = ["TOOLCHAIN.md"]
-
-[[sources]]
-id = "dream-net"
-checkout = "rust-reimplementations/dream-net"
-repository = "https://github.com/DreamWeave-MP/dream-net"
-manifests = ["Cargo.toml"]
-evidence_files = []
-
-[[sources]]
-id = "soft-render"
-checkout = "rust-reimplementations/dream-soft-render"
-repository = "https://github.com/DreamWeave-MP/dream-soft-render"
-manifests = ["Cargo.toml"]
-evidence_files = []
-
 [[projects]]
 id = "stroggforge"
 name = "StroggForge"
 kind = "infrastructure"
 domain = "rust"
 summary = "Shared Rust verification, binary manufacturing, signing, publishing and engineering inventory."
-source = "stroggforge"
-path = "."
+repository = "https://github.com/DreamWeave-MP/StroggForge"
 languages = ["YAML", "Shell", "Python", "Rust"]
 lifecycle = "active"
 maturity = "established"
@@ -178,10 +65,9 @@ owners = ["DreamWeave maintainers"]
 docs = ["https://dreamweave-mp.github.io/StroggForge/"]
 packages = []
 distribution = ["source", "github-pages"]
+stroggforge = []
 approach = "intermediate"
-contribution_areas = ["Reproduce a failing consumer job with its pinned ref", "Validate portable LLVM builds", "Improve incident runbooks and evidence snapshots"]
-tags = ["supply-chain", "ci", "releases"]
-evidence = "This checkout: .github/workflows, .github/actions and scripts. Workflow contracts are derived at every generation."
+contribution_areas = ["Reproduce a failing consumer job with its pinned ref", "Validate portable LLVM builds", "Add the failure you just debugged to the incident desk"]
 
 [[projects]]
 id = "mod-template"
@@ -189,8 +75,7 @@ name = "DreamWeave-Mod-Template"
 kind = "documentation"
 domain = "web"
 summary = "Reusable Zola/Tera project storefront and documentation shell; source of this site's docs UX."
-source = "mod-template"
-path = "."
+repository = "https://github.com/DreamWeave-MP/DreamWeave-Mod-Template"
 languages = ["Tera", "Sass", "JavaScript"]
 lifecycle = "active"
 maturity = "established"
@@ -198,10 +83,9 @@ owners = ["DreamWeave maintainers"]
 docs = ["https://dreamweave-mp.github.io/DreamWeave-Mod-Template/"]
 packages = []
 distribution = ["github-pages", "source"]
+stroggforge = ["createRelease"]
 approach = "introductory"
 contribution_areas = ["Keyboard and narrow-screen documentation UX", "Reusable documentation shortcodes and examples"]
-tags = ["zola", "docs-shell"]
-evidence = "Local templates/docs, sass/docs.sass and static/docs/docs.js; imported at the revision recorded in site/UPSTREAM.md."
 
 [[projects]]
 id = "stash"
@@ -209,8 +93,7 @@ name = "S3ctors-S3cret-St4sh / St4sh"
 kind = "content"
 domain = "openmw-lua"
 summary = "OpenMW mod collection, reusable Lua tooling, mod documentation and the Cod3x field manual."
-source = "stash"
-path = "."
+repository = "https://github.com/DreamWeave-MP/S3ctors-S3cret-St4sh"
 languages = ["Lua", "Markdown", "Tera"]
 lifecycle = "active"
 maturity = "established"
@@ -218,10 +101,9 @@ owners = ["S3ctor", "DreamWeave contributors"]
 docs = ["https://dreamweave-mp.github.io/S3ctors-S3cret-St4sh/"]
 packages = []
 distribution = ["github-pages", "source"]
+stroggforge = ["createRelease"]
 approach = "introductory"
 contribution_areas = ["Test individual mods in OpenMW", "Document reproducible Lua failures", "Improve mod tutorials and translations"]
-tags = ["mods", "lua", "documentation"]
-evidence = "Local content/ and templates/docs/. Lua(u)/OpenMW side of DreamWeave, not the Rust ecosystem: its site workflow calls only StroggForge's createRelease helper to refresh the release its static site uploads to."
 
 [[projects]]
 id = "cod3x"
@@ -229,8 +111,7 @@ name = "Cod3x"
 kind = "documentation"
 domain = "openmw-lua"
 summary = "OpenMW Lua engineering field manual: API mental models, performance practice and failure archaeology."
-source = "stash"
-path = "content/cod3x"
+repository = "https://github.com/DreamWeave-MP/S3ctors-S3cret-St4sh"
 languages = ["Markdown", "Lua"]
 lifecycle = "active"
 maturity = "evolving"
@@ -238,10 +119,9 @@ owners = ["S3ctor", "DreamWeave contributors"]
 docs = ["https://dreamweave-mp.github.io/S3ctors-S3cret-St4sh/cod3x/docs/"]
 packages = []
 distribution = ["github-pages"]
+stroggforge = []
 approach = "introductory"
 contribution_areas = ["Turn a proven OpenMW fix into an evidence-backed example", "Test the Zero to Hero path"]
-tags = ["onboarding", "field-manual"]
-evidence = "St4sh content/cod3x/docs/_index.md. Cod3x is a documentation project inside St4sh, not a separate service."
 
 [[projects]]
 id = "dream-path"
@@ -249,8 +129,7 @@ name = "dream_path / dream-path"
 kind = "foundation"
 domain = "rust"
 summary = "Byte-first normalized virtual resource paths shared by OpenMW asset tooling."
-source = "dream-path"
-path = "."
+repository = "https://github.com/DreamWeave-MP/dream_path"
 languages = ["Rust"]
 lifecycle = "active"
 maturity = "established"
@@ -258,10 +137,9 @@ owners = ["DreamWeave Rust maintainers"]
 docs = ["https://dreamweave-mp.github.io/dream_path/dream_path/index.html"]
 packages = ["dream-path"]
 distribution = ["crates-io", "source"]
+stroggforge = ["libGlobalBuild"]
 approach = "intermediate"
 contribution_areas = ["Path normalization edge cases", "Allocation and byte-path benchmarks"]
-tags = ["paths", "assets"]
-evidence = "Cargo package name is dream-path; repository name is dream_path. Optional Lua integration currently uses mlua, not an inferred l3i dependency."
 
 [[projects]]
 id = "dream-archive"
@@ -269,8 +147,7 @@ name = "dream_archive"
 kind = "foundation"
 domain = "rust"
 summary = "Pure Rust Bethesda BSA/BA2 reading, writing and extraction."
-source = "dream-archive"
-path = "."
+repository = "https://github.com/DreamWeave-MP/dream_archive"
 languages = ["Rust"]
 lifecycle = "active"
 maturity = "established"
@@ -278,10 +155,9 @@ owners = ["DreamWeave Rust maintainers"]
 docs = ["https://docs.rs/dream_archive"]
 packages = ["dream_archive"]
 distribution = ["crates-io", "source"]
+stroggforge = ["libGlobalBuild"]
 approach = "specialist"
 contribution_areas = ["Legal synthetic archive fixtures", "Malformed input and extraction performance tests"]
-tags = ["archives", "bsa", "ba2"]
-evidence = "Cargo metadata from the local archive library checkout."
 
 [[projects]]
 id = "vfstool-lib"
@@ -289,8 +165,7 @@ name = "vfstool_lib"
 kind = "foundation"
 domain = "rust"
 summary = "Virtual filesystem and asset lookup; optional Bethesda archive integration."
-source = "vfstool"
-path = "vfstool_lib"
+repository = "https://github.com/DreamWeave-MP/vfstool"
 languages = ["Rust"]
 lifecycle = "active"
 maturity = "established"
@@ -298,10 +173,9 @@ owners = ["DreamWeave Rust maintainers"]
 docs = ["https://docs.rs/vfstool_lib"]
 packages = ["vfstool_lib"]
 distribution = ["crates-io", "source"]
+stroggforge = ["libGlobalBuild"]
 approach = "intermediate"
 contribution_areas = ["VFS precedence fixtures", "Archive feature combinations and lookup benchmarks"]
-tags = ["vfs", "assets"]
-evidence = "vfstool workspace member vfstool_lib; optional edges retain their optional marker."
 
 [[projects]]
 id = "openmw-config"
@@ -309,8 +183,7 @@ name = "openmw-config"
 kind = "foundation"
 domain = "rust"
 summary = "Read and manipulate OpenMW configuration chains; independent of the archive/path stack."
-source = "openmw-config"
-path = "."
+repository = "https://github.com/DreamWeave-MP/Openmw_Config"
 languages = ["Rust"]
 lifecycle = "active"
 maturity = "established"
@@ -318,10 +191,9 @@ owners = ["DreamWeave Rust maintainers"]
 docs = ["https://docs.rs/openmw-config"]
 packages = ["openmw-config"]
 distribution = ["crates-io", "source"]
+stroggforge = ["libGlobalBuild"]
 approach = "intermediate"
 contribution_areas = ["Configuration round-trip cases", "Windows path and user-directory behavior"]
-tags = ["configuration", "openmw"]
-evidence = "Cargo metadata; no invented dependency on dream_path."
 
 [[projects]]
 id = "vfstool"
@@ -329,8 +201,7 @@ name = "VFSTool"
 kind = "application"
 domain = "rust"
 summary = "Command-line frontend to virtual filesystem discovery and asset operations."
-source = "vfstool"
-path = "vfstool"
+repository = "https://github.com/DreamWeave-MP/vfstool"
 languages = ["Rust"]
 lifecycle = "active"
 maturity = "established"
@@ -338,10 +209,9 @@ owners = ["DreamWeave Rust maintainers"]
 docs = ["https://github.com/DreamWeave-MP/vfstool"]
 packages = ["vfstool"]
 distribution = ["crates-io", "github-releases", "aur"]
+stroggforge = ["rustGlobalBuild"]
 approach = "introductory"
 contribution_areas = ["CLI examples and diagnostics", "Cross-platform installation smoke tests"]
-tags = ["cli", "vfs"]
-evidence = "Cargo workspace and captured workflow configuration; AUR packaging lives in vfstool-git. Distribution entries describe channels, not verified live availability."
 
 [[projects]]
 id = "s3lightfixes"
@@ -349,8 +219,7 @@ name = "S3LightFixes"
 kind = "application"
 domain = "rust"
 summary = "Generate and install OpenMW light-fixing plugins using the local content configuration."
-source = "s3lightfixes"
-path = "."
+repository = "https://github.com/DreamWeave-MP/S3LightFixes"
 languages = ["Rust"]
 lifecycle = "active"
 maturity = "established"
@@ -358,10 +227,9 @@ owners = ["DreamWeave Rust maintainers"]
 docs = ["https://github.com/DreamWeave-MP/S3LightFixes"]
 packages = ["s3lightfixes"]
 distribution = ["github-releases", "aur"]
+stroggforge = ["rustGlobalBuild"]
 approach = "intermediate"
 contribution_areas = ["Small reproducible light patch fixtures", "Validate OpenMW configuration compatibility"]
-tags = ["plugins", "lighting"]
-evidence = "Local Cargo dependencies still select openmw-config 1.1 and vfstool_lib 0.9; those are not silently promoted to the latest generations."
 
 [[projects]]
 id = "morrobroom"
@@ -369,8 +237,7 @@ name = "Morrobroom"
 kind = "application"
 domain = "rust"
 summary = "Compile TrenchBroom-authored maps into OpenMW content."
-source = "morrobroom"
-path = "."
+repository = "https://github.com/DreamWeave-MP/Morrobroom"
 languages = ["Rust"]
 lifecycle = "active"
 maturity = "evolving"
@@ -378,10 +245,9 @@ owners = ["DreamWeave Rust maintainers"]
 docs = ["https://github.com/DreamWeave-MP/Morrobroom"]
 packages = ["morrobroom"]
 distribution = ["github-releases", "source"]
+stroggforge = ["rustGlobalBuild"]
 approach = "specialist"
 contribution_areas = ["Minimal map-to-plugin regression cases", "Geometry, texture and lightmap correctness"]
-tags = ["maps", "compiler", "trenchbroom"]
-evidence = "Current Cargo manifest supersedes the older map's shambler/openmw-cfg claims. Foundation version requirements remain visible in generated edges."
 
 [[projects]]
 id = "greenmote"
@@ -389,8 +255,7 @@ name = "greenmote"
 kind = "application"
 domain = "rust"
 summary = "Patch grass mods for an OpenMW installation and convert ordinary instances to groundcover."
-source = "greenmote"
-path = "."
+repository = "https://github.com/DreamWeave-MP/greenmote"
 languages = ["Rust"]
 lifecycle = "active"
 maturity = "established"
@@ -398,10 +263,9 @@ owners = ["DreamWeave Rust maintainers"]
 docs = ["https://github.com/DreamWeave-MP/greenmote"]
 packages = ["greenmote"]
 distribution = ["github-releases", "source"]
+stroggforge = ["rustGlobalBuild"]
 approach = "intermediate"
 contribution_areas = ["Small groundcover conflict fixtures", "Document safe patch generation and load order"]
-tags = ["groundcover", "plugins"]
-evidence = "Local Cargo and reusable workflow caller."
 
 [[projects]]
 id = "dream-ini"
@@ -409,8 +273,7 @@ name = "dream-ini"
 kind = "application"
 domain = "rust"
 summary = "OpenMW INI importer with GUI, controller support and portable-device paths."
-source = "dream-ini"
-path = "."
+repository = "https://github.com/DreamWeave-MP/dream-ini"
 languages = ["Rust"]
 lifecycle = "active"
 maturity = "evolving"
@@ -418,10 +281,9 @@ owners = ["DreamWeave Rust maintainers"]
 docs = ["https://github.com/DreamWeave-MP/dream-ini"]
 packages = ["dream-ini"]
 distribution = ["github-releases", "source"]
+stroggforge = ["rustGlobalBuild"]
 approach = "intermediate"
 contribution_areas = ["Controller-only onboarding checks", "Portable rendering and INI round-trip fixtures"]
-tags = ["portable", "gui", "configuration"]
-evidence = "Local checkout remains named rome-ini; Cargo and the remote identify dream-ini."
 
 [[projects]]
 id = "archive-tool"
@@ -429,8 +291,7 @@ name = "dream_archivetool"
 kind = "developer-tool"
 domain = "rust"
 summary = "CLI and policy layer for inspecting, extracting, creating and updating Bethesda archives."
-source = "archive-tool"
-path = "."
+repository = "https://github.com/DreamWeave-MP/dream_archivetool"
 languages = ["Rust"]
 lifecycle = "active"
 maturity = "evolving"
@@ -438,10 +299,9 @@ owners = ["DreamWeave Rust maintainers"]
 docs = ["https://docs.rs/dream_archivetool"]
 packages = ["dream_archivetool"]
 distribution = ["github-releases", "crates-io"]
+stroggforge = ["rustGlobalBuild"]
 approach = "introductory"
 contribution_areas = ["CLI archive recipes", "Actionable extraction error messages"]
-tags = ["cli", "archives"]
-evidence = "Cargo metadata and captured workflow caller."
 
 [[projects]]
 id = "dream-web"
@@ -449,8 +309,7 @@ name = "dreamweave-web"
 kind = "documentation"
 domain = "web"
 summary = "Mod data, schemas and modlist delivery site; also houses the current CHIMERA manager workspace."
-source = "dream-web"
-path = "."
+repository = "https://github.com/DreamWeave-MP/dreamweave-web"
 languages = ["Tera", "Python", "YAML"]
 lifecycle = "experimental"
 maturity = "evolving"
@@ -458,10 +317,9 @@ owners = ["DreamWeave maintainers"]
 docs = ["https://github.com/DreamWeave-MP/dreamweave-web"]
 packages = []
 distribution = ["source"]
+stroggforge = []
 approach = "intermediate"
 contribution_areas = ["Validate mod database records against schemas", "Document manager-to-site data flow"]
-tags = ["modlists", "schemas", "zola"]
-evidence = "Local manager/architecture.md and manager/Cargo.toml demonstrate current development. Older research calling this entire repository stale is not adopted."
 
 [[projects]]
 id = "chimera"
@@ -469,8 +327,7 @@ name = "CHIMERA manager"
 kind = "developer-tool"
 domain = "rust"
 summary = "Terminal manager for DreamWeave mod databases and modlists, with overlays and controller input."
-source = "dream-web"
-path = "manager/chimera-tui"
+repository = "https://github.com/DreamWeave-MP/dreamweave-web"
 languages = ["Rust"]
 lifecycle = "experimental"
 maturity = "evolving"
@@ -478,10 +335,9 @@ owners = ["DreamWeave maintainers"]
 docs = ["https://github.com/DreamWeave-MP/dreamweave-web/blob/main/manager/architecture.md"]
 packages = ["chimera-tui"]
 distribution = ["source"]
+stroggforge = []
 approach = "intermediate"
 contribution_areas = ["Terminal keyboard/controller interaction tests", "Schema validation diagnostics"]
-tags = ["tui", "modlists"]
-evidence = "Current manager workspace and architecture notes; no verified StroggForge release caller in this snapshot is not a claim of retirement."
 
 [[projects]]
 id = "dreamweave-core"
@@ -489,8 +345,7 @@ name = "dreamweave-core"
 kind = "foundation"
 domain = "rust"
 summary = "CHIMERA's shared mod database models, configuration schema and persistence primitives."
-source = "dream-web"
-path = "manager/dreamweave-core"
+repository = "https://github.com/DreamWeave-MP/dreamweave-web"
 languages = ["Rust"]
 lifecycle = "experimental"
 maturity = "evolving"
@@ -498,10 +353,9 @@ owners = ["DreamWeave maintainers"]
 docs = ["https://github.com/DreamWeave-MP/dreamweave-web/blob/main/manager/architecture.md"]
 packages = ["dreamweave-core"]
 distribution = ["source"]
+stroggforge = []
 approach = "intermediate"
 contribution_areas = ["Serialization round trips", "Cross-database validation cases"]
-tags = ["schemas", "modlists"]
-evidence = "manager/Cargo.toml and manager/dreamweave-core/Cargo.toml."
 
 [[projects]]
 id = "l3i"
@@ -509,8 +363,6 @@ name = "L3i / l3i"
 kind = "runtime"
 domain = "rust"
 summary = "Rust binder owning a vendored Luau runtime, typed userdata, native lowering and the dream-net bridge."
-source = "l3i"
-path = "."
 languages = ["Rust", "C++", "Luau"]
 lifecycle = "active"
 maturity = "evolving"
@@ -518,10 +370,9 @@ owners = ["S3ctor", "DreamWeave runtime maintainers"]
 docs = []
 packages = ["l3i"]
 distribution = ["source"]
+stroggforge = ["libGlobalBuild"]
 approach = "specialist"
 contribution_areas = ["Cross-language LTO portability validation", "Binding lifetime and native codegen tests"]
-tags = ["llvm", "luau", "lto"]
-evidence = "Local dream-binder checkout now packages l3i. No Git remote is configured; public repository/docs location is unknown. TOOLCHAIN.md records Luau 0.740 and the LLVM 22.1.8 reference measurement."
 
 [[projects]]
 id = "dream-binder"
@@ -529,8 +380,6 @@ name = "dream-binder (former crate name)"
 kind = "runtime"
 domain = "rust"
 summary = "Earlier name and mlua-based bootstrap of the runtime binder, replaced by l3i in the same local repository."
-source = "l3i"
-path = "."
 languages = ["Rust"]
 lifecycle = "superseded"
 maturity = "historical"
@@ -538,10 +387,9 @@ owners = ["DreamWeave runtime maintainers"]
 docs = []
 packages = []
 distribution = ["source"]
+stroggforge = []
 approach = "specialist"
 contribution_areas = ["Preserve migration rationale in l3i documentation"]
-tags = ["history", "rename"]
-evidence = "Local Git commit 9faebc1: BREAK: Rename the crate from dream-binder to l3i. The directory name persists; it is not a second current library."
 
 [[projects]]
 id = "dream-net"
@@ -549,8 +397,7 @@ name = "dream-net"
 kind = "foundation"
 domain = "rust"
 summary = "Reusable networking infrastructure consumed by l3i's Luau networking bridge."
-source = "dream-net"
-path = "."
+repository = "https://github.com/DreamWeave-MP/dream-net"
 languages = ["Rust"]
 lifecycle = "active"
 maturity = "evolving"
@@ -558,10 +405,9 @@ owners = ["DreamWeave Rust maintainers"]
 docs = ["https://github.com/DreamWeave-MP/dream-net"]
 packages = ["dream-net"]
 distribution = ["crates-io", "source"]
+stroggforge = ["libGlobalBuild"]
 approach = "specialist"
 contribution_areas = ["Wire-format fuzzing", "Connection scheduling and determinism tests"]
-tags = ["networking", "runtime"]
-evidence = "Cargo metadata and l3i's exact =1.0.0 dependency."
 
 [[projects]]
 id = "soft-render"
@@ -569,8 +415,7 @@ name = "dream-soft-render"
 kind = "foundation"
 domain = "rust"
 summary = "Software rendering library for portable devices; optional GUI backend for dream-ini."
-source = "soft-render"
-path = "."
+repository = "https://github.com/DreamWeave-MP/dream-soft-render"
 languages = ["Rust"]
 lifecycle = "active"
 maturity = "evolving"
@@ -578,48 +423,145 @@ owners = ["DreamWeave Rust maintainers"]
 docs = ["https://github.com/DreamWeave-MP/dream-soft-render"]
 packages = ["dream-soft-render"]
 distribution = ["crates-io", "source"]
+stroggforge = ["libGlobalBuild"]
 approach = "specialist"
 contribution_areas = ["Portable framebuffer golden tests", "Rendering throughput and pixel correctness"]
-tags = ["portable", "renderer"]
-evidence = "Cargo metadata declares Rust 1.92; do not impose the common 1.88 MSRV on this crate."
 
+# Reviewed relationships. Arrows point consumer -> dependency. StroggForge build edges come
+# from each project's `stroggforge` list, not from here.
 [[relationships]]
 from = "stroggforge"
 to = "mod-template"
 kind = "documentation"
 label = "vendors docs shell"
-evidence = "site/UPSTREAM.md and site/templates/docs"
 
 [[relationships]]
 from = "stash"
 to = "mod-template"
 kind = "documentation"
 label = "uses docs shell"
-evidence = "Local St4sh templates/docs/base.html and Cod3x docs frontmatter"
 
 [[relationships]]
 from = "stash"
 to = "cod3x"
 kind = "contains"
 label = "publishes field manual"
-evidence = "St4sh content/cod3x/docs/_index.md"
 
 [[relationships]]
 from = "dream-web"
 to = "chimera"
 kind = "contains"
 label = "contains manager workspace"
-evidence = "dreamweave-web manager/Cargo.toml and manager/architecture.md"
 
 [[relationships]]
 from = "dream-binder"
 to = "l3i"
 kind = "successor"
 label = "superseded by"
-evidence = "Local dream-binder Git commit 9faebc1"
 
-# Retired infrastructure without a current checkout. A successor is recorded only with evidence;
-# an archived repository with no reviewed migration stays unconnected rather than guessed at.
+[[relationships]]
+from = "archive-tool"
+to = "dream-archive"
+kind = "rust"
+label = "dream_archive"
+
+[[relationships]]
+from = "chimera"
+to = "dreamweave-core"
+kind = "rust"
+label = "dreamweave-core"
+
+[[relationships]]
+from = "dream-archive"
+to = "dream-path"
+kind = "rust"
+label = "dream-path"
+
+[[relationships]]
+from = "dream-ini"
+to = "openmw-config"
+kind = "rust"
+label = "openmw-config"
+
+[[relationships]]
+from = "dream-ini"
+to = "soft-render"
+kind = "rust"
+label = "dream-soft-render (optional)"
+
+[[relationships]]
+from = "greenmote"
+to = "openmw-config"
+kind = "rust"
+label = "openmw-config"
+
+[[relationships]]
+from = "greenmote"
+to = "vfstool-lib"
+kind = "rust"
+label = "vfstool_lib"
+
+[[relationships]]
+from = "l3i"
+to = "dream-net"
+kind = "rust"
+label = "dream-net"
+
+[[relationships]]
+from = "morrobroom"
+to = "openmw-config"
+kind = "rust"
+label = "openmw-config"
+
+[[relationships]]
+from = "morrobroom"
+to = "vfstool-lib"
+kind = "rust"
+label = "vfstool_lib"
+
+[[relationships]]
+from = "s3lightfixes"
+to = "openmw-config"
+kind = "rust"
+label = "openmw-config"
+
+[[relationships]]
+from = "s3lightfixes"
+to = "vfstool-lib"
+kind = "rust"
+label = "vfstool_lib"
+
+[[relationships]]
+from = "vfstool"
+to = "dream-archive"
+kind = "rust"
+label = "dream_archive (dev)"
+
+[[relationships]]
+from = "vfstool"
+to = "openmw-config"
+kind = "rust"
+label = "openmw-config"
+
+[[relationships]]
+from = "vfstool"
+to = "vfstool-lib"
+kind = "rust"
+label = "vfstool_lib"
+
+[[relationships]]
+from = "vfstool-lib"
+to = "dream-archive"
+kind = "rust"
+label = "dream_archive (optional)"
+
+[[relationships]]
+from = "vfstool-lib"
+to = "dream-path"
+kind = "rust"
+label = "dream-path"
+
+# Retired infrastructure whose replacement explains the current architecture. Curated, not a census.
 [[retired]]
 id = "linux-el8-builder"
 name = "Linux x86_64 AlmaLinux 8 builder"
@@ -627,7 +569,7 @@ kind = "build-environment"
 summary = "GCC release container with a glibc 2.28 compatibility floor."
 location = "https://github.com/DreamWeave-MP/StroggForge/tree/0953c2ea790426c7d8edff7b918dcf85a2a0bb39/.github/container-images/linux-x86_64-almalinux8"
 successor = { platform = "linux-x64" }
-evidence = "Removed in 1981ef9. No LLVM 22 exists for EL8, and the LLVM toolchain policy needs the stream's clang and lld."
+reason = "Removed in 1981ef9. No LLVM 22 exists for EL8, and the LLVM toolchain policy needs the stream's clang and lld."
 
 [[retired]]
 id = "portmaster-el8-builder"
@@ -636,7 +578,7 @@ kind = "build-environment"
 summary = "GCC cross-compilation container with an EL8 sysroot and a glibc 2.28 floor."
 location = "https://github.com/DreamWeave-MP/StroggForge/tree/681d74d88189b65968ccac5303f90fb4c5a93b26/.github/container-images/portmaster-aarch64-almalinux8"
 successor = { platform = "portmaster-arm64" }
-evidence = "Removed in e83a91c. GCC could not take part in l3i's cross-language LTO."
+reason = "Removed in e83a91c. GCC could not take part in l3i's cross-language LTO."
 
 [[retired]]
 id = "jekyll-site"
@@ -645,116 +587,4 @@ kind = "site"
 summary = "Hacker-theme GitHub Pages rendering of the root Markdown notebooks."
 location = "https://github.com/DreamWeave-MP/StroggForge/blob/c2bf5878e0eca6528570bc3460aff2ba48ebac3a/_config.yml"
 successor = { project = "stroggforge" }
-evidence = "Replaced by this Zola war room, deployed from .github/workflows/war-room.yml. The notebooks remain in the repository root."
-
-[[retired]]
-id = "gitlab-organization"
-name = "DreamWeave-MP on GitLab"
-kind = "organization"
-summary = "GitLab organization that DW-Classic's README names as the home of further multiplayer engine work."
-location = "https://gitlab.com/dreamweave-mp"
-evidence = "Maintainer statement, 2026-09-28: DreamWeave has abandoned GitLab. The organization still exists; nothing there is maintained or supported."
-
-[[retired]]
-id = "core-scripts"
-name = "CoreScripts"
-kind = "repository"
-summary = "Fork of the server-side Lua scripts implementing core DreamWeave multiplayer functionality."
-location = "https://github.com/DreamWeave-MP/CoreScripts"
-evidence = "GitHub reports the repository archived (gh repo list, 2026-09-28). DreamScripts, which carried a near-identical description, is itself retired, so there is no successor."
-
-[[retired]]
-id = "dw-classic"
-name = "DW-Classic"
-kind = "repository"
-summary = "Multiplayer OpenMW engine derived from TES3MP. Declared dead on 2025-07-17: GitHub's build environment changed and it no longer compiles without source edits that OpenMW proper does not need."
-location = "https://github.com/DreamWeave-MP/DW-Classic"
-evidence = "The repository README declares it dead. Its pointer to further engine work on GitLab is itself stale: DreamWeave has abandoned the GitLab organization (maintainer, 2026-09-28). GitHub reports the repository archived (gh repo list, 2026-09-28)."
-
-[[retired]]
-id = "dream-deploy"
-name = "dream-deploy"
-kind = "repository"
-summary = "Fork of a script for installing, upgrading and packaging TES3MP."
-location = "https://github.com/DreamWeave-MP/dream-deploy"
-evidence = "GitHub reports the repository archived (gh repo list, 2026-09-28). No successor reviewed."
-
-[[retired]]
-id = "dream-dice"
-name = "dreamDice"
-kind = "repository"
-summary = "Dice roller for multiplayer Morrowind."
-location = "https://github.com/DreamWeave-MP/dreamDice"
-evidence = "GitHub reports the repository archived (gh repo list, 2026-09-28). No successor reviewed."
-
-[[retired]]
-id = "luajit-mirror"
-name = "LuaJIT mirror"
-kind = "repository"
-summary = "Mirror of the upstream LuaJIT repository."
-location = "https://github.com/DreamWeave-MP/LuaJIT"
-evidence = "GitHub reports the repository archived (gh repo list, 2026-09-28). rubic0n, OpenResty's LuaJIT 2 branch, is a separate fork and is not recorded as its successor."
-
-[[retired]]
-id = "crabnet"
-name = "CrabNet"
-kind = "repository"
-summary = "Fork of a cross-platform C++ networking engine from the multiplayer engine era."
-location = "https://github.com/DreamWeave-MP/CrabNet"
-evidence = "Maintainer statement, 2026-09-28: no longer maintained or supported. GitHub does not report it archived."
-
-[[retired]]
-id = "lua-io2"
-name = "Lua-io2"
-kind = "repository"
-summary = "Fork of a Lua IO2 module with UTF-16 file names and filesystem functions."
-location = "https://github.com/DreamWeave-MP/Lua-io2"
-evidence = "Maintainer statement, 2026-09-28: no longer maintained or supported. GitHub does not report it archived."
-
-[[retired]]
-id = "dream-mounts"
-name = "dreamMounts"
-kind = "repository"
-summary = "Multiplayer server script for riding mounts."
-location = "https://github.com/DreamWeave-MP/dreamMounts"
-evidence = "Maintainer statement, 2026-09-28: no longer maintained or supported. GitHub does not report it archived."
-
-[[retired]]
-id = "dream-scripts"
-name = "DreamScripts"
-kind = "repository"
-summary = "Server-side Lua scripts implementing core DreamWeave multiplayer functionality, used by the Starwind Initiative."
-location = "https://github.com/DreamWeave-MP/DreamScripts"
-evidence = "Maintainer statement, 2026-09-28: no longer maintained or supported. GitHub does not report it archived."
-
-[[retired]]
-id = "starwind-builder"
-name = "Starwind-Builder"
-kind = "repository"
-summary = "Patching, merging and deployment forge for the Starwind Merged Plugin Project and the Starwind Initiative server."
-location = "https://github.com/DreamWeave-MP/Starwind-Builder"
-evidence = "Maintainer statement, 2026-09-28: no longer maintained or supported. GitHub does not report it archived."
-
-[[retired]]
-id = "delta-plugin-git"
-name = "delta-plugin-git"
-kind = "repository"
-summary = "AUR package management for Delta-Plugin."
-location = "https://github.com/DreamWeave-MP/delta-plugin-git"
-evidence = "Maintainer statement, 2026-09-28: no longer maintained or supported. GitHub does not report it archived."
-
-[[retired]]
-id = "tes3merge"
-name = "TES3Merge"
-kind = "repository"
-summary = "Fork of the object merge utility for The Elder Scrolls III: Morrowind."
-location = "https://github.com/DreamWeave-MP/TES3Merge"
-evidence = "Maintainer statement, 2026-09-28: no longer maintained or supported. GitHub does not report it archived."
-
-[[retired]]
-id = "omwse"
-name = "OMWSE"
-kind = "repository"
-summary = "OpenMW Script Extender."
-location = "https://github.com/DreamWeave-MP/OMWSE"
-evidence = "Maintainer statement, 2026-09-28: no longer maintained or supported. GitHub does not report it archived."
+reason = "Replaced by this Zola war room, deployed from .github/workflows/war-room.yml. The notebooks remain in the repository root."

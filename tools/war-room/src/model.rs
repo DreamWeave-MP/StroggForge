@@ -1,34 +1,24 @@
-use std::{
-    collections::{BTreeMap, BTreeSet},
-    fs,
-    path::Path,
-};
+use std::{collections::BTreeMap, fs, path::Path};
 
 use anyhow::{Context, Result};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
-use crate::{
-    sources::{Organization, Snapshot},
-    workflows::{Operations, Workflow},
-};
+use crate::workflows::{Operations, Workflow};
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct Inventory {
+pub struct Ecosystem {
     pub schema: u32,
-    pub organization: String,
     pub reviewed: String,
     pub scope: String,
     pub updates: Vec<Update>,
-    pub sources: Vec<Source>,
     pub projects: Vec<Project>,
-    #[serde(default)]
-    pub relationships: Vec<Edge>,
+    pub relationships: Vec<Relationship>,
     pub retired: Vec<Retired>,
 }
 
-/// A reviewed infrastructure change worth surfacing on the war room; Git holds the full history.
-#[derive(Debug, Deserialize, Serialize)]
+/// An infrastructure change that alters what consumers get; Git holds the full history.
+#[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Update {
     pub date: String,
@@ -38,48 +28,7 @@ pub struct Update {
     pub plan: Option<String>,
 }
 
-/// Retired infrastructure that has no current source checkout: archived repositories,
-/// replaced build environments and replaced sites. Superseded components that still have
-/// a checkout remain ordinary projects with a superseded lifecycle.
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct Retired {
-    pub id: String,
-    pub name: String,
-    pub kind: RetiredKind,
-    pub summary: String,
-    pub location: String,
-    pub successor: Option<Successor>,
-    pub evidence: String,
-}
-
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
-#[serde(rename_all = "kebab-case")]
-pub enum RetiredKind {
-    Repository,
-    Organization,
-    BuildEnvironment,
-    Site,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
-#[serde(rename_all = "kebab-case")]
-pub enum Successor {
-    Project(String),
-    Platform(String),
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct Source {
-    pub id: String,
-    pub checkout: String,
-    pub repository: String,
-    pub manifests: Vec<String>,
-    pub evidence_files: Vec<String>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Project {
     pub id: String,
@@ -87,8 +36,8 @@ pub struct Project {
     pub kind: Kind,
     pub domain: Domain,
     pub summary: String,
-    pub source: String,
-    pub path: String,
+    /// Absent when the project has no public repository yet.
+    pub repository: Option<String>,
     pub languages: Vec<String>,
     pub lifecycle: Lifecycle,
     pub maturity: Maturity,
@@ -96,27 +45,39 @@ pub struct Project {
     pub docs: Vec<String>,
     pub packages: Vec<String>,
     pub distribution: Vec<Distribution>,
+    /// StroggForge workflows this project's repository calls.
+    pub stroggforge: Vec<String>,
     pub approach: Approach,
     pub contribution_areas: Vec<String>,
-    pub tags: Vec<String>,
-    pub evidence: String,
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub enum Kind {
     Foundation,
     Application,
     DeveloperTool,
+    Runtime,
     Infrastructure,
     Documentation,
-    Runtime,
     Content,
+}
+
+impl Kind {
+    pub const ALL: [Self; 7] = [
+        Self::Foundation,
+        Self::Application,
+        Self::DeveloperTool,
+        Self::Runtime,
+        Self::Infrastructure,
+        Self::Documentation,
+        Self::Content,
+    ];
 }
 
 /// The side of DreamWeave a component belongs to. StroggForge serves the Rust side; the
 /// Lua(u)/OpenMW content side and the web sites are documented here without joining it.
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub enum Domain {
     Rust,
@@ -175,40 +136,62 @@ pub enum Distribution {
     GithubReleases,
     GithubPages,
     Aur,
-    Nexus,
     Source,
-    Unknown,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
+/// A reviewed relationship. Arrows point consumer -> dependency.
+#[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct Edge {
+pub struct Relationship {
     pub from: String,
     pub to: String,
-    pub kind: Relationship,
+    pub kind: RelationshipKind,
     pub label: String,
-    pub evidence: String,
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "kebab-case")]
-pub enum Relationship {
+pub enum RelationshipKind {
     Rust,
-    Build,
-    Distribution,
     Documentation,
     Contains,
     Successor,
-    Runtime,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+/// Retired infrastructure whose replacement explains the current architecture.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Retired {
+    pub id: String,
+    pub name: String,
+    pub kind: RetiredKind,
+    pub summary: String,
+    pub location: String,
+    pub successor: Option<Successor>,
+    pub reason: String,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum RetiredKind {
+    BuildEnvironment,
+    Site,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Successor {
+    Project(String),
+    Platform(String),
+}
+
+#[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Plans {
     pub plans: Vec<Plan>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Plan {
     pub id: String,
@@ -246,7 +229,13 @@ pub enum State {
     Done,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+impl State {
+    pub fn finished(self) -> bool {
+        matches!(self, Self::Released | Self::Done)
+    }
+}
+
+#[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Requirement {
     pub id: String,
@@ -257,7 +246,7 @@ pub struct Requirement {
     pub evidence: Vec<String>,
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub enum RequirementKind {
     Task,
@@ -276,7 +265,7 @@ pub enum TaskState {
     Done,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Toolchains {
     pub reviewed: String,
@@ -286,7 +275,7 @@ pub struct Toolchains {
     pub platforms: Vec<Platform>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Platform {
     pub id: String,
@@ -296,44 +285,45 @@ pub struct Platform {
     pub job: String,
     pub baseline: String,
     pub compiler: String,
-    pub validation: State,
+    pub validation: Validation,
     pub notes: String,
-    pub assertions: Vec<Assertion>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct Assertion {
-    pub file: String,
-    pub contains: String,
+/// Whether a configured platform has been proven, as opposed to merely configured.
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum Validation {
+    Unknown,
+    Blocked,
+    Ready,
 }
 
-#[derive(Debug, Serialize)]
 pub struct Model {
-    pub inventory: Inventory,
-    pub sources: BTreeMap<String, Snapshot>,
-    /// Raw observation, including GitHub's own descriptions; the census page publishes a
-    /// reviewed view of it instead.
-    #[serde(skip_serializing)]
-    pub organization: Organization,
-    #[serde(skip_serializing)]
-    pub census_exclusions: Vec<String>,
-    pub edges: Vec<Edge>,
-    /// Current projects grouped by the StroggForge workflow their repository calls.
-    pub callers: BTreeMap<String, BTreeSet<String>>,
-    pub plans: Plans,
+    pub ecosystem: Ecosystem,
+    pub plans: Vec<Plan>,
     pub toolchains: Toolchains,
-    pub workflows: Vec<Workflow>,
     pub operations: Operations,
+    pub workflows: Vec<Workflow>,
 }
 
 impl Model {
+    pub fn load(root: &Path) -> Result<Self> {
+        let plans: Plans = read_toml(&root.join("war-room/plans.toml"))?;
+        Ok(Self {
+            ecosystem: read_toml(&root.join("war-room/ecosystem.toml"))?,
+            plans: plans.plans,
+            toolchains: read_toml(&root.join("war-room/toolchains.toml"))?,
+            operations: read_toml(&root.join("war-room/workflows.toml"))?,
+            workflows: crate::workflows::load(root)?,
+        })
+    }
+
     pub fn project(&self, id: &str) -> &Project {
-        self.inventory
+        self.ecosystem
             .projects
             .iter()
             .find(|project| project.id == id)
-            .expect("project references validated before generation")
+            .expect("project references are validated before generation")
     }
 
     pub fn platform(&self, id: &str) -> &Platform {
@@ -341,58 +331,41 @@ impl Model {
             .platforms
             .iter()
             .find(|platform| platform.id == id)
-            .expect("platform references validated before generation")
+            .expect("platform references are validated before generation")
     }
 
-    pub fn repository(&self, project: &Project) -> &str {
-        &self
-            .inventory
-            .sources
+    pub fn workflow(&self, id: &str) -> &Workflow {
+        self.workflows
             .iter()
-            .find(|source| source.id == project.source)
-            .expect("source reference validated")
-            .repository
+            .find(|workflow| workflow.id == id)
+            .expect("workflow references are validated before generation")
+    }
+
+    /// Current projects grouped by the StroggForge workflow their repository calls.
+    pub fn callers(&self) -> BTreeMap<&str, Vec<&Project>> {
+        let mut callers: BTreeMap<&str, Vec<&Project>> = BTreeMap::new();
+        for project in self.current_projects() {
+            for workflow in &project.stroggforge {
+                callers.entry(workflow).or_default().push(project);
+            }
+        }
+        callers
+    }
+
+    pub fn current_projects(&self) -> impl Iterator<Item = &Project> {
+        self.ecosystem
+            .projects
+            .iter()
+            .filter(|project| !project.lifecycle.historical())
     }
 }
 
-pub fn load(root: &Path, inventory: Inventory) -> Result<Model> {
-    let mut sources = BTreeMap::new();
-    for source in &inventory.sources {
-        let path = root.join(format!("war-room/sources/{}.json", source.id));
-        let snapshot: Snapshot =
-            serde_json::from_str(&fs::read_to_string(&path).with_context(|| {
-                format!(
-                    "read {}; use capture to refresh this source",
-                    path.display()
-                )
-            })?)
-            .with_context(|| format!("parse {}", path.display()))?;
-        sources.insert(source.id.clone(), snapshot);
-    }
-    let edges = crate::sources::derive_edges(&inventory, &sources)?;
-    let callers = crate::sources::callers(&inventory, &sources)?;
-    Ok(Model {
-        inventory,
-        sources,
-        organization: {
-            let path = root.join("war-room/sources/organization.json");
-            serde_json::from_str(
-                &fs::read_to_string(&path).with_context(|| {
-                    format!("read {}; run capture-organization", path.display())
-                })?,
-            )
-            .with_context(|| format!("parse {}", path.display()))?
-        },
-        census_exclusions: crate::sources::census_exclusions(root)?,
-        edges,
-        callers,
-        plans: crate::read_toml(&root.join("war-room/plans.toml"))?,
-        toolchains: crate::read_toml(&root.join("war-room/toolchains.toml"))?,
-        workflows: crate::workflows::load(root)?,
-        operations: crate::read_toml(&root.join(".github/war-room-workflows.toml"))?,
-    })
+fn read_toml<T: DeserializeOwned>(path: &Path) -> Result<T> {
+    let text = fs::read_to_string(path).with_context(|| format!("read {}", path.display()))?;
+    toml::from_str(&text).with_context(|| format!("parse {}", path.display()))
 }
 
+/// The kebab-case spelling of a closed-set value, as written in the TOML.
 pub fn label(value: &impl Serialize) -> String {
     serde_json::to_value(value)
         .expect("enum serialization")

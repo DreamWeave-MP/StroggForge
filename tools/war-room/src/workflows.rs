@@ -1,10 +1,11 @@
 use std::{collections::BTreeMap, fs, path::Path};
 
 use anyhow::{Context, Result, ensure};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_yaml_ng::Value;
 
-#[derive(Debug, Serialize)]
+/// A workflow or composite action as it exists in this checkout.
+#[derive(Debug)]
 pub struct Workflow {
     pub id: String,
     pub path: String,
@@ -19,7 +20,7 @@ pub struct Workflow {
     pub steps: Vec<Value>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 pub struct Job {
     #[serde(default)]
     pub needs: Value,
@@ -31,8 +32,6 @@ pub struct Job {
     pub container: Value,
     #[serde(default)]
     pub strategy: Value,
-    #[serde(default)]
-    pub permissions: Value,
     #[serde(default)]
     pub uses: Value,
     #[serde(default)]
@@ -58,16 +57,15 @@ impl Job {
     }
 }
 
-/// Hand-written operational knowledge that YAML cannot express, kept beside the workflows
-/// in `.github/war-room-workflows.toml`.
-#[derive(Debug, Deserialize, Serialize)]
+/// What YAML cannot say about the workflows: `war-room/workflows.toml`.
+#[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Operations {
     pub workflow: BTreeMap<String, Note>,
     pub stage: Vec<Stage>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Note {
     pub purpose: String,
@@ -79,13 +77,25 @@ pub struct Note {
     pub example: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Stage {
     pub id: String,
     pub name: String,
+    pub kind: StageKind,
     pub summary: String,
     pub jobs: Vec<String>,
+}
+
+/// How a stage is drawn: the node kinds the schematic shortcode styles.
+#[derive(Debug, Clone, Copy, Deserialize, serde::Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum StageKind {
+    Source,
+    Tool,
+    Boundary,
+    Component,
+    Service,
 }
 
 /// Resolve `<workflow>/<job>` or `<action>/<step name>` against the executable YAML.

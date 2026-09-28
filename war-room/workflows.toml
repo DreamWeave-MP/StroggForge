@@ -1,4 +1,5 @@
-# Operational semantics accompany the executable YAML. Contract tables are derived.
+# Operational notes and supply-chain stages for the reusable workflows. Inputs, jobs and
+# conditions are read from the YAML; only what YAML cannot say lives here.
 [workflow.rustGlobalBuild]
 purpose = "Manufacture Rust application releases across desktop and opt-in portable targets."
 intended_for = "Binary repositories, including directory-based monorepos and root workspace package/bin selection."
@@ -70,41 +71,48 @@ example = "Compiling jobs in the public workflows call this action after Rust se
 [[stage]]
 id = "source"
 name = "Source"
+kind = "source"
 summary = "Consumer Git state: pull request, main push, branch or tag. The consumer's caller workflow selects the events and pins the StroggForge ref."
 jobs = []
 
 [[stage]]
 id = "toolchain"
 name = "Toolchain"
+kind = "tool"
 summary = "clang and lld matching rustc's LLVM major in every compiling job; EL9 builder images published separately for Linux and PortMaster."
 jobs = ["setup-llvm/Install LLVM matching rustc", "publish-linux-x86_64-el9-builder/publish", "publish-portmaster-aarch64-el9-builder/publish"]
 
 [[stage]]
 id = "verify"
 name = "Verify"
+kind = "boundary"
 summary = "Tests, formatting, pedantic Clippy with warnings denied, RustSec audit, MSRV and non-tag crates.io dry runs run in parallel. Release and docs jobs need every gate; Corprus Crucible never runs tests itself."
 jobs = ["rustGlobalBuild/test", "rustGlobalBuild/fmt", "rustGlobalBuild/clippy", "rustGlobalBuild/audit", "rustGlobalBuild/msrv", "rustGlobalBuild/cargo-publish-dry-run", "rustGlobalBuild/cargo-publish-workspace-dry-run", "libGlobalBuild/test", "libGlobalBuild/fmt", "libGlobalBuild/clippy", "libGlobalBuild/audit", "libGlobalBuild/msrv", "libGlobalBuild/cargo-publish-dry-run", "libGlobalBuild/cargo-publish-workspace-dry-run"]
 [[stage]]
 id = "build"
 name = "Build"
+kind = "component"
 summary = "Release binaries per platform: hosted desktop runners, the EL9 Linux container, and opt-in Android and PortMaster targets."
 jobs = ["rustGlobalBuild/release", "rustGlobalBuild/release-linux", "rustGlobalBuild/release-android", "rustGlobalBuild/release-portmaster", "corprus-crucible/Build Release"]
 
 [[stage]]
 id = "sign"
 name = "Sign"
+kind = "boundary"
 summary = "Keyless Cosign signature over the binary itself, before archiving. Pull requests skip it."
 jobs = ["corprus-crucible/Sign Binary"]
 
 [[stage]]
 id = "package"
 name = "Package"
+kind = "component"
 summary = "Zip archive with the binary, its Cosign bundle and include files; VirusTotal scan; staged GitHub and Nexus workflow artifacts."
 jobs = ["corprus-crucible/Create Archive", "corprus-crucible/VirusTotal Scan", "corprus-crucible/Prepare GitHub Release Artifact", "corprus-crucible/Prepare Nexus Mods Archive"]
 
 [[stage]]
 id = "publish"
 name = "Publish"
+kind = "service"
 summary = "Refresh the GitHub Release boundary, then upload. Tagged runs publish crates, per package or as a dependency-ordered workspace."
 jobs = ["rustGlobalBuild/github-publish", "libGlobalBuild/release_cleanup", "createRelease/ensure-fresh-release", "rustGlobalBuild/cargo-publish", "rustGlobalBuild/cargo-publish-workspace", "libGlobalBuild/cargo-publish", "libGlobalBuild/cargo-publish-workspace"]
 
@@ -112,11 +120,13 @@ jobs = ["rustGlobalBuild/github-publish", "libGlobalBuild/release_cleanup", "cre
 [[stage]]
 id = "document"
 name = "Document"
+kind = "component"
 summary = "Rustdoc Pages on configured main pushes, after the gates and alongside builds. Changelog and benchmark documents wait for the refreshed release boundary."
 jobs = ["rustGlobalBuild/docs", "rustGlobalBuild/changelog", "rustGlobalBuild/benchmarks", "libGlobalBuild/docs", "libGlobalBuild/changelog", "libGlobalBuild/benchmarks"]
 
 [[stage]]
 id = "distribute"
 name = "Distribute and announce"
+kind = "service"
 summary = "Configured AUR and Nexus uploads, dependent-repository update issues, and one aggregated Discord notification."
 jobs = ["rustGlobalBuild/aur-publish", "rustGlobalBuild/nexus-publish", "rustGlobalBuild/nag-dependents", "libGlobalBuild/nag-dependents", "dependent/notify-dependents", "discord/discord-notify"]

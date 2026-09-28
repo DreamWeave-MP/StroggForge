@@ -1,4 +1,0 @@
-# Names that must never appear on the published site. Generation scans every generated
-# file (including text copied from GitHub descriptions) and fails if one appears.
-# DreamWeave's multiplayer work is always called DreamWeave.
-forbidden = ["S3MP"]

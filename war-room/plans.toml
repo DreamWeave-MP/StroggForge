@@ -9,7 +9,7 @@ reviewed = "2026-09-28"
 depends_on = []
 platforms = ["linux-x64", "portmaster-arm64", "android-arm64", "macos-arm64", "macos-x64", "windows-x64"]
 distribution = ["github-releases", "crates-io"]
-notes = "Maintainer confirms ecosystem-wide LLVM migration is in progress, not complete. LLVM/clang/lld 22.1.8 with rustc 1.98.1 is the measured L3i reference. StroggForge matches the active rustc LLVM major rather than pinning every runner to that patch release. Blocked means rollout sign-off is withheld pending explicit evidence below; it does not claim that every current build is failing."
+notes = "Move every compiling DreamWeave build onto clang and lld matching rustc's LLVM, so L3i's cross-language LTO works everywhere it ships. The reference setup is rustc 1.98.1 with LLVM/clang/lld 22.1.8. StroggForge matches the LLVM major of whatever rustc a job uses rather than pinning that exact patch release. Blocked means nobody has signed off on the rollout yet, not that every build is failing."
 links = ["https://github.com/DreamWeave-MP/StroggForge/actions"]
 
 [[plans.requirements]]
@@ -17,7 +17,7 @@ id = "portable-config"
 kind = "task"
 label = "Replace PortMaster GCC/EL8 configuration with clang/lld and an EL9 sysroot"
 state = "done"
-detail = "The checked-out workflow (v48 pins) and EL9 builder declare LLVM cross-language LTO and glibc 2.34. Configuration landed; release artifacts are a separate gate."
+detail = "Done in the workflows: the PortMaster job cross-compiles with clang/lld and cross-language LTO against an EL9 sysroot, glibc 2.34. Whether the result runs on a device is the next requirement."
 evidence = [".github/workflows/rustGlobalBuild.yml:release-portmaster", "Git commit e83a91c"]
 
 [[plans.requirements]]
@@ -25,7 +25,7 @@ id = "portable-proof"
 kind = "artifact"
 label = "Prove the portable artifact on the intended device/runtime"
 state = "blocked"
-detail = "No reviewed successful LLVM portable artifact plus device test is recorded here. Attach the Actions run, binary/glibc inspection and handheld smoke-test evidence before sign-off."
+detail = "Nobody has run an LLVM-built PortMaster binary on a handheld yet. Link the Actions run, the readelf output and the device test when somebody does."
 evidence = []
 
 [[plans.requirements]]
@@ -33,7 +33,7 @@ id = "consumer-rollout"
 kind = "ci"
 label = "Audit and migrate every affected consumer's ref and Cargo compiler flags"
 state = "active"
-detail = "Consumer snapshots still use differing StroggForge refs. Cargo does not inherit a dependency's .cargo/config.toml. Verify l3i users' clang, lld and linker-plugin-lto together."
+detail = "Consumers pin anything from v40 to v48, so most have not received the LLVM changes. Cargo does not inherit a dependency's .cargo/config.toml: every l3i consumer carries its own clang, lld and linker-plugin-lto settings, and all three have to be right."
 evidence = []
 
 [[plans.requirements]]
@@ -41,7 +41,7 @@ id = "android-llvm"
 kind = "platform"
 label = "Resolve Android NDK versus rustc LLVM compatibility"
 state = "todo"
-detail = "The Android path fixes NDK r27c/API 23 while the shared setup matches host rustc LLVM. Do not assume those bitcode toolchains interoperate; measure and document the supported path."
+detail = "The Android job uses NDK r27c at API 23, while setup-llvm matches the host rustc's LLVM. Nobody knows yet whether those two produce bitcode that links together. Measure it before claiming Android works."
 evidence = []
 
 [[plans.requirements]]
@@ -49,7 +49,7 @@ id = "migration-docs"
 kind = "documentation"
 label = "Record compatibility floor and migration results"
 state = "active"
-detail = "Document EL9/glibc 2.34, dropped EL8 assumptions, MSRV LLVM matching and the verified device list."
+detail = "Write down the new floor (EL9, glibc 2.34), what the EL8 retirement broke, how MSRV jobs pick their LLVM, and which devices were actually tested."
 evidence = []
 
 [[plans]]
@@ -62,21 +62,21 @@ reviewed = "2026-09-28"
 depends_on = []
 platforms = []
 distribution = ["github-pages"]
-notes = "Current implementation campaign: typed inventory, static generated views, reusable DreamWeave docs shell and version-controlled release intent. Public deployment and maintainer review remain explicit tasks."
+notes = "Turn StroggForge's site into the place to look up what DreamWeave is doing: projects, plans, platforms and workflow contracts, generated from a few TOML files."
 links = ["https://github.com/DreamWeave-MP/StroggForge"]
 
 [[plans.requirements]]
 id = "inventory-review"
 kind = "task"
-label = "Review lifecycle classifications and local-only repository locations"
+label = "Review lifecycles and the projects without a public repository"
 state = "active"
-detail = "L3i has no configured remote in the local checkout. Expand the curated inventory when source-backed relationships are available."
+detail = "L3i has no public repository yet. Add projects and relationships as they become real."
 evidence = []
 
 [[plans.requirements]]
 id = "pages-deploy"
 kind = "documentation"
-label = "Enable GitHub Actions Pages and inspect the public war room"
+label = "Switch Pages to GitHub Actions and check the deployed site"
 state = "todo"
-detail = "The Pages deployment must be observed after merge; local generation is not proof of a successful public deployment."
+detail = "A local build proves nothing about the deployment. Look at the live site after the first merge."
 evidence = []

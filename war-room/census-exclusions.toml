@@ -1,3 +1,0 @@
-# Organization repositories deliberately kept out of the census and the published site.
-# Read only by capture-organization and validation; never serialized or rendered.
-repositories = [".brand"]
