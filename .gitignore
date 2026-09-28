@@ -1,1 +1,6 @@
 AGENTS.md
+/target/
+/site/content/
+/site/public/
+/site/static/generated/
+/node_modules/

@@ -1,0 +1,2 @@
+# Proper nouns that pedantic doc_markdown would otherwise demand backticks around.
+doc-valid-idents = ["DreamWeave", "StroggForge", "GitHub", "OpenMW", ".."]
