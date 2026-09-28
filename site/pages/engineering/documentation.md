@@ -1,42 +1,40 @@
 +++
 title = "Documentation architecture"
-description = "Source-driven docs, a shared DreamWeave shell, and static publication."
+description = "Where DreamWeave's docs come from and how they reach a browser."
 weight = 20
 +++
 
 {{ diagram(name="documentation") }}
 
-## Two documentation paths
+## Two Kinds of Docs
 
-| Path | Input | Presentation | Publication |
+API docs and manuals are different animals, and pretending otherwise ends badly.
+
+| | Input | Rendered by | Published by |
 |---|---|---|---|
-| Consumer API docs | Cargo workspace / rustdoc | rustdoc's own UI | Public workflows' `docs` job on configured main pushes |
-| Project manuals and this war room | Markdown, reviewed metadata, generated reference | Mod Template docs shell / Zola | Project-specific Pages workflow |
+| API docs | Cargo source | rustdoc, in rustdoc's own UI | The public workflows' `docs` job on configured main pushes |
+| Manuals and this site | Markdown plus generated pages | The DreamWeave docs shell on Zola | The project's own Pages workflow |
 
-The war room does not pretend rustdoc output automatically passes through Tera. It links
-to API docs while its own Rust generator supplies Markdown/data for Zola. Projects with
-their own SSG should set `publish_docs: false` on the Rust workflow to avoid competing
-Pages deployments.
+This site links to API docs; it does not try to push rustdoc output through Tera. A project
+with its own Zola site should set `publish_docs: false` on its Rust workflow, or the two
+deployments will take turns overwriting each other.
 
-## Where Mod Template fits
+## The Mod Template
 
-DreamWeave-Mod-Template supplies the small reusable docs architecture: recursive sidebar,
-breadcrumbs, page-local TOC, scoped styles, copy controls and progressive enhancement.
-StroggForge vendors that foundation with an import receipt and a separate tooling skin.
-The normal project/storefront shell is not required to host this docs-only war room.
+DreamWeave-Mod-Template supplies the docs shell: recursive sidebar, breadcrumbs, a local
+table of contents, copy buttons, scoped styles and no framework. StroggForge imports that
+shell (the receipt is in `site/UPSTREAM.md`) and puts its own skin on top in separate
+files, so upstream improvements can still be pulled in.
 
-## Where St4sh and Cod3x fit
+## St4sh and Cod3x
 
-St4sh is the **Lua(u)/OpenMW side** of DreamWeave, not part of the Rust ecosystem. It
-publishes OpenMW mods, their Lua tooling and docs; Cod3x is its engineering field manual
-under `content/cod3x/docs`. That is the onboarding route for Lua/mod engineering. St4sh
-uses the Mod Template docs shell, and its site workflow calls only StroggForge's
-`createRelease` helper to refresh the release its static site uploads to. No Rust
-manufacturing job builds, signs or ships anything for it.
+St4sh is the Lua(u)/OpenMW side of DreamWeave. It publishes mods, their Lua tooling and
+their docs, and Cod3x, the OpenMW Lua field manual, lives inside it under
+`content/cod3x/docs`. It uses the same docs shell. Its site workflow calls StroggForge's
+`createRelease` helper and nothing else; no Rust job ever builds, signs or ships it.
 
-## Documentation failure routing
+## When Docs Break
 
-- Broken API docs: inspect the consumer `docs` job, Cargo doc command and Pages permissions.
-- Broken war-room content: validate source metadata and regenerate before editing templates.
-- Broken navigation/layout: inspect the imported docs shell, `site/UPSTREAM.md` and the scoped skin.
-- Competing deployments: disable one publisher; do not let rustdoc and Zola race for the same Pages site.
+- API docs missing: the consumer's `docs` job, its `cargo doc` command, Pages permissions.
+- This site wrong: fix the TOML or `site/pages` and rebuild. Never the generated pages.
+- Layout or navigation broken: the imported shell, `site/UPSTREAM.md`, then the skin.

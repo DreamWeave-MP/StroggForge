@@ -1,53 +1,58 @@
 +++
 title = "Incident desk"
-description = "When the supply line explodes, start with the failing stage and its evidence."
+description = "A release job exploded. Start here."
 weight = 1
 +++
 
-## First five minutes
+## The First Five Minutes
 
-Record the consumer repository, Git SHA/tag, Actions run URL, StroggForge caller ref,
-failing job, platform and exact error. Check the [consumer ledger](@/stroggforge/integration.md):
-an older pinned ref may behave differently from this checkout's docs. Open the generated
-[workflow contract](@/stroggforge/workflows/_index.md) and find the job's `needs` and `if`.
+Write down the consumer repository, the commit or tag, the Actions run URL, the
+StroggForge ref the caller pins, the failing job, the platform and the exact error. Then
+check which ref the consumer actually pins. A caller on `@v43` gets v43's behavior, no
+matter what these pages say about the current tag.
 
-## Route by failure
+Open the failing workflow's [contract](@/stroggforge/workflows/_index.md) and find the job.
+Its `needs` and `if` tell you whether it failed or was skipped because something upstream
+failed first. Fix the first failure, not the loudest one.
 
-| Symptom | Inspect | Next action |
+## Where to Look
+
+| Symptom | Look at | Do |
 |---|---|---|
-| Release never started | test/fmt/clippy/audit/msrv results and release conditions | Fix the first failing prerequisite. Keep the MSRV job present even if its steps skip. |
-| clang/rustc/lld mismatch | `scripts/shared/setup-llvm.sh`, `rustc -vV`, clang/lld output | Match the active compiler's LLVM major. For MSRV pass its toolchain explicitly. |
-| l3i rejects build flags | Consumer `.cargo/config.toml`, target RUSTFLAGS, L3i TOOLCHAIN.md | Supply clang, lld, linker-plugin-lto together. Cargo does not inherit dependency config. |
-| PortMaster links but will not run | EL9 sysroot, `readelf` dynamic version requirements, device runtime | Check glibc 2.34/device compatibility; do not assume old EL8 devices still work. |
-| Android LTO/codegen failure | NDK r27c target compiler vs host rustc LLVM | Resolve bitcode/toolchain mismatch; host setup success does not validate NDK compatibility. |
-| Wrong Cargo manifest or binary | `resolve-build-context.sh`, `binary_names`, `binary_package` | Select a root package/bin explicitly, or verify directory detection. |
-| Library name not found | `resolve-crate-manifest.sh`, `crate_names` | Match Cargo `[package].name`; inspect hyphen/underscore normalization. |
-| Missing archive content | `create-release-archive.sh`, `include_files`, staged build/dist paths | Reproduce staging before uploading. Verify binary, bundle and included files. |
-| Signing fails | `sign-release-binary.sh`, OIDC permission, workflow identity | Verify `id-token: write`; preserve the signed binary/bundle pairing. |
-| Scan fails | VT_API_KEY, VirusTotal action logs | Non-PR binary releases require a valid scan token. |
-| Release assets disappear | `github-publish` / `release_cleanup` ordering | Refresh deletes the previous boundary; upload only afterward. |
-| crates.io 429 or missing prerequisite | `publish_workspace.py`, index visibility, registry token | Inspect retries/waits and already-published versions before manual intervention. |
-| Cargo refuses dirty publish tree | Temporary `.stroggforge` helper checkout | Copy publisher to RUNNER_TEMP and remove helper checkout before publishing, as the workflow does. |
-| Changelog missing/history wrong | Full-history checkout; refreshed release boundary | Restore `fetch-depth: 0`; inspect changelog upload condition. |
-| Benchmark page empty | `generate-benchmark-docs.sh`, Criterion `new` JSON / raw log | Confirm bench execution and generator input, not just the upload step. |
-| Pages wrong or overwritten | Consumer publish_docs flag; Pages deploy jobs | Choose rustdoc or project SSG as the site's owner; enable Actions as Pages source. |
-| Nexus upload fails | Secret pair, platform group IDs, staged upload artifact | Validate the group mapping for that exact OS/architecture. |
-| AUR update fails | AUR environment, package name, SSH key | Check package ownership/access and publish-action log. |
-| Notification claims success after failure | `call-discord-webhook.needs` | Include every failure-bearing job; missing webhook intentionally skips. |
-| War-room metadata rejected | Error's source/project/plan ID | Fix the canonical record, never patch generated Markdown. |
+| Release never started | test, fmt, clippy, audit, msrv | Fix the first failing gate. The `msrv` job must exist even when its steps skip, or every release job that needs it skips too. |
+| clang, lld and rustc disagree | `scripts/shared/setup-llvm.sh`, `rustc -vV` | Match rustc's LLVM major. The MSRV job has to pass its own `toolchain`, or it gets stable's LLVM. |
+| l3i refuses the build flags | the consumer's `.cargo/config.toml`, L3i's `TOOLCHAIN.md` | clang, lld and `-Clinker-plugin-lto` go together. Cargo does not inherit a dependency's config, so every consumer carries its own. |
+| Windows proc macro rejects `-Clinker-plugin-lto` | `CARGO_BUILD_TARGET` in the job log | setup-llvm pins the host triple. If something unset it, target rustflags reach proc macros again. |
+| Windows binary "missing" after a green build | `target/<triple>/release` | That is where it went. Corprus Crucible knows; a hand-written step may not. |
+| PortMaster binary links but will not run | `readelf -V` on the binary, the device's glibc | The floor is glibc 2.34 now. Devices that were happy with EL8 builds may not be. |
+| Android LTO or codegen failure | NDK r27c clang vs the host rustc's LLVM | Host setup succeeding proves nothing about NDK bitcode compatibility. |
+| Wrong manifest or binary built | `resolve-build-context.sh`, `binary_names`, `binary_package` | Name the package explicitly instead of trusting directory detection. |
+| Library crate not found | `resolve-crate-manifest.sh`, `crate_names` | Use the Cargo `[package].name`. Hyphens and underscores are normalized; typos are not. |
+| Archive missing files | `create-release-archive.sh`, `include_files` | Reproduce the staging locally before uploading anything. |
+| Signing fails | `sign-release-binary.sh`, `id-token: write` | Without OIDC permission, keyless signing has no identity to sign with. |
+| VirusTotal step fails | `VT_API_KEY` | Non-PR binary releases need it, even though the contract marks the secret optional. |
+| Release assets vanished | `github-publish` / `release_cleanup` ordering | The refresh deletes and recreates the release. Anything uploaded before it is gone. |
+| crates.io 429 or missing dependency | `publish_workspace.py`, the job log | It retries and waits for the index already. Read the log before publishing by hand. |
+| Cargo refuses a dirty tree | the `.stroggforge` helper checkout | The workflow copies the publisher to `$RUNNER_TEMP` and removes the checkout first. A custom step has to do the same. |
+| Changelog empty or wrong | `fetch-depth` | It needs full history. |
+| Benchmark page empty | `generate-benchmark-docs.sh`, Criterion JSON | Check that benchmarks ran before blaming the upload. |
+| Pages overwritten | `publish_docs` | rustdoc and a project's own site cannot both own Pages. Pick one. |
+| Nexus upload fails | `NEXUS_API_KEY`, `NEXUS_GROUP_IDS` | Check the group ID for that exact OS and architecture. |
+| AUR update fails | the AUR environment, package name, SSH key | Usually ownership or key access. |
+| Discord says success after a failure | `call-discord-webhook.needs` | Every job that can fail a release belongs in that list. A missing webhook skips on purpose. |
+| War room build rejects the TOML | the error message | It names the record and the reference. Fix `war-room/*.toml`, never the generated pages. |
 
-## Ref-contract failures
+## The Ref Contract
 
-A workflow calling `.stroggforge/scripts/...` needs a checkout ref containing that helper.
-Composite actions also need their scripts in the tagged action tree. YAML can validate
-while this contract is broken. Inspect the actual tagged files and consumer pin before
-changing unrelated commands.
+A workflow that calls `.stroggforge/scripts/...` needs a StroggForge checkout containing
+that script, and a composite action needs its scripts in the tagged tree. The YAML
+validates fine either way. Before blaming the command that failed, check that the tagged
+files are there at all.
 
-## Escalation packet
+## Asking for Help
 
-Open an issue in the failing consumer for project-specific behavior, or
-[StroggForge](https://github.com/DreamWeave-MP/StroggForge/issues) for shared pipeline behavior.
-Include the first-five-minutes evidence, a minimal reproduction, expected artifact and
-which distribution channels already changed. Link the relevant campaign/release requirement.
-Use Cod3x/St4sh's source paths for Lua/content failures rather than assigning every ecosystem
-problem to the Rust supply line.
+Open the issue in the consumer repository if the problem is specific to it, or in
+[StroggForge](https://github.com/DreamWeave-MP/StroggForge/issues) if the shared pipeline
+is at fault. Include the first-five-minutes notes, a minimal reproduction, and which
+channels already published. crates.io does not un-publish because you deleted a GitHub
+Release. Lua and content failures go to St4sh, not the Rust supply line.

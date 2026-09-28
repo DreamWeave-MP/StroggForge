@@ -1,35 +1,29 @@
 +++
 title = "Reproducibility"
-description = "Deterministic site generation and honest limits on moving build inputs."
+description = "What this site guarantees, and what a release build honestly cannot."
 weight = 30
 +++
 
-## This site
+## This Site
 
-The Rust generator has a committed Cargo lockfile and no runtime network client. It reads
-committed canonical records and source snapshots, sorts output deterministically, and
-emits no wall-clock timestamp or machine-absolute path. Reviewed dates are data.
+The generator reads the committed TOML and this checkout's workflows, has a locked
+dependency set and makes no network requests. Same inputs, same pages. Mermaid and Zola
+are pinned. CI runs the same [loop](@/contributing/maintenance.md) you run locally.
 
-Generated content is **build-only**. CI generates it twice and compares the complete
-Markdown/data/Mermaid file set before rendering. Pinned Mermaid CLI and Zola versions
-produce SVG/HTML. A contributor runs the same [local loop](@/contributing/maintenance.md).
+## Release Builds
 
-The first tool/dependency installation needs network access. Subsequent Rust generation
-can use `--offline --locked`; site content rendering does not consult GitHub or sibling clones.
+Release builds are a different story. Stable Rust moves, hosted runner images move,
+CentOS Stream packages move, upstream actions move. Matching the LLVM major is a
+compatibility policy, not a patch-level pin. StroggForge does not promise byte-identical
+binaries, and this site does not pretend it does.
 
-## Consumer release builds
+To reproduce a release failure, collect:
 
-Stable Rust, hosted runner labels, Stream packages and upstream action refs may move.
-Matching LLVM major is a compatibility policy, not a reproducible compiler patch pin.
-The matrix makes these distinctions visible instead of promising byte-identical binaries.
+1. The consumer's commit or tag and its `Cargo.lock`.
+2. The exact StroggForge workflow, action and helper refs, plus the builder image.
+3. `rustc -vV`, the clang and lld versions, and the relevant Cargo target flags and sysroot.
+4. Runner, target triple, glibc or deployment floor, and enabled features.
+5. The build log, artifact hash and verification bundle.
 
-When reproducing a release failure, record:
-
-1. Consumer commit/tag and Cargo.lock.
-2. Exact reusable workflow/action/helper refs and builder image.
-3. `rustc -vV`, clang and lld versions; relevant Cargo target flags and sysroot.
-4. Platform runner, target triple, glibc/deployment floor and feature selection.
-5. Build logs, artifact hash and verification bundle identity.
-
-An MSRV declaration is separate from a successful MSRV run. A configured PortMaster target
-is separate from a device test. Keep those receipts in the plan before marking work done.
+A declared MSRV is not a passing MSRV job. A configured PortMaster target is not a binary
+that ran on a handheld. Record both separately in the plan.

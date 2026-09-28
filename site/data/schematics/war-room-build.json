@@ -1,0 +1,23 @@
+{
+  "id": "war-room-build",
+  "mode": "flow",
+  "title": "How this site gets built",
+  "heading_level": 3,
+  "description": "People edit the TOML. Everything after the generator is rebuilt from scratch on every run.",
+  "direction": "vertical",
+  "nodes": [
+    { "id": "intent", "title": "war-room/*.toml", "kind": "source", "detail": "Projects, plans, platforms and workflow notes. The only part a person writes." },
+    { "id": "yaml", "title": "Workflow YAML", "kind": "source", "role": "support", "detail": "Inputs, secrets, jobs and conditions, read straight from .github/workflows and .github/actions." },
+    { "id": "generator", "title": "tools/war-room", "kind": "tool", "detail": "Checks every reference, then writes Markdown and Mermaid into site/content and site/static/generated." },
+    { "id": "diagrams", "title": "npm run diagrams", "kind": "tool", "detail": "Renders the Mermaid sources to static SVG, once." },
+    { "id": "zola", "title": "zola build", "kind": "component", "detail": "The DreamWeave docs shell: routes, search, navigation." },
+    { "id": "pages", "title": "GitHub Pages", "kind": "result", "detail": "Deployed from main by .github/workflows/war-room.yml." }
+  ],
+  "edges": [
+    { "from": "intent", "to": "generator" },
+    { "from": "yaml", "to": "generator", "label": "read directly", "kind": "support" },
+    { "from": "generator", "to": "diagrams" },
+    { "from": "diagrams", "to": "zola" },
+    { "from": "zola", "to": "pages" }
+  ]
+}

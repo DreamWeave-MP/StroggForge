@@ -1,8 +1,8 @@
 flowchart LR
   cargo["Project Cargo source"] --> rustdoc["cargo doc / API docs"]
   rustdoc --> api["Consumer GitHub Pages"]
-  metadata["Inventory + plans + source snapshots"] --> rust["Rust war-room generator"]
-  rust --> markdown["Generated Markdown / JSON / Mermaid"]
+  metadata["war-room TOML + workflow YAML"] --> rust["Rust war-room generator"]
+  rust --> markdown["Generated Markdown + Mermaid"]
   manuals["Hand-authored Markdown"] --> shell["DreamWeave docs shell"]
   markdown --> shell
   template["DreamWeave-Mod-Template"] -.-> shell

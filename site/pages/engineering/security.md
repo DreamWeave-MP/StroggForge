@@ -1,39 +1,45 @@
 +++
 title = "Supply-chain security"
-description = "The signing boundary, credentials and what checks actually establish."
+description = "What gets signed, which credentials exist, and what the checks actually prove."
 weight = 25
 +++
 
-## Quality and provenance
+## What the Checks Prove
 
-Tests, formatting, pedantic Clippy and RustSec block the standard release path. MSRV is
-checked when configured. None of these makes an artifact intrinsically trustworthy;
-they are reviewable controls with a concrete workflow/run identity.
+Tests, formatting, pedantic Clippy and RustSec gate every standard release, and MSRV
+joins them when configured. None of that makes a binary trustworthy. It makes it
+reviewable: every artifact traces back to a run, a commit and a set of checks somebody
+can inspect.
 
-Corprus Crucible signs the **built binary** with keyless Cosign before packaging. The
-verification bundle travels in the archive. Verify the extracted binary against that
-bundle and the expected workflow identity/issuer; do not claim the archive itself was
-signed. VirusTotal scans the archive and records analysis links. A scan is not a guarantee
-that a binary is benign.
+Corprus Crucible signs the **binary** with keyless Cosign before it is packaged, and the
+verification bundle travels inside the archive. Verify the extracted binary against that
+bundle and the expected workflow identity. The archive itself is not signed, so do not
+tell anyone it is. VirusTotal then scans the archive and records the links. A clean scan
+means no scanner complained. It does not mean the binary is benign.
 
-## Credential boundaries
+## Credentials
 
-- `GITHUB_TOKEN`: built-in token, constrained by caller/job permissions.
-- `id-token: write`: OIDC identity for keyless signing and Pages deployment.
-- `VT_API_KEY`: required operationally for non-PR binary scans.
-- `CARGO_REGISTRY_TOKEN`: crates.io publishing only when enabled.
-- `AUR_SSH_PRIVATE_KEY`: configured AUR publishing.
-- `NEXUS_API_KEY` and `NEXUS_GROUP_IDS`: configured Nexus upload pair.
-- `DW_BOT_PAT`: cross-repository dependent issue creation.
-- Discord webhook secrets: notification only; missing webhook is an intentional skip.
+- `GITHUB_TOKEN`: built in, limited by the caller's and the job's permissions.
+- `id-token: write`: the OIDC identity keyless signing and Pages deployment rely on.
+- `VT_API_KEY`: needed for every non-PR binary release.
+- `CARGO_REGISTRY_TOKEN`: crates.io, only when publishing is on.
+- `AUR_SSH_PRIVATE_KEY`: AUR publishing.
+- `NEXUS_API_KEY` and `NEXUS_GROUP_IDS`: Nexus uploads, always as a pair.
+- `DW_BOT_PAT`: opening update issues in dependent repositories.
+- Discord webhooks: notifications only. A missing webhook skips quietly, by design.
 
-See generated contracts for exact required/default declarations. No secret values belong
-in source snapshots, plans, failure reports or browser data. The capture command reads
-workflow source and explicitly selected evidence files, not credential stores.
+The [input reference](@/stroggforge/inputs.md) shows which contract declares what. No
+secret value belongs anywhere under `war-room/` or in a plan; this whole site is public.
 
-## Incident response
+## Workflow Scripts
 
-Preserve the failing run URL, commit/tag, caller ref, job, target and artifact identity.
-If publication occurred before a later failure, determine which channels already changed
-before retrying. Use the [incident desk](@/stroggforge/troubleshooting.md) and the
-[publishing recovery rules](@/releases/publishing.md).
+A `run:` step receives caller-supplied text, like a notification title, through `env:`,
+never spliced into the script. `${{ inputs.title }}` pasted into shell source means a
+title containing `$(...)` gets executed. `discord.yml` shows the pattern.
+
+## When Something Goes Wrong
+
+Keep the run URL, commit or tag, caller ref, job, target and artifact identity. If some
+channels already published before the failure, find out which before retrying. Then the
+[incident desk](@/stroggforge/troubleshooting.md) and the
+[recovery rules](@/releases/publishing.md).

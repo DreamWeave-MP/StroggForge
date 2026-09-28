@@ -1,37 +1,41 @@
 +++
 title = "Engineering standards"
-description = "Small explicit changes, real evidence, deterministic outputs."
+description = "Small explicit changes, fail-fast code and honest status."
 weight = 30
 +++
 
-## Rust and metadata
+## Rust
 
-Use explicit types and enums, useful error context, full-word names and ordinary control
-flow. Avoid generic frameworks and silent omission. Add a relationship only when a
-manifest, workflow, content path or migration record supports it. Use unknown for missing
-evidence; never manufacture readiness to fill a table.
+Explicit types, enums for closed sets, full-word names, ordinary control flow and errors
+that say what to fix. No framework for a problem that has one implementation. If an
+invariant matters, fail when it breaks; a generator that quietly renders bad data is not
+being tolerant, it is lying to you.
 
-Run the generator crate's formatting, tests and strict Clippy before changing its contract.
-Meaningful validation tests exercise broken references, contradictory readiness, cycles,
-capture semantics and deterministic generation. No network or sibling clone is required
-for ordinary validation.
+Run the generator's formatting, tests and pedantic Clippy before changing it. Validation
+covers structure: IDs, references, plan states and cycles. Taste belongs in review.
 
-## Workflow changes
+## Relationships and Status
 
-Keep shell mechanics in `scripts/`; composite actions orchestrate them. Keep release
-boundary dependencies and notification `needs` complete. Updating a workflow's input
-automatically updates its generated contract; update operational notes when semantics change.
-Review self-referential refs intentionally before any StroggForge release tag.
+Add a relationship when it is real: a Cargo dependency, a workflow call, a content path,
+a migration. Use `unknown` when nothing is recorded. An empty table cell is more useful
+than a manufactured green one.
 
-## Documentation
+## Workflows
 
-Write in `site/pages`, not generated `site/content`. Keep the shared docs foundation
-recognizable and record upstream changes in `site/UPSTREAM.md`. Use stable human-readable
-slugs and Zola `@/` links. Every diagram needs a textual equivalent or readable source.
-Verify narrow-screen layout, keyboard navigation and JavaScript-disabled reading.
+Shell logic lives in `scripts/`; composite actions call it. Keep release-boundary
+ordering and the Discord `needs` list complete. A new input documents itself on the site;
+update `war-room/workflows.toml` when a workflow's behavior changes. Check every
+self-referential ref before tagging a StroggForge release.
 
-## Release intent
+## Writing
 
-Record a version/date only when there is an actual plan. A done requirement needs evidence;
-a blocked requirement needs a useful reason. Configuration completion, successful CI,
-artifact inspection and runtime testing are distinct facts.
+Write in `site/pages`, never the generated `site/content`. Use stable slugs and Zola's `@/`
+links so the build catches breakage. Every diagram needs a table or its source next to it.
+Check narrow screens, keyboard navigation and reading with JavaScript off.
+
+## Release Intent
+
+Record a version or date only when someone decided on it. Link the run or artifact that
+finished a requirement, and give a blocked requirement a reason somebody can act on.
+Configured, passing CI, inspected artifact and tested on hardware are four different
+facts. Keep them apart.

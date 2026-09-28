@@ -1,46 +1,46 @@
 +++
 title = "Publishing and recovery"
-description = "What a tag changes and how to avoid making a partial release worse."
+description = "What a tag sets in motion, and how not to make a half-finished release worse."
 weight = 30
 +++
 
-## Before tagging
+## Before You Tag
 
-Confirm the intended package version, quality gates, docs, artifacts, supported platforms
-and distribution targets in a release plan. Review the consumer's actual caller ref and
-inputs. Cargo.toml's current version is not the release plan. The war room does not create tags.
-The manual Rust-application checklist lives in
-[Release Planning](https://github.com/DreamWeave-MP/StroggForge/blob/main/Release%20Planning.md);
-its [status is annotated](@/archaeology/notebooks.md) because some sections predate this site.
+Put the release in a [plan](@/contributing/maintenance.md#planning-a-release) first:
+version, platforms, channels, and what has to be true before it ships. Check which
+StroggForge ref the consumer pins and which inputs it passes. The version in `Cargo.toml`
+is not a plan, and the war room never creates tags for you.
+[Release Planning](https://github.com/DreamWeave-MP/StroggForge/blob/main/Release%20Planning.md)
+has the manual checklist for Rust applications.
 
-## Publication lanes
+## Where Things Get Published
 
-| Destination | Boundary | Required setup |
+| Destination | When | Needs |
 |---|---|---|
-| GitHub Release | Successful platform staging; refreshed tag/development boundary | Contents permission; non-PR binary scan/sign setup |
-| crates.io | Tagged, enabled publication | Registry token; package/version correctness |
-| Workspace crates.io | Tagged `cargo_publish_workspace` | Dependency-ordered publisher; index visibility; no untracked helper checkout |
-| Rustdoc Pages | Configured main push after quality gates | Pages source set to Actions; Pages/OIDC permissions |
-| Changelog / benchmark docs | Refreshed release boundary | Full history for changelog; benchmark opt-in |
-| AUR | Configured push after platform success | Package name, SSH secret, AUR environment |
-| Nexus | Configured non-PR path after builds | API key plus platform file group IDs |
-| PortMaster | Optional ARM64 native artifact | Compatible sysroot/toolchain and real device evidence; catalog submission is separate |
+| GitHub Release | After every platform build is staged; the release is refreshed first | `contents: write`; for binaries, signing and scanning setup |
+| crates.io | Tags, when publishing is enabled | `CARGO_REGISTRY_TOKEN`, a correct package version |
+| crates.io, whole workspace | Tags with `cargo_publish_workspace` | Dependency order and index visibility, both handled by the publisher |
+| Rustdoc on Pages | Main pushes with `publish_docs`, after the gates | Pages source set to Actions, Pages and OIDC permissions |
+| Changelog and benchmarks | After the release refresh | Full Git history for the changelog; benchmarks are opt-in |
+| AUR | Configured pushes after the platform builds | Package name, SSH key, the AUR environment |
+| Nexus | Configured non-PR runs after the builds | API key plus a file group ID per platform |
+| PortMaster | Opt-in ARM64 native binary | A device that runs it. Catalog submission is a separate, manual step. |
 
-## A partial release is not a clean slate
+## A Partial Release Is Not a Clean Slate
 
-GitHub refresh intentionally deletes and recreates the release; `development` also removes
-its tag. Do not race later uploads against refresh. Determine whether GitHub, crates.io,
-AUR or Nexus already changed before rerunning or publishing manually.
+Refreshing a GitHub Release deletes and recreates it; for `development` it deletes the tag
+too. That is intentional, and it means anything uploaded before the refresh is gone.
 
-The workspace publisher skips versions already present on crates.io, handles rate limits,
-and waits for index visibility. Registry publication is not undone by deleting a GitHub
-Release. Read the actual job log before choosing a retry path.
+Before rerunning a failed release, find out what already went out. crates.io does not
+forget a version because you deleted the GitHub Release. The workspace publisher skips
+versions that are already published, retries rate limits and waits for the index, so
+read its log before reaching for `cargo publish` yourself.
 
-## Shipping evidence
+## Closing the Plan
 
-Attach the Actions run URL, relevant artifact identity, verification result and platform
-smoke-test result to the plan's completed requirements. Keep a blocker explicit until
-its reason is resolved. The site reports recorded evidence; it does not poll service health.
+Link the Actions run, the artifact and any device test on the requirements they finish.
+Leave a blocker in place until its reason is actually gone. The site reports what was
+recorded; it does not go and check.
 
-[Release board](@/releases/board.md) · [Pipeline graph](@/releases/pipelines.md) ·
+[Release board](@/releases/board.md) · [Pipelines](@/releases/pipelines.md) ·
 [Incident desk](@/stroggforge/troubleshooting.md)

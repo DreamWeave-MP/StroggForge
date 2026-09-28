@@ -1,28 +1,28 @@
 +++
 title = "StroggForge"
-description = "Canonical Rust workflow contracts and the incident desk."
+description = "The Rust supply line: workflow contracts, integration and the incident desk."
 weight = 30
 sort_by = "weight"
 template = "docs/section.html"
 page_template = "docs/page.html"
 +++
 
-StroggForge is the shared build/release layer for Rust applications and Rust ecosystem
-components. It verifies, manufactures, signs, documents and publishes configured consumers.
-It also hosts this engineering inventory. Visualizing a mod here does not make that mod
-depend on StroggForge.
+StroggForge is the build and release layer for DreamWeave's Rust applications and
+libraries. It verifies, builds, signs, packages, documents and publishes them. It also
+hosts this site. Showing up on a map here does not make a mod depend on it.
 
-- **Applications:** `rustGlobalBuild.yml`, with JSON `binary_names`.
-- **Libraries:** `libGlobalBuild.yml`, with Cargo `crate_names`.
-- **Binary manufacturing:** `corprus-crucible`; tests run in the calling workflow.
-- **Compiler setup:** `setup-llvm`, after Rust setup in compiling jobs.
+- **Applications** call `rustGlobalBuild.yml` with a JSON array of `binary_names`.
+- **Libraries** call `libGlobalBuild.yml` with Cargo `crate_names`.
+- **Corprus Crucible** builds, signs and packages one binary. It does not run tests; the
+  calling workflow already did.
+- **setup-llvm** puts clang and lld matching rustc's LLVM on every compiling job.
 
-Use the [workflow reference](@/stroggforge/workflows/_index.md),
-[input and secret reference](@/stroggforge/inputs.md),
-[integration templates and actual callers](@/stroggforge/integration.md), and
-[incident desk](@/stroggforge/troubleshooting.md). The hand-maintained long-form reference,
-[StroggForge Actions](https://github.com/DreamWeave-MP/StroggForge/blob/main/StroggForge%20Actions.md),
-is updated alongside workflow changes and covers the helper scripts in prose.
+The [workflow contracts](@/stroggforge/workflows/_index.md) are generated from the YAML,
+the [input reference](@/stroggforge/inputs.md) lines every knob up side by side, and
+[integration](@/stroggforge/integration.md) has the caller templates. When something
+breaks, go to the [incident desk](@/stroggforge/troubleshooting.md).
+[StroggForge Actions](https://github.com/DreamWeave-MP/StroggForge/blob/main/StroggForge%20Actions.md)
+is the long-form reference for the helper scripts.
 
-Static sites on the Lua(u)/OpenMW and web sides (St4sh, the Mod Template) call only the
-`createRelease` helper. That is a CI convenience, not membership in the Rust ecosystem.
+St4sh and the Mod Template call `createRelease` to refresh the release their static site
+uploads to. That is borrowing a helper, not joining the Rust ecosystem.
