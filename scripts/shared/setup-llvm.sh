@@ -90,12 +90,18 @@ install_linux() {
 }
 
 install_macos() {
-  if brew install "llvm@$llvm_major" >/dev/null 2>&1; then
-    add_path "$(brew --prefix "llvm@$llvm_major")/bin"
-  else
-    brew install llvm
-    add_path "$(brew --prefix llvm)/bin"
-  fi
+  # Homebrew ships lld as its own formula, separate from llvm: install both, versioned when a
+  # versioned formula exists, and put both bin directories on PATH (lld provides ld64.lld,
+  # which `clang -fuse-ld=lld` needs for Mach-O).
+  local formula
+  for formula in llvm lld; do
+    if brew install "$formula@$llvm_major" >/dev/null 2>&1; then
+      add_path "$(brew --prefix "$formula@$llvm_major")/bin"
+    else
+      brew install "$formula"
+      add_path "$(brew --prefix "$formula")/bin"
+    fi
+  done
 }
 
 install_windows() {
@@ -132,13 +138,19 @@ if [[ "$installed_major" != "$llvm_major" ]]; then
 fi
 echo "setup-llvm: clang $installed at $(command -v clang)"
 if command -v ld.lld >/dev/null 2>&1; then
-  echo "setup-llvm: $(ld.lld --version | head -1)"
+  lld_banner=$(ld.lld --version | head -1)
 elif command -v lld-link >/dev/null 2>&1; then
-  echo "setup-llvm: $(lld-link --version | head -1)"
+  lld_banner=$(lld-link --version | head -1)
 else
   echo "setup-llvm: lld is not on PATH" >&2
   exit 1
 fi
+lld_version=$(sed -n 's/.*LLD \([0-9][0-9.]*\).*/\1/p' <<<"$lld_banner" | head -1)
+if [[ "${lld_version%%.*}" != "$llvm_major" ]]; then
+  echo "setup-llvm: lld on PATH is '$lld_banner', not LLVM $llvm_major (rustc's); PATH order is wrong" >&2
+  exit 1
+fi
+echo "setup-llvm: $lld_banner"
 if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
   {
     echo "llvm_major=$llvm_major"
