@@ -1,32 +1,47 @@
-# DreamWeave docs foundation
+# Imported DreamWeave site components
 
-Imported from the local **DreamWeave-Mod-Template** checkout at
-`d86d2cb50fe6539132a9f6e1d37d13b9699e8a17` (2026-09-28 inspection).
-Repository: <https://github.com/DreamWeave-MP/DreamWeave-Mod-Template>.
-The upstream code is licensed **AGPL-3.0**. Its complete, verbatim license is included as
-the `evidence.LICENSE` field of `war-room/sources/mod-template.json`, and emitted as
-`site/static/generated/LICENSE-AGPL-3.0.txt` for readers of the published site.
-Attribution remains with the DreamWeave Mod Template contributors.
+Two pieces of this site come from other DreamWeave repositories. They are copied in, not
+fetched at build time, so a clean checkout always has everything.
 
-The import consists of `templates/docs/{base,breadcrumbs,page,section,sidebar,toc}.html`,
-`sass/docs.sass`, and `static/docs/docs.js`. St4sh's use of the same docs architecture
-was inspected at `86cbc26146de7daf30f5fbf57d791d847dd8ac9b`, including Cod3x's docs-root frontmatter.
+## Docs shell: DreamWeave-Mod-Template
 
-## Local delta
+Imported at `d86d2cb50fe6539132a9f6e1d37d13b9699e8a17` from
+<https://github.com/DreamWeave-MP/DreamWeave-Mod-Template>, licensed **AGPL-3.0**. The full
+license text ships as `site/static/LICENSE-AGPL-3.0.txt` and is linked from every page's
+footer. Attribution stays with the Mod Template's contributors.
 
-- `docs/base.html`: engineering header/footer links, circuit mark, scoped skin link,
-  semantic mobile sidebar panel, skip-link target, accessible search result container.
-- The rest of the docs templates and `docs.sass` preserve the upstream implementation.
-- `docs.js`: upstream copy/TOC/navigation behavior; Escape uses the native hidden attribute
-  to match the local search container. Local search lives in `war-room.js`.
-- `templates/index.html` is a minimal host shell supplying the upstream block contract;
-  it replaces the storefront/Terminimal host, not the docs architecture.
-- `sass/war-room.scss`, `templates/war-room/` and shortcodes own the tooling variant.
-  No Mod Template initializer, storefront taxonomy or download automation is imported.
+Files: `templates/docs/{base,breadcrumbs,page,section,sidebar,toc}.html`, `sass/docs.sass`,
+`static/docs/docs.js`.
 
-## Updating
+Local changes, all small:
 
-Compare these paths against an explicitly reviewed upstream revision. Apply the upstream
-changes, reapply the small base-template delta above, update this receipt and run the site
-gate. Do not overwrite the tooling skin or hand-authored `site/pages`. The upstream
-repository is not fetched during rendering; a clean checkout has the full foundation.
+- `docs/base.html`: engineering header and footer links, the circuit mark, the extra
+  stylesheets, a semantic mobile sidebar, the skip-link target and an accessible search
+  results container.
+- `docs.js`: Escape uses the native `hidden` attribute to match the search container.
+  Search itself lives in `war-room.js`.
+- `templates/index.html` is a minimal host shell supplying the block contract the docs
+  templates expect. It replaces the Mod Template's storefront, not its docs architecture.
+
+The StroggForge look lives in `sass/war-room.sass`, `templates/war-room/` and the other
+shortcodes. None of the Mod Template's initializer, storefront taxonomy or download
+automation came along.
+
+## Schematic shortcode: S3ctors-S3cret-St4sh
+
+Imported at `86cbc26146de7daf30f5fbf57d791d847dd8ac9b` from
+<https://github.com/DreamWeave-MP/S3ctors-S3cret-St4sh>.
+
+- `templates/shortcodes/schematic.html`: unchanged.
+- `sass/schematic.sass`: every `docs-schematic` rule from St4sh's `sass/docs.sass`,
+  including its responsive `@media` blocks, and nothing else.
+
+Schematic data is JSON in the shortcode's format. Hand-written ones live in
+`site/data/schematics/`; the generator writes the supply-line ones to
+`site/static/generated/schematics/`.
+
+## Updating either
+
+Diff the listed files against a newer upstream revision you have actually read, apply what
+matters, reapply the local changes above, and update the revision here. Do not edit the
+imported files to restyle them; override in `war-room.sass`, which loads last.
