@@ -71,8 +71,15 @@ install_linux() {
     done
     return
   fi
-  # No apt (a container image): the official release tarball. It is built against a recent
-  # glibc, so on old-glibc images such as AlmaLinux 8 this step fails and says so.
+  if command -v dnf >/dev/null 2>&1; then
+    # The EL9 builder image (CentOS Stream 9) ships clang and lld from AppStream; they are
+    # installed in the image, and this makes a plain EL9 container work too. The major check at
+    # the end catches the stream and rustc moving to different LLVM releases.
+    dnf install -y clang lld
+    return
+  fi
+  # Neither apt nor dnf: the official release tarball, which needs glibc 2.34 and GCC 12's
+  # libstdc++ (Ubuntu 22.04, Debian 12; no EL release qualifies).
   local tag prefix
   tag=$(release_tag)
   prefix="${RUNNER_TEMP:-/tmp}/llvm-$llvm_major"

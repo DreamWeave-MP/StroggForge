@@ -606,7 +606,9 @@ jobs:
           nexus_group_ids: ${{ secrets.NEXUS_GROUP_IDS }}
 
   # Build, sign, scan, package, and stage Rust app archives on Linux.
-  # Runs inside AlmaLinux 8 (glibc 2.28) for maximum distribution compatibility.
+  # Runs inside the EL9 builder (CentOS Stream 9, glibc 2.34: RHEL/AlmaLinux 9, Ubuntu 22.04,
+  # Debian 12 and newer can run the result). It carries the clang and lld the LLVM toolchain
+  # policy needs; AlmaLinux 8 (glibc 2.28) cannot run LLVM 22 and was given up for that reason.
   release-linux:
     needs: [test, clippy, fmt, audit, msrv]
 
@@ -615,9 +617,8 @@ jobs:
         app_names: ${{ fromJson(inputs.binary_names) }}
 
     runs-on: ubuntu-latest
-    # This builder image is versioned with the StroggForge release tag and contains the former AlmaLinux 8 dnf dependency set
-    # while preserving the glibc 2.28 target.
-    container: ghcr.io/dreamweave-mp/stroggforge-linux-x86_64-almalinux8-builder:v45
+    # This builder image is versioned with the StroggForge release tag.
+    container: ghcr.io/dreamweave-mp/stroggforge-linux-x86_64-el9-builder:v45
 
     permissions:
       contents: write

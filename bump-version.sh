@@ -25,7 +25,7 @@ FILES=(
   .github/action_templates/daily_quality_template.yaml
 )
 
-LINUX_BUILDER_IMAGE="ghcr.io/dreamweave-mp/stroggforge-linux-x86_64-almalinux8-builder"
+LINUX_BUILDER_IMAGE="ghcr.io/dreamweave-mp/stroggforge-linux-x86_64-el9-builder"
 PORTMASTER_BUILDER_IMAGE="ghcr.io/dreamweave-mp/stroggforge-portmaster-aarch64-almalinux8-builder"
 
 echo ""

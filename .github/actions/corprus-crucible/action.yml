@@ -40,7 +40,7 @@ inputs:
     required: false
     default: ""
   llvm_toolchain:
-    description: "Set to 'true' to install clang and lld matching the Rust toolchain's LLVM before building, for binaries built under cross-language LTO (l3i dependents). The AlmaLinux 8 Linux builder cannot run the LLVM release binaries, so it fails with a message there."
+    description: "Set to 'true' to install clang and lld matching the Rust toolchain's LLVM before building, for binaries built under cross-language LTO (l3i dependents). The EL9 Linux builder image already carries them."
     required: false
     default: "false"
 
