@@ -129,7 +129,7 @@ jobs:
           submodules: true
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
-      - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v47
+      - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v48
       - name: Cache Cargo registry
         uses: actions/cache@v5.0.5
         with:
@@ -169,7 +169,7 @@ jobs:
           submodules: true
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
-      - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v47
+      - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v48
       - name: Cache Cargo registry
         uses: actions/cache@v5.0.5
         with:
@@ -223,7 +223,7 @@ jobs:
         if: inputs.msrv != ''
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v47
+          ref: v48
           path: .stroggforge
       - uses: dtolnay/rust-toolchain@stable
         if: inputs.msrv != ''
@@ -238,7 +238,7 @@ jobs:
         id: rust_toolchain
         with:
           toolchain: ${{ steps.msrv.outputs.toolchain }}
-      - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v47
+      - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v48
         if: inputs.msrv != ''
         with:
           toolchain: ${{ steps.msrv.outputs.toolchain }}
@@ -282,7 +282,7 @@ jobs:
           submodules: true
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
-      - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v47
+      - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v48
       - name: Cache Cargo registry
         uses: actions/cache@v5.0.5
         with:
@@ -325,7 +325,7 @@ jobs:
           submodules: true
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
-      - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v47
+      - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v48
       - name: Cache Cargo registry
         uses: actions/cache@v5.0.5
         with:
@@ -365,7 +365,7 @@ jobs:
           submodules: true
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
-      - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v47
+      - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v48
       - name: Cache Cargo registry
         uses: actions/cache@v5.0.5
         with:
@@ -402,11 +402,11 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v47
+          ref: v48
           path: .stroggforge
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
-      - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v47
+      - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v48
       - name: Cache Cargo registry
         uses: actions/cache@v5.0.5
         with:
@@ -451,11 +451,11 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v47
+          ref: v48
           path: .stroggforge
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
-      - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v47
+      - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v48
       - name: Cache Cargo registry
         uses: actions/cache@v5.0.5
         with:
@@ -501,7 +501,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v47
+          ref: v48
           path: .stroggforge
       - name: Generate Changelog
         run: bash .stroggforge/scripts/shared/changelog.sh CHANGELOG.md
@@ -527,11 +527,11 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v47
+          ref: v48
           path: .stroggforge
       - uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
-      - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v47
+      - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v48
       - name: Cache Cargo registry
         uses: actions/cache@v5.0.5
         with:
@@ -580,7 +580,7 @@ jobs:
         with:
           submodules: true
       - name: Run Corprus Crucible
-        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v47
+        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v48
         with:
           binary_name: ${{ matrix.app_names }}
           cargo_package: ${{ inputs.binary_package }}
@@ -603,7 +603,7 @@ jobs:
 
     runs-on: ubuntu-latest
     # This builder image is versioned with the StroggForge release tag.
-    container: ghcr.io/dreamweave-mp/stroggforge-linux-x86_64-el9-builder:v47
+    container: ghcr.io/dreamweave-mp/stroggforge-linux-x86_64-el9-builder:v48
 
     permissions:
       contents: write
@@ -614,7 +614,7 @@ jobs:
         with:
           submodules: true
       - name: Run Corprus Crucible
-        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v47
+        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v48
         with:
           binary_name: ${{ matrix.app_names }}
           cargo_package: ${{ inputs.binary_package }}
@@ -657,7 +657,7 @@ jobs:
         with:
           ndk-version: r27c
       - name: Run Corprus Crucible
-        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v47
+        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v48
         env:
           ANDROID_NDK_HOME: ${{ steps.setup_ndk.outputs.ndk-path }}
           NDK_HOME: ${{ steps.setup_ndk.outputs.ndk-path }}
@@ -696,7 +696,7 @@ jobs:
 
     runs-on: ubuntu-latest
     # This builder image is versioned with the StroggForge release tag.
-    container: ghcr.io/dreamweave-mp/stroggforge-portmaster-aarch64-el9-builder:v47
+    container: ghcr.io/dreamweave-mp/stroggforge-portmaster-aarch64-el9-builder:v48
 
     permissions:
       contents: write
@@ -707,7 +707,7 @@ jobs:
         with:
           submodules: true
       - name: Run Corprus Crucible
-        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v47
+        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v48
         env:
           # The whole LLVM toolchain policy goes in RUSTFLAGS, where l3i's build script looks for
           # it (this variable replaces a repository's own [target] rustflags), plus the cross
@@ -748,7 +748,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v47
+          ref: v48
           path: .stroggforge
 
       - name: Refresh GitHub Release
@@ -836,7 +836,7 @@ jobs:
         if: (env.NEXUS_API_KEY != '' || env.NEXUS_GROUP_IDS != '') && (matrix.platform.os != 'Portmaster' || inputs.enable_portmaster)
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v47
+          ref: v48
           path: .stroggforge
 
       - name: Download Nexus Mods Upload Artifact
@@ -891,7 +891,7 @@ jobs:
   call-discord-webhook:
     if: always() && !cancelled() && inputs.generate_discord_notification && github.event_name == 'push'
     needs: [test, fmt, clippy, audit, msrv, release, release-linux, release-android, release-portmaster, github-publish, docs, changelog, benchmarks, nexus-publish, cargo-publish, cargo-publish-workspace, aur-publish]
-    uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v47
+    uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v48
     secrets:
       WEBHOOK_URL: ${{ secrets.DISCORD_CHANNEL_WEBHOOK || secrets.DW_TOOLS_CHANNEL_WEBHOOK }}
     with:
@@ -904,7 +904,7 @@ jobs:
     if: success() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && inputs.dependent_repo_names != '' && inputs.dependent_repo_names != '[]'
     needs: [github-publish]
 
-    uses: DreamWeave-MP/StroggForge/.github/workflows/dependent.yml@v47
+    uses: DreamWeave-MP/StroggForge/.github/workflows/dependent.yml@v48
 
     secrets:
       DW_BOT_PAT: ${{ secrets.DW_BOT_PAT }}
