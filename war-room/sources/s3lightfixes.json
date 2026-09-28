@@ -1,0 +1,130 @@
+{
+  "schema": 1,
+  "source": "s3lightfixes",
+  "revision": "6e445377c563724694ab3768c38b71e98d553f32",
+  "dirty": false,
+  "observed": "2026-09-28",
+  "packages": [
+    {
+      "name": "s3lightfixes",
+      "version": "0.4.59",
+      "rust_version": null,
+      "dependencies": [
+        {
+          "name": "clap",
+          "req": "^4.6.1",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": [
+            "derive"
+          ]
+        },
+        {
+          "name": "clap_complete",
+          "req": "^4.6.1",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "clap_mangen",
+          "req": "^0.3.0",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "native-dialog",
+          "req": "^0.9.6",
+          "kind": null,
+          "optional": false,
+          "target": "cfg(not(target_os = \"android\"))",
+          "features": []
+        },
+        {
+          "name": "openmw-config",
+          "req": "^1.1.0",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "ordered_hash_map",
+          "req": "^0.6.0",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "palette",
+          "req": "^0.7.6",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "rayon",
+          "req": "^1.12.0",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "regex",
+          "req": "^1.12.3",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "serde",
+          "req": "^1.0.228",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": [
+            "derive"
+          ]
+        },
+        {
+          "name": "tes3",
+          "req": "*",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": [
+            "esp"
+          ]
+        },
+        {
+          "name": "toml",
+          "req": "^1.1.2",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "vfstool_lib",
+          "req": "^0.9.0",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": []
+        }
+      ]
+    }
+  ],
+  "workflows": {
+    ".github/workflows/release.yaml": "name: Lightfixes CI\n\non:\n  workflow_dispatch:\n  pull_request:\n  push:\n    branches: main\n    tags: ['*']\n\njobs:\n  build:\n    permissions:\n      contents: write\n      pages: write\n      id-token: write\n    uses: DreamWeave-MP/StroggForge/.github/workflows/rustGlobalBuild.yml@v41\n    secrets: inherit\n    with:\n      # Required: JSON array of binary names to build. Add more for monorepos.\n      binary_names: '[\"s3lightfixes\"]'\n      cargo_publish: false\n      enable_portmaster: true\n      enable_android: true\n"
+  },
+  "evidence": {}
+}

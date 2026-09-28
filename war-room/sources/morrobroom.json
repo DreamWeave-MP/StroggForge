@@ -1,0 +1,181 @@
+{
+  "schema": 1,
+  "source": "morrobroom",
+  "revision": "0f9342bb4aded5fc47ec34af784d19b27ddce191",
+  "dirty": true,
+  "observed": "2026-09-28",
+  "packages": [
+    {
+      "name": "morrobroom",
+      "version": "1.0.0",
+      "rust_version": null,
+      "dependencies": [
+        {
+          "name": "clap",
+          "req": "^4.6.7",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": [
+            "derive"
+          ]
+        },
+        {
+          "name": "delaunator",
+          "req": "^1.1.0",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "geo",
+          "req": "^0.33.1",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": [
+            "earcut"
+          ]
+        },
+        {
+          "name": "glam",
+          "req": "^0.33.5",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "imagesize",
+          "req": "^0.15.0",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "lightmap",
+          "req": "^0.7.0",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "mimalloc",
+          "req": "^0.1.52",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "nalgebra",
+          "req": "^0.35.0",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "nom",
+          "req": "^8.0.0",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "openmw-config",
+          "req": "^1.1.0",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "rayon",
+          "req": "^1.12.0",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "rusty_dds",
+          "req": "^0.9.0",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": [
+            "encode"
+          ]
+        },
+        {
+          "name": "serde",
+          "req": "^1.0.229",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": [
+            "derive"
+          ]
+        },
+        {
+          "name": "serde_json",
+          "req": "^1.0.145",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "sha1",
+          "req": "^0.10.6",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "tes3",
+          "req": "*",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": [
+            "esp",
+            "nif"
+          ]
+        },
+        {
+          "name": "usage",
+          "req": "^1.4.0",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": [
+            "rayon"
+          ]
+        },
+        {
+          "name": "vfstool_lib",
+          "req": "^0.9.0",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": [
+            "beth-archives",
+            "zip"
+          ]
+        }
+      ]
+    }
+  ],
+  "workflows": {
+    ".github/workflows/build_site.yml": "on:\n  workflow_dispatch:\n  push:\n    tags: '*'\n    branches:\n      - main\n\npermissions:\n  contents: write\n  pages: write\n  id-token: write\n\nconcurrency:\n  group: \"pages\"\n  cancel-in-progress: true\n\nname: Build and deploy GH Pages\njobs:\n  build-site:\n    runs-on: ubuntu-latest\n    if: github.ref == 'refs/heads/main'\n    steps:\n      - name: checkout\n        uses: actions/checkout@v7\n        with:\n          fetch-depth: 0\n\n      - name: Write Changelogs\n        run: |\n          ./buildSite --repository ${{ github.repository }} --changelog\n\n      - name: Build Zola\n        run: |\n          docker run --rm \\\n            -v \"${{ github.workspace }}:/workspace\" \\\n            -w /workspace \\\n            ghcr.io/getzola/zola:v0.22.1 build\n\n      - name: Upload GitHub Pages artifact\n        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0\n        with:\n          path: public/\n\n  deploy:\n    runs-on: ubuntu-latest\n    needs: build-site\n    environment:\n      name: github-pages\n      url: ${{ steps.deployment.outputs.page_url }}\n    steps:\n      - name: Deploy to GitHub Pages\n        id: deployment\n        uses: actions/deploy-pages@v5\n",
+    ".github/workflows/release.yaml": "name: Morrobroom Manufacturing\n\non:\n  workflow_dispatch:\n  pull_request:\n  push:\n    branches: main\n    tags: [\"*\"]\n\njobs:\n  build:\n    permissions:\n      contents: write\n      pages: write\n      id-token: write\n    uses: DreamWeave-MP/StroggForge/.github/workflows/rustGlobalBuild.yml@v42\n    secrets: inherit\n    with:\n      # Required: JSON array of binary names to build. Add more for monorepos.\n      binary_names: '[\"morrobroom\"]'\n      include_files: \"README.md,LICENSE,THIRD_PARTY.md,resources,content\"\n      cargo_publish: false\n      publish_docs: false\n      enable_portmaster: false\n      enable_android: false\n"
+  },
+  "evidence": {}
+}

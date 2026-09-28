@@ -1,0 +1,359 @@
+{
+  "schema": 1,
+  "name": "DreamWeave-MP",
+  "observed": "2026-09-28",
+  "repositories": [
+    {
+      "name": ".github",
+      "url": "https://github.com/DreamWeave-MP/.github",
+      "archived": false,
+      "fork": false,
+      "pushed": "2026-04-03",
+      "description": "GitHub Group Files"
+    },
+    {
+      "name": "chronos",
+      "url": "https://github.com/DreamWeave-MP/chronos",
+      "archived": false,
+      "fork": true,
+      "pushed": "2026-01-21",
+      "description": "High resolution monotonic timers for Lua"
+    },
+    {
+      "name": "CoreScripts",
+      "url": "https://github.com/DreamWeave-MP/CoreScripts",
+      "archived": true,
+      "fork": true,
+      "pushed": "2023-10-28",
+      "description": "The serverside Lua scripts used to implement core functionality in S3MP."
+    },
+    {
+      "name": "CrabNet",
+      "url": "https://github.com/DreamWeave-MP/CrabNet",
+      "archived": false,
+      "fork": true,
+      "pushed": "2023-10-18",
+      "description": "CrabNet is a cross platform, open source, C++ networking engine for game programmers. "
+    },
+    {
+      "name": "daggerfall-unity",
+      "url": "https://github.com/DreamWeave-MP/daggerfall-unity",
+      "archived": false,
+      "fork": true,
+      "pushed": "2026-04-20",
+      "description": "Open source recreation of Daggerfall in the Unity engine"
+    },
+    {
+      "name": "delta-plugin-git",
+      "url": "https://github.com/DreamWeave-MP/delta-plugin-git",
+      "archived": false,
+      "fork": false,
+      "pushed": "2025-12-18",
+      "description": "AUR package management for Delta-Plugin"
+    },
+    {
+      "name": "dream-deploy",
+      "url": "https://github.com/DreamWeave-MP/dream-deploy",
+      "archived": true,
+      "fork": true,
+      "pushed": "2025-04-07",
+      "description": "A script to simplify the installation, upgrade and packaging of TES3MP"
+    },
+    {
+      "name": "dream-deps-build",
+      "url": "https://github.com/DreamWeave-MP/dream-deps-build",
+      "archived": false,
+      "fork": true,
+      "pushed": "2026-06-20",
+      "description": ""
+    },
+    {
+      "name": "dream-ini",
+      "url": "https://github.com/DreamWeave-MP/dream-ini",
+      "archived": false,
+      "fork": false,
+      "pushed": "2026-09-28",
+      "description": "Rust implementation of OpenMW's INI importer with a GUI, controller support, and support for portable devices."
+    },
+    {
+      "name": "dream-net",
+      "url": "https://github.com/DreamWeave-MP/dream-net",
+      "archived": false,
+      "fork": false,
+      "pushed": "2026-09-27",
+      "description": ""
+    },
+    {
+      "name": "dream-soft-render",
+      "url": "https://github.com/DreamWeave-MP/dream-soft-render",
+      "archived": false,
+      "fork": false,
+      "pushed": "2026-09-28",
+      "description": "DreamWeave's custom software renderer targeting portable devices."
+    },
+    {
+      "name": "dream_archive",
+      "url": "https://github.com/DreamWeave-MP/dream_archive",
+      "archived": false,
+      "fork": false,
+      "pushed": "2026-09-27",
+      "description": "Dependency-light, high-performance, pure Rust library for reading, writing, and extracting Bethesda archive file formats."
+    },
+    {
+      "name": "dream_archivetool",
+      "url": "https://github.com/DreamWeave-MP/dream_archivetool",
+      "archived": false,
+      "fork": false,
+      "pushed": "2026-09-27",
+      "description": "Inspect, extract, create, and update Bethesda BSA and BA2 archives"
+    },
+    {
+      "name": "dream_path",
+      "url": "https://github.com/DreamWeave-MP/dream_path",
+      "archived": false,
+      "fork": false,
+      "pushed": "2026-09-26",
+      "description": "Centralized NormalizedPath types/methods for DreamWeave/OpenMW tools"
+    },
+    {
+      "name": "dreamDice",
+      "url": "https://github.com/DreamWeave-MP/dreamDice",
+      "archived": true,
+      "fork": false,
+      "pushed": "2026-01-15",
+      "description": "The ultimate dice roller for multiplayer Morrowind."
+    },
+    {
+      "name": "dreamMounts",
+      "url": "https://github.com/DreamWeave-MP/dreamMounts",
+      "archived": false,
+      "fork": false,
+      "pushed": "2024-12-26",
+      "description": "A tes3mp script for riding mounts"
+    },
+    {
+      "name": "DreamScripts",
+      "url": "https://github.com/DreamWeave-MP/DreamScripts",
+      "archived": false,
+      "fork": false,
+      "pushed": "2026-02-03",
+      "description": "The serverside Lua scripts used to implement core functionality in TES3MP. Used by The Starwind Initiative."
+    },
+    {
+      "name": "DreamWeave",
+      "url": "https://github.com/DreamWeave-MP/DreamWeave",
+      "archived": false,
+      "fork": true,
+      "pushed": "2026-09-18",
+      "description": "OpenMW is an open-source open-world RPG game engine that supports playing Morrowind. Main repo and issue tracker can be found here: https://gitlab.com/OpenMW/openmw/"
+    },
+    {
+      "name": "DreamWeave-Mod-Template",
+      "url": "https://github.com/DreamWeave-MP/DreamWeave-Mod-Template",
+      "archived": false,
+      "fork": false,
+      "pushed": "2026-09-14",
+      "description": ""
+    },
+    {
+      "name": "dreamweave-shader-compilation",
+      "url": "https://github.com/DreamWeave-MP/dreamweave-shader-compilation",
+      "archived": false,
+      "fork": false,
+      "pushed": "2026-09-09",
+      "description": "A la carte OpenMW shader compilations for everyone!"
+    },
+    {
+      "name": "dreamweave-web",
+      "url": "https://github.com/DreamWeave-MP/dreamweave-web",
+      "archived": false,
+      "fork": false,
+      "pushed": "2025-07-30",
+      "description": "DreamWeave's public web presence for delivering mod data and lists"
+    },
+    {
+      "name": "DW-Classic",
+      "url": "https://github.com/DreamWeave-MP/DW-Classic",
+      "archived": true,
+      "fork": false,
+      "pushed": "2025-07-17",
+      "description": ""
+    },
+    {
+      "name": "DW-tools",
+      "url": "https://github.com/DreamWeave-MP/DW-tools",
+      "archived": false,
+      "fork": false,
+      "pushed": "2025-12-06",
+      "description": "Tools required for installing and running DreamWeave modlists. "
+    },
+    {
+      "name": "effective-openmw-lua",
+      "url": "https://github.com/DreamWeave-MP/effective-openmw-lua",
+      "archived": false,
+      "fork": true,
+      "pushed": "2026-04-03",
+      "description": ""
+    },
+    {
+      "name": "greenmote",
+      "url": "https://github.com/DreamWeave-MP/greenmote",
+      "archived": false,
+      "fork": false,
+      "pushed": "2026-09-27",
+      "description": "Automagically patch grass mods for your local OpenMW setup *and* convert normal instances to groundcover plugins for improved performance."
+    },
+    {
+      "name": "lua-cjson",
+      "url": "https://github.com/DreamWeave-MP/lua-cjson",
+      "archived": false,
+      "fork": true,
+      "pushed": "2026-01-21",
+      "description": "Lua CJSON is a fast JSON encoding/parsing module for Lua"
+    },
+    {
+      "name": "Lua-io2",
+      "url": "https://github.com/DreamWeave-MP/Lua-io2",
+      "archived": false,
+      "fork": true,
+      "pushed": "2023-10-16",
+      "description": "IO2 module with support for UTF-16 file names and filesystem functions"
+    },
+    {
+      "name": "LuaJIT",
+      "url": "https://github.com/DreamWeave-MP/LuaJIT",
+      "archived": true,
+      "fork": true,
+      "pushed": "2025-12-16",
+      "description": "Mirror of the LuaJIT git repository"
+    },
+    {
+      "name": "makron",
+      "url": "https://github.com/DreamWeave-MP/makron",
+      "archived": false,
+      "fork": false,
+      "pushed": "2025-12-16",
+      "description": "Makron is a build container for The Starwind Merged Plugin Project. It contains a variety of useful tools for OpenMW modders and content developers to fix and patch their content in CI."
+    },
+    {
+      "name": "Morrobroom",
+      "url": "https://github.com/DreamWeave-MP/Morrobroom",
+      "archived": false,
+      "fork": false,
+      "pushed": "2026-09-21",
+      "description": "Morrobroom is a Trenchbroom compiler for Openmw. Make Morrowind mods in Trenchbroom!"
+    },
+    {
+      "name": "motherJungle",
+      "url": "https://github.com/DreamWeave-MP/motherJungle",
+      "archived": false,
+      "fork": false,
+      "pushed": "2026-09-14",
+      "description": "This repository is for the Starwind Merged Plugin Project."
+    },
+    {
+      "name": "OMWSE",
+      "url": "https://github.com/DreamWeave-MP/OMWSE",
+      "archived": false,
+      "fork": false,
+      "pushed": "2026-03-18",
+      "description": "OpenMW Script Extender"
+    },
+    {
+      "name": "Openmw_Config",
+      "url": "https://github.com/DreamWeave-MP/Openmw_Config",
+      "archived": false,
+      "fork": false,
+      "pushed": "2026-09-27",
+      "description": ""
+    },
+    {
+      "name": "rubic0n",
+      "url": "https://github.com/DreamWeave-MP/rubic0n",
+      "archived": false,
+      "fork": true,
+      "pushed": "2026-09-17",
+      "description": "OpenResty's Branch of LuaJIT 2"
+    },
+    {
+      "name": "S3ctors-S3cret-St4sh",
+      "url": "https://github.com/DreamWeave-MP/S3ctors-S3cret-St4sh",
+      "archived": false,
+      "fork": true,
+      "pushed": "2026-09-28",
+      "description": ""
+    },
+    {
+      "name": "S3LightFixes",
+      "url": "https://github.com/DreamWeave-MP/S3LightFixes",
+      "archived": false,
+      "fork": false,
+      "pushed": "2026-09-27",
+      "description": "Generates and installs light fixing plugins for OpenMW."
+    },
+    {
+      "name": "Sixth-House-Mod-Cache",
+      "url": "https://github.com/DreamWeave-MP/Sixth-House-Mod-Cache",
+      "archived": false,
+      "fork": false,
+      "pushed": "2025-12-08",
+      "description": "Collection of umo modlists hosted by the Dreamweave team."
+    },
+    {
+      "name": "Starwind-Builder",
+      "url": "https://github.com/DreamWeave-MP/Starwind-Builder",
+      "archived": false,
+      "fork": false,
+      "pushed": "2026-02-13",
+      "description": "Starwind-Builder is DreamWeave's cutting edge patching, merging, and deployment forge for The Starwind Merged Plugin Project and The Starwind Initiative TES3MP server."
+    },
+    {
+      "name": "Starwind-R3mastered",
+      "url": "https://github.com/DreamWeave-MP/Starwind-R3mastered",
+      "archived": false,
+      "fork": false,
+      "pushed": "2026-09-14",
+      "description": "Development house for DreamWeave's take on Starwind: Version 4"
+    },
+    {
+      "name": "StroggForge",
+      "url": "https://github.com/DreamWeave-MP/StroggForge",
+      "archived": false,
+      "fork": false,
+      "pushed": "2026-09-28",
+      "description": "Doc Forge and Actions host for the DreamWeave Org."
+    },
+    {
+      "name": "tds",
+      "url": "https://github.com/DreamWeave-MP/tds",
+      "archived": false,
+      "fork": true,
+      "pushed": "2026-01-16",
+      "description": "Torch C data structures"
+    },
+    {
+      "name": "TES3Merge",
+      "url": "https://github.com/DreamWeave-MP/TES3Merge",
+      "archived": false,
+      "fork": true,
+      "pushed": "2026-07-05",
+      "description": "Object merge utility for The Elder Scrolls 3: Morrowind."
+    },
+    {
+      "name": "vfstool",
+      "url": "https://github.com/DreamWeave-MP/vfstool",
+      "archived": false,
+      "fork": false,
+      "pushed": "2026-09-27",
+      "description": ""
+    },
+    {
+      "name": "vfstool-git",
+      "url": "https://github.com/DreamWeave-MP/vfstool-git",
+      "archived": false,
+      "fork": false,
+      "pushed": "2026-01-13",
+      "description": "AUR package management for VfsTool"
+    }
+  ]
+}

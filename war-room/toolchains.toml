@@ -1,0 +1,76 @@
+reviewed = "2026-09-28"
+rust_policy = "Reusable workflows select Rust stable. MSRV is a per-consumer input (empty skips, auto reads rust-version); package declarations are listed separately. Stable is moving, not a reproducible version pin."
+llvm_policy = "Migration in progress. setup-llvm is mandatory in compiling jobs and checks clang/lld against the active rustc LLVM major. MSRV jobs must select the older toolchain's LLVM. Configuration alone is not release validation."
+reference = "L3i TOOLCHAIN.md: rustc 1.98.1 (LLVM 22), clang/lld 22.1.8, Luau 0.740; measured Linux reference, not an organization-wide patch-version pin."
+
+[[platforms]]
+id = "linux-x64"
+name = "Linux x86_64"
+target = "x86_64-unknown-linux-gnu"
+workflow = "rustGlobalBuild"
+job = "release-linux"
+baseline = "CentOS Stream 9 / EL9; glibc 2.34"
+compiler = "Stream clang/lld must match rustc LLVM major"
+validation = "unknown"
+notes = "Intentional RHEL/AlmaLinux 9, Ubuntu 22.04 and Debian 12 compatibility floor. Stream and stable Rust can move independently: mismatch must fail loudly."
+assertions = [{ file = ".github/workflows/rustGlobalBuild.yml", contains = "stroggforge-linux-x86_64-el9-builder:" }]
+
+[[platforms]]
+id = "portmaster-arm64"
+name = "PortMaster ARM64 (opt-in)"
+target = "aarch64-unknown-linux-gnu"
+workflow = "rustGlobalBuild"
+job = "release-portmaster"
+baseline = "EL9 aarch64 sysroot; glibc 2.34"
+compiler = "clang/lld + cross-language thin LTO"
+validation = "blocked"
+notes = "enable_portmaster opts in. EL8/glibc 2.28 is historical. Device compatibility and successful new artifacts still need campaign evidence; generic PortMaster hardware compatibility is not asserted."
+assertions = [{ file = ".github/workflows/rustGlobalBuild.yml", contains = "stroggforge-portmaster-aarch64-el9-builder:" }, { file = ".github/workflows/rustGlobalBuild.yml", contains = "CXX_aarch64_unknown_linux_gnu: clang++" }]
+
+[[platforms]]
+id = "android-arm64"
+name = "Android ARM64 (opt-in)"
+target = "aarch64-linux-android"
+workflow = "rustGlobalBuild"
+job = "release-android"
+baseline = "NDK r27c / Android API 23"
+compiler = "NDK target clang; host LLVM setup also runs"
+validation = "unknown"
+notes = "enable_android produces an ELF, not an APK. Matching host LLVM does not prove NDK bitcode compatibility with l3i."
+assertions = [{ file = ".github/workflows/rustGlobalBuild.yml", contains = "ndk-version: r27c" }, { file = ".github/workflows/rustGlobalBuild.yml", contains = "ANDROID_API_LEVEL: '23'" }]
+
+[[platforms]]
+id = "macos-arm64"
+name = "macOS ARM64"
+target = "aarch64-apple-darwin"
+workflow = "rustGlobalBuild"
+job = "release"
+baseline = "macos-latest hosted runner"
+compiler = "Homebrew upstream LLVM / lld matched to rustc"
+validation = "unknown"
+notes = "Apple clang is not the upstream LLVM toolchain policy. Intentional difference: consumer .cargo/config.toml links Apple targets with clang and lld but omits -Clinker-plugin-lto, because rustc passes GNU -plugin-opt arguments that ld64.lld rejects. Hosted runner image and deployment floor require consumer verification."
+assertions = [{ file = ".github/workflows/rustGlobalBuild.yml", contains = "macos-latest" }]
+
+[[platforms]]
+id = "macos-x64"
+name = "macOS x86_64"
+target = "x86_64-apple-darwin"
+workflow = "rustGlobalBuild"
+job = "release"
+baseline = "macos-15-intel hosted runner"
+compiler = "Homebrew upstream LLVM / lld matched to rustc"
+validation = "unknown"
+notes = "Separate Intel release runner; not an ARM binary assumed to work under translation. Shares the Apple linker-plugin-lto exception described for ARM64."
+assertions = [{ file = ".github/workflows/rustGlobalBuild.yml", contains = "macos-15-intel" }]
+
+[[platforms]]
+id = "windows-x64"
+name = "Windows x86_64"
+target = "x86_64-pc-windows-msvc"
+workflow = "rustGlobalBuild"
+job = "release"
+baseline = "windows-2025-vs2026 hosted runner"
+compiler = "Upstream LLVM; clang-cl / lld-link for MSVC"
+validation = "unknown"
+notes = "LLVM release archive installation and MSVC environment differ from Unix clang driver linking. Intentional difference: setup-llvm pins CARGO_BUILD_TARGET to the host triple, so target rustflags skip MSVC proc macros (which rustc refuses to build with -Clinker-plugin-lto) and release output lands under target/<triple>/release."
+assertions = [{ file = ".github/workflows/rustGlobalBuild.yml", contains = "windows-2025-vs2026" }, { file = "scripts/shared/setup-llvm.sh", contains = "CARGO_BUILD_TARGET=$host" }, { file = "scripts/corprus-crucible/build-release-binary.sh", contains = "cargo_target=${rust_target:-${CARGO_BUILD_TARGET:-}}" }]

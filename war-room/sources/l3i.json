@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "source": "l3i",
+  "revision": "3d9d41c6148884f3e81909812f77b3e23937889f",
+  "dirty": true,
+  "observed": "2026-09-28",
+  "packages": [
+    {
+      "name": "l3i",
+      "version": "0.1.0",
+      "rust_version": "1.88",
+      "dependencies": [
+        {
+          "name": "cc",
+          "req": "^1",
+          "kind": "build",
+          "optional": false,
+          "target": null,
+          "features": [
+            "parallel"
+          ]
+        },
+        {
+          "name": "criterion",
+          "req": "^0.8.2",
+          "kind": "dev",
+          "optional": false,
+          "target": null,
+          "features": [
+            "html_reports"
+          ]
+        },
+        {
+          "name": "dream-net",
+          "req": "=1.0.0",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": []
+        }
+      ]
+    }
+  ],
+  "workflows": {
+    ".github/workflows/build.yml": "name: Library CI\n\non:\n  workflow_dispatch:\n  pull_request:\n  push:\n    # Keep branch pushes restricted to main. Non-tag pushes publish to the shared\n    # \"development\" release, so feature branches will compete for the same release.\n    branches: main\n    tags: ['*']\n\njobs:\n  build:\n    permissions:\n      contents: write\n      pages: write\n      id-token: write\n    uses: DreamWeave-MP/StroggForge/.github/workflows/libGlobalBuild.yml@v46\n    secrets: inherit\n    with:\n      crate_names: '[\"l3i\"]'\n\n      # l3i builds only under the clang cross-language LTO policy (TOOLCHAIN.md): every job that\n      # compiles gets a clang and lld whose LLVM major matches the active rustc.\n      llvm_toolchain: true\n\n      # rust-version in Cargo.toml; the MSRV job matches that toolchain's LLVM major too.\n      msrv: auto\n\n      # Criterion hot paths (benches/hot_paths.rs) into BENCHMARKS.md on the release.\n      generate_benchmarks: true\n\n      # Not on crates.io yet. Flip to true (and add CARGO_REGISTRY_TOKEN) for the first release.\n      cargo_publish: false\n",
+    ".github/workflows/daily-quality.yml": "name: Daily Rust Quality Checks\n\non:\n  workflow_dispatch:\n  schedule:\n    # GitHub cron is UTC. 15:00 UTC is 9 AM Central Standard Time.\n    - cron: '0 15 * * *'\n\npermissions:\n  contents: read\n\njobs:\n  fmt:\n    runs-on: ubuntu-22.04\n    steps:\n      - uses: actions/checkout@v6\n      - uses: dtolnay/rust-toolchain@stable\n      - name: Run rustfmt\n        run: cargo fmt --all --check\n\n  clippy:\n    runs-on: ubuntu-22.04\n    steps:\n      - uses: actions/checkout@v6\n        with:\n          submodules: true\n      - uses: dtolnay/rust-toolchain@stable\n      # Clippy runs the build script, which refuses a toolchain without a matching clang and lld.\n      - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v46\n      - name: Run Clippy\n        run: cargo clippy --workspace --all-targets --all-features -- -W clippy::pedantic -D warnings\n\n  audit:\n    runs-on: ubuntu-22.04\n    steps:\n      - uses: actions/checkout@v6\n      - uses: dtolnay/rust-toolchain@stable\n      - name: Generate Cargo.lock\n        run: cargo generate-lockfile\n      - uses: taiki-e/install-action@cargo-audit\n      - name: Run Cargo audit\n        run: cargo audit\n"
+  },
+  "evidence": {
+    "TOOLCHAIN.md": "# Toolchain\n\nl3i builds only with **clang, cross-language thin LTO, and lld**. `build.rs` refuses anything\nelse; `L3I_UNVERIFIED_TOOLCHAIN=1` turns the refusal into a warning. This page records why.\n\n## The rule\n\n| Side | Requirement | Where it is set |\n|---|---|---|\n| C++ (Luau, `csrc/`) | `clang++`; `build.rs` adds `-flto=thin` itself | `CXX=clang++` (`.cargo/config.toml` `[env]`) |\n| Rust | `-Clinker-plugin-lto -Clinker=clang -Clink-arg=-fuse-ld=lld`, all three checked by `build.rs` | `.cargo/config.toml` `[target.*] rustflags` |\n| Both | clang and rustc on the same LLVM major (`clang++ --version`, `rustc -vV`) | checked by `build.rs` |\n| MSVC targets | `clang-cl` compiles (`CXX_x86_64-pc-windows-msvc`), rustc links with `-Clinker=lld-link` | `.cargo/config.toml` |\n| `cc` crate | `parallel` feature | `Cargo.toml` |\n\nTwo exemptions: `L3I_UNVERIFIED_TOOLCHAIN=1` turns the refusal into a warning, and docs.rs (which\nsets `DOCS_RS`) is exempt automatically, since it only renders documentation and cannot be handed\na linker configuration. Linux is the measured configuration below. The macOS entries (Homebrew\nor release LLVM, `clang` driving `ld64.lld`) and the Windows entries follow the same shape and\nare what CI runs; they were not part of the measurement.\n\nA crate that depends on l3i copies the `[env]` and `rustflags` lines into its own\n`.cargo/config.toml`: Cargo does not inherit a dependency's config. Fedora: `dnf install clang\nlld`; Debian/Ubuntu: `apt install clang-<N> lld-<N>` where `<N>` is rustc's LLVM major. Apple's\nclang is not upstream LLVM; use a Homebrew or nightly LLVM whose major matches.\n\nThe lld flag is not optional: without it clang hands the bitcode objects to `ld.bfd`, which\nfails with `bad -plugin-opt option`. `-Clinker-plugin-lto` without a clang-built Luau links fine\nbut forfeits the gain. `build.rs` checks every half of the chain (clang++ as the C++ compiler,\n`-Clinker-plugin-lto`, a clang linker, `-fuse-ld=lld`, matching LLVM majors) and only then emits\n`-flto=thin`, so a partial configuration is refused up front with the missing piece named\ninstead of failing at the final link or building silently slow.\n\n## Why: the 2026-09-27 campaign\n\nMeasured with `scripts/toolchain_campaign.py` (clean `cargo build --release --lib`, then\n`cargo bench --bench hot_paths --no-run`, then a five-case subset at 2 s per case) on an\ni7-10870H in a Fedora 44 toolbox: gcc 16.2.1, clang/lld 22.1.8, mold 2.40.4, rustc 1.98.1\n(LLVM 22). Each contender was run three times, interleaved. Nanoseconds per call.\n\n| Variant | Clean release build | Bench build | typed binder `(f64, f64) -> f64` | tagged generated `__namecall` | tagged direct index | Rust to Luau scalar | raw `lua_CFunction` |\n|---|---:|---:|---:|---:|---:|---:|---:|\n| gcc, serial `cc` | 68.1 s | 13.8 s | | | | | |\n| gcc, parallel `cc` (3 runs) | 37.3 to 40.7 s | 13.7 s | 53.7 to 54.7 | 95.7 to 101.2 | 35.2 to 35.4 | 76.0 to 82.8 | 35.9 to 39.3 |\n| gcc plus mold | 38.0 s | 13.7 s | | | | | |\n| clang, no LTO | 21.1 s | 13.5 s | 58.7 | 113.6 | 37.8 | 82.2 | 39.4 |\n| **clang plus cross-language thin LTO** (3 runs) | **16.3 to 17.8 s** | 18.7 to 20.3 s | **45.3 to 50.2** | **83.0 to 89.3** | **29.2 to 31.6** | **64.8 to 72.8** | 34.1 to 40.3 |\n| gcc plus Rust fat LTO, 1 codegen unit | 41.3 s | 69.2 s | 52.9 | 99.2 | 27.6 | 78.6 | 40.3 |\n| clang LTO plus Rust fat LTO | 15.9 s | 54.3 s | 51.9 | 92.8 | 27.4 | 82.9 | 38.6 |\n\nReadings:\n\n- **Cross-language LTO is the whole story.** The hand-written `lua_CFunction` does not move\n  between compilers, so Luau's interpreter is equally fast under gcc and clang. Every binder\n  path gains 8 to 15 percent because the Rust thunk and the Luau API calls it makes\n  (`lua_tonumber`, `lua_pushnumber`, the tagged userdata read) inline into one another.\n- **Plain clang is slower than gcc at runtime** on every binder case. The compiler switch is\n  justified only together with the LTO half, hence the rule enforces both.\n- **Rust-only fat LTO** buys nothing on the binder paths (the direct-index case improves, the\n  Vector3 case regresses) and quadruples the bench build. Stacked on cross-language LTO it is\n  neutral at best. Not adopted.\n- **`cc` parallel** halves the clean build with no runtime effect. Adopted.\n- **mold** is a no-op here: the link is a small fraction of a build dominated by compiling\n  Luau. The self-contained lld rustc ships is not used with a custom `-Clinker`, so system lld\n  is the linker.\n- **Compile time**: the verified configuration is also the fastest clean build (16 to 18 s),\n  four times faster than the gcc serial baseline.\n\n`BENCHMARKS.md` is regenerated under this configuration.\n"
+  }
+}

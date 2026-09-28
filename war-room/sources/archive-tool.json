@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "source": "archive-tool",
+  "revision": "34397d9f2267f4fe309ecd6aaac388412d65f53c",
+  "dirty": false,
+  "observed": "2026-09-28",
+  "packages": [
+    {
+      "name": "dream_archivetool",
+      "version": "0.2.1",
+      "rust_version": "1.88",
+      "dependencies": [
+        {
+          "name": "clap",
+          "req": "^4.6",
+          "kind": null,
+          "optional": true,
+          "target": null,
+          "features": [
+            "derive"
+          ]
+        },
+        {
+          "name": "clap_complete",
+          "req": "^4.6",
+          "kind": null,
+          "optional": true,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "clap_mangen",
+          "req": "^0.3",
+          "kind": null,
+          "optional": true,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "criterion",
+          "req": "^0.8",
+          "kind": "dev",
+          "optional": false,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "dream_archive",
+          "req": "^0.2.3",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "mlua",
+          "req": "^0.12.1",
+          "kind": null,
+          "optional": true,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "serde",
+          "req": "^1.0.228",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": [
+            "derive"
+          ]
+        },
+        {
+          "name": "serde_json",
+          "req": "^1.0.145",
+          "kind": null,
+          "optional": true,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "tempfile",
+          "req": "^3.27",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "thiserror",
+          "req": "^2.0",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "walkdir",
+          "req": "^2.5",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": []
+        }
+      ]
+    }
+  ],
+  "workflows": {
+    ".github/workflows/build.yml": "name: Application CI\n\non:\n  workflow_dispatch:\n  pull_request:\n  push:\n    branches: main\n    tags: ['*']\n\njobs:\n  build:\n    permissions:\n      contents: write\n      pages: write\n      id-token: write\n    uses: DreamWeave-MP/StroggForge/.github/workflows/rustGlobalBuild.yml@v42\n    secrets: inherit\n    with:\n      binary_names: '[\"dream_archivetool\"]'\n      generate_benchmarks: true\n      enable_android: true\n      enable_portmaster: true\n"
+  },
+  "evidence": {}
+}

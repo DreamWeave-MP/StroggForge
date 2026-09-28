@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "source": "openmw-config",
+  "revision": "e3be59d64d23767ddd0016577069101af694e97c",
+  "dirty": false,
+  "observed": "2026-09-28",
+  "packages": [
+    {
+      "name": "openmw-config",
+      "version": "2.0.1",
+      "rust_version": "1.88",
+      "dependencies": [
+        {
+          "name": "criterion",
+          "req": "^0.8.2",
+          "kind": "dev",
+          "optional": false,
+          "target": null,
+          "features": [
+            "html_reports"
+          ]
+        },
+        {
+          "name": "mlua",
+          "req": "^0.12.1",
+          "kind": null,
+          "optional": true,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "proptest",
+          "req": "^1.11.0",
+          "kind": "dev",
+          "optional": false,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "windows-sys",
+          "req": "^0.61.2",
+          "kind": null,
+          "optional": false,
+          "target": "cfg(windows)",
+          "features": [
+            "Win32_Foundation",
+            "Win32_System_Com",
+            "Win32_UI_Shell"
+          ]
+        }
+      ]
+    }
+  ],
+  "workflows": {
+    ".github/workflows/ci.yml": "name: OpenMW_Config CI\n\non:\n  workflow_dispatch:\n  pull_request:\n  push:\n    branches: main\n    tags: ['*']\n\njobs:\n  build:\n    permissions:\n      contents: write\n      pages: write\n      id-token: write\n    uses: DreamWeave-MP/StroggForge/.github/workflows/libGlobalBuild.yml@v43\n    secrets: inherit\n    with:\n      crate_names: '[\"openmw_config\"]'\n      dependent_repo_names: '[\"DreamWeave-MP/S3lightfixes\"]'\n      generate_benchmarks: true\n"
+  },
+  "evidence": {}
+}

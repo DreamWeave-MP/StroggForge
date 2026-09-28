@@ -1,0 +1,201 @@
+{
+  "schema": 1,
+  "source": "vfstool",
+  "revision": "dada4ea5bc37c1febc99217d20d7400849e95396",
+  "dirty": false,
+  "observed": "2026-09-28",
+  "packages": [
+    {
+      "name": "vfstool",
+      "version": "0.10.4",
+      "rust_version": "1.88",
+      "dependencies": [
+        {
+          "name": "clap",
+          "req": "^4.6.7",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": [
+            "derive"
+          ]
+        },
+        {
+          "name": "criterion",
+          "req": "^0.8.2",
+          "kind": "dev",
+          "optional": false,
+          "target": null,
+          "features": [
+            "html_reports"
+          ]
+        },
+        {
+          "name": "dream_archive",
+          "req": "^0.2.2",
+          "kind": "dev",
+          "optional": false,
+          "target": null,
+          "features": [
+            "bsa"
+          ]
+        },
+        {
+          "name": "openmw-config",
+          "req": "^1.1.0",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "vfstool_lib",
+          "req": "^0.10.4",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": [
+            "serialize",
+            "beth-archives"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "vfstool_lib",
+      "version": "0.10.4",
+      "rust_version": "1.88",
+      "dependencies": [
+        {
+          "name": "ahash",
+          "req": "^0.8",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "blake3",
+          "req": "^1",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "criterion",
+          "req": "^0.8.2",
+          "kind": "dev",
+          "optional": false,
+          "target": null,
+          "features": [
+            "html_reports"
+          ]
+        },
+        {
+          "name": "dream-path",
+          "req": "^0.2",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "dream_archive",
+          "req": "^0.2.2",
+          "kind": null,
+          "optional": true,
+          "target": null,
+          "features": [
+            "ba2",
+            "bsa",
+            "parallel"
+          ]
+        },
+        {
+          "name": "mlua",
+          "req": "^0.12.1",
+          "kind": null,
+          "optional": true,
+          "target": null,
+          "features": [
+            "serialize"
+          ]
+        },
+        {
+          "name": "rayon",
+          "req": "^1.12.0",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "regex",
+          "req": "^1",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "serde",
+          "req": "^1.0.229",
+          "kind": null,
+          "optional": true,
+          "target": null,
+          "features": [
+            "derive"
+          ]
+        },
+        {
+          "name": "serde_json",
+          "req": "^1.0.151",
+          "kind": null,
+          "optional": true,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "serde_yaml",
+          "req": "^0.9.34-deprecated",
+          "kind": null,
+          "optional": true,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "toml",
+          "req": "^1.1.2",
+          "kind": null,
+          "optional": true,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "walkdir",
+          "req": "^2.5.0",
+          "kind": null,
+          "optional": false,
+          "target": null,
+          "features": []
+        },
+        {
+          "name": "zip",
+          "req": "^8.6",
+          "kind": null,
+          "optional": true,
+          "target": null,
+          "features": [
+            "deflate",
+            "lzma"
+          ]
+        }
+      ]
+    }
+  ],
+  "workflows": {
+    ".github/workflows/release.yaml": "name: Corprus Crucible Manufacturing\n\non:\n  workflow_dispatch:\n  pull_request:\n  push:\n    branches: main\n    tags: [\"*\"]\n\njobs:\n  build-lib:\n    permissions:\n      contents: write\n      pages: write\n      id-token: write\n    uses: DreamWeave-MP/StroggForge/.github/workflows/libGlobalBuild.yml@v43\n    secrets: inherit\n    with:\n      crate_names: '[\"vfstool_lib\"]'\n      dependent_repo_names: '[\"DreamWeave-MP/Morrobroom\"]'\n      generate_benchmarks: false\n\n  build-app:\n    needs: build-lib\n    permissions:\n      contents: write\n      pages: write\n      id-token: write\n    uses: DreamWeave-MP/StroggForge/.github/workflows/rustGlobalBuild.yml@v43\n    secrets: inherit\n    with:\n      binary_names: '[\"vfstool\"]'\n      publish_docs: false\n      generate_benchmarks: true\n"
+  },
+  "evidence": {}
+}
