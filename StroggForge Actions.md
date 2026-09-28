@@ -64,6 +64,10 @@ Inputs:
 
 The library Discord notification follows the same rules as the application one: one message after every job has finished, reporting any failure.
 
+## Submodules
+
+Every checkout of the consuming repository in both workflows passes `submodules: true`, so crates that vendor a dependency as a git submodule (l3i carries Luau that way) build in every job. Repositories without submodules are unaffected.
+
 ## Workspace publishing
 
 `cargo_publish_workspace: true` (both workflows) replaces the per-name crates.io jobs with two workspace jobs:
