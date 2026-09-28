@@ -23,6 +23,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
+      # Uncomment for crates built under the clang cross-language LTO policy (l3i and its dependents):
+      # Clippy runs the build scripts, which refuse a toolchain without a matching clang and lld.
+      # - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v43
       - name: Run Clippy
         run: cargo clippy --workspace --all-targets --all-features -- -W clippy::pedantic -D warnings
 

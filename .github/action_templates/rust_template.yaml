@@ -71,5 +71,10 @@ jobs:
       # need platform-specific Cargo features. Corprus Crucible runs it automatically
       # when present and only accepts Cargo feature arguments from stdout.
 
+      # Optional: set true for binaries built under the clang cross-language LTO policy (anything
+      # depending on l3i): installs clang and lld matching rustc's LLVM before compiling. The
+      # AlmaLinux 8 Linux release builder cannot run those LLVM binaries yet; see StroggForge Actions.md.
+      # llvm_toolchain: true
+
       # Optional: set false if the project is not hosted by DreamWeave or does not use discord notifications
       # generate_discord_notification: false

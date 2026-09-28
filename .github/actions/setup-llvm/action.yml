@@ -1,0 +1,28 @@
+name: "Setup LLVM"
+description: "Install clang and lld whose LLVM major matches the active Rust toolchain, for crates built under cross-language LTO (l3i and its dependents)."
+
+inputs:
+  toolchain:
+    description: "Rust toolchain whose LLVM major to match (a rustup name such as '1.88' or 'stable'). Empty uses the default rustc."
+    required: false
+    default: ""
+  llvm_version:
+    description: "Full LLVM release to install instead of the one rustc reports, e.g. 22.1.8."
+    required: false
+    default: ""
+
+outputs:
+  llvm_major:
+    description: "The LLVM major installed."
+    value: ${{ steps.llvm.outputs.llvm_major }}
+  llvm_version:
+    description: "The clang version installed."
+    value: ${{ steps.llvm.outputs.llvm_version }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install LLVM matching rustc
+      id: llvm
+      shell: bash
+      run: bash "${{ github.action_path }}/../../../scripts/shared/setup-llvm.sh" "${{ inputs.toolchain }}" "${{ inputs.llvm_version }}"
