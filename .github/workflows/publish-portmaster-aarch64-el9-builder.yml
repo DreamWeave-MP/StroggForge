@@ -1,4 +1,4 @@
-name: Publish Portmaster ARM64 AlmaLinux 8 Builder Image
+name: Publish Portmaster ARM64 EL9 Builder Image
 
 on:
   workflow_dispatch:
@@ -8,15 +8,15 @@ on:
     tags:
       - 'v*'
     paths:
-      - .github/container-images/portmaster-aarch64-almalinux8/Dockerfile
-      - .github/workflows/publish-portmaster-aarch64-almalinux8-builder.yml
+      - .github/container-images/portmaster-aarch64-el9/Dockerfile
+      - .github/workflows/publish-portmaster-aarch64-el9-builder.yml
 
 permissions:
   contents: read
   packages: write
 
 env:
-  IMAGE_NAME: ghcr.io/dreamweave-mp/stroggforge-portmaster-aarch64-almalinux8-builder
+  IMAGE_NAME: ghcr.io/dreamweave-mp/stroggforge-portmaster-aarch64-el9-builder
 
 jobs:
   publish:
@@ -65,6 +65,6 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: .github/container-images/portmaster-aarch64-almalinux8/Dockerfile
+          file: .github/container-images/portmaster-aarch64-el9/Dockerfile
           push: true
           tags: ${{ steps.image-tags.outputs.tags }}

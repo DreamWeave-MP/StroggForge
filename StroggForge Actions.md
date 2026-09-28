@@ -30,13 +30,13 @@ Inputs:
 1. `generate_benchmarks`: Optional, default `false`. Runs `cargo bench`, generates `BENCHMARKS.md` from Criterion output when available, otherwise preserves the raw benchmark log, and uploads it to the release.
 1. `generate_discord_notification`: Optional, default `true`. Set `false` to skip the Discord notification, e.g. when another workflow in the same run already sends one.
 1. `enable_android`: Optional, default `false`. Builds Android ARM64 ELF release artifacts using the Android NDK at API level 23. This does not produce an APK.
-1. `enable_portmaster`: Optional, default `false`. Builds Portmaster ARM64 release artifacts for `aarch64-unknown-linux-gnu` using an AlmaLinux 8 AArch64 sysroot for old glibc compatibility.
+1. `enable_portmaster`: Optional, default `false`. Builds Portmaster ARM64 release artifacts for `aarch64-unknown-linux-gnu` cross-compiled with clang and lld in the EL9 Portmaster builder against an EL9 AArch64 sysroot, for the same glibc 2.34 compatibility as `release-linux`.
 
 The pipeline runs these jobs:
 
 - Quality gates (parallel, block release): `test` (full platform matrix), `fmt`, `clippy` (pedantic), `audit` (RustSec, generating a `Cargo.lock` first when the repository does not commit one), `msrv` (only checks when `msrv` is set)
 - Informational (parallel, does not block): `cargo-publish-dry-run`, or `cargo-publish-workspace-dry-run` with `cargo_publish_workspace`
-- Release builds (after gates pass): `release` (macOS ARM + Intel, Windows), `release-linux` (EL9 container, CentOS Stream 9, for glibc 2.34 compatibility), optional `release-android` (Android ARM64 ELF targeting API level 23, not APK), and optional `release-portmaster` (AArch64 GNU/Linux with an AlmaLinux 8 sysroot) build, sign, scan, package, and stage platform archives as workflow artifacts. They do not mutate the GitHub Release directly.
+- Release builds (after gates pass): `release` (macOS ARM + Intel, Windows), `release-linux` (EL9 container, CentOS Stream 9, for glibc 2.34 compatibility), optional `release-android` (Android ARM64 ELF targeting API level 23, not APK), and optional `release-portmaster` (AArch64 GNU/Linux, cross-compiled against an EL9 sysroot) build, sign, scan, package, and stage platform archives as workflow artifacts. They do not mutate the GitHub Release directly.
 - GitHub Release publish: `github-publish` runs after all required application release builds succeed. It refreshes the current tag release or shared `development` release, exposes `release_name`, then uploads the staged platform archives and VirusTotal notes.
 - Doc/artifact generation: `docs` deploys GitHub Pages on main pushes after gates pass; `changelog` and `benchmarks` upload release files after `github-publish` succeeds.
 - External publish/notification: `cargo-publish` or `cargo-publish-workspace` (crates.io, tag only), `aur-publish`, and `nexus-publish` fan out after builds; `nag-dependents` waits for the GitHub Release publish boundary.

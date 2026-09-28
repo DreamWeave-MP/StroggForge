@@ -26,7 +26,7 @@ FILES=(
 )
 
 LINUX_BUILDER_IMAGE="ghcr.io/dreamweave-mp/stroggforge-linux-x86_64-el9-builder"
-PORTMASTER_BUILDER_IMAGE="ghcr.io/dreamweave-mp/stroggforge-portmaster-aarch64-almalinux8-builder"
+PORTMASTER_BUILDER_IMAGE="ghcr.io/dreamweave-mp/stroggforge-portmaster-aarch64-el9-builder"
 
 echo ""
 echo "Replacing '${OLD_TAG}' → '${NEW_TAG}' in StroggForge self-references..."

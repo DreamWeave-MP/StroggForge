@@ -110,7 +110,7 @@ on:
         type: boolean
         required: false
         default: false
-        description: "Build and publish Portmaster ARM64 release artifacts targeting aarch64-unknown-linux-gnu with an AlmaLinux 8 sysroot."
+        description: "Build and publish Portmaster ARM64 release artifacts targeting aarch64-unknown-linux-gnu cross-compiled with clang and lld against an EL9 (glibc 2.34) sysroot."
 
 concurrency:
   group: stroggforge-rust-global-${{ github.repository }}-${{ github.ref }}
@@ -684,7 +684,8 @@ jobs:
           rust_target: ${{ matrix.android_target }}
 
   # Build, sign, scan, package, and stage Portmaster ARM64 artifacts.
-  # Uses AlmaLinux 8 target libraries so the aarch64-unknown-linux-gnu artifact keeps the same old-glibc compatibility posture as the native Linux release.
+  # Cross-compiles with the EL9 builder's clang and lld against an EL9 aarch64 sysroot, so the
+  # artifact has the same glibc 2.34 floor and LLVM toolchain as the native Linux release.
   release-portmaster:
     if: inputs.enable_portmaster
     needs: [test, clippy, fmt, audit, msrv]
@@ -694,9 +695,8 @@ jobs:
         app_names: ${{ fromJson(inputs.binary_names) }}
 
     runs-on: ubuntu-latest
-    # This builder image is versioned with the StroggForge release tag and contains the former
-    # AlmaLinux 8 Portmaster aarch64 sysroot/toolchain setup while preserving the glibc 2.28 target.
-    container: ghcr.io/dreamweave-mp/stroggforge-portmaster-aarch64-almalinux8-builder:v46
+    # This builder image is versioned with the StroggForge release tag.
+    container: ghcr.io/dreamweave-mp/stroggforge-portmaster-aarch64-el9-builder:v46
 
     permissions:
       contents: write
@@ -709,13 +709,15 @@ jobs:
       - name: Run Corprus Crucible
         uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v46
         env:
-          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
-          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_RUSTFLAGS: -C link-arg=--sysroot=/usr/aarch64-linux-gnu/sys-root
-          CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
-          CXX_aarch64_unknown_linux_gnu: aarch64-linux-gnu-g++
-          AR_aarch64_unknown_linux_gnu: aarch64-linux-gnu-ar
-          CFLAGS_aarch64_unknown_linux_gnu: --sysroot=/usr/aarch64-linux-gnu/sys-root
-          CXXFLAGS_aarch64_unknown_linux_gnu: --sysroot=/usr/aarch64-linux-gnu/sys-root
+          # The whole LLVM toolchain policy goes in RUSTFLAGS, where l3i's build script looks for
+          # it (this variable replaces a repository's own [target] rustflags), plus the cross
+          # target and sysroot for clang's link step.
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_RUSTFLAGS: -Clinker-plugin-lto -Clinker=clang -Clink-arg=-fuse-ld=lld -Clink-arg=--target=aarch64-linux-gnu -Clink-arg=--sysroot=/usr/aarch64-linux-gnu/sys-root
+          CC_aarch64_unknown_linux_gnu: clang
+          CXX_aarch64_unknown_linux_gnu: clang++
+          AR_aarch64_unknown_linux_gnu: llvm-ar
+          CFLAGS_aarch64_unknown_linux_gnu: --target=aarch64-linux-gnu --sysroot=/usr/aarch64-linux-gnu/sys-root
+          CXXFLAGS_aarch64_unknown_linux_gnu: --target=aarch64-linux-gnu --sysroot=/usr/aarch64-linux-gnu/sys-root
           BINDGEN_EXTRA_CLANG_ARGS: --target=aarch64-unknown-linux-gnu --sysroot=/usr/aarch64-linux-gnu/sys-root
           PKG_CONFIG_ALLOW_CROSS: '1'
           PKG_CONFIG_SYSROOT_DIR: /usr/aarch64-linux-gnu/sys-root
