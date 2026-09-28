@@ -22,6 +22,7 @@ FILES=(
   .github/workflows/dependent.yml
   .github/action_templates/rust_template.yaml
   .github/action_templates/lib_template.yaml
+  .github/action_templates/daily_quality_template.yaml
 )
 
 LINUX_BUILDER_IMAGE="ghcr.io/dreamweave-mp/stroggforge-linux-x86_64-almalinux8-builder"
