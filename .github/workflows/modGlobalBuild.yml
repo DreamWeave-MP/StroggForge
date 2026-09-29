@@ -155,6 +155,7 @@ jobs:
       - name: Record the release in mod.lock on the default branch
         env:
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: bash .stroggforge/scripts/mod-template/commit-records.sh "$DEFAULT_BRANCH"
 
       - name: Read the Nexus Mods uploads
@@ -210,10 +211,11 @@ jobs:
 
       # crates.io never changes a published version, so any run on the default branch may record
       # what it has: a tag's crate, or crates published before the repository used the template.
-      - name: Record crate versions published to crates.io
+      - name: Record releases published to crates.io and GitHub
         if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
         env:
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: bash .stroggforge/scripts/mod-template/commit-records.sh "$DEFAULT_BRANCH"
 
       - name: Find the published site's URL
