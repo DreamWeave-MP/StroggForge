@@ -7,6 +7,18 @@ scope = "Every current DreamWeave component that gets engineered, by domain. Thi
 # Infrastructure changes that alter what consumers get. Git holds the full history.
 [[updates]]
 date = "2026-09-29"
+title = "Self-referential pins move to v52"
+detail = "Templates and internal workflow/action calls reference v52. A consumer pinned to an older tag keeps that tag's behavior, including its toolchain and builder images."
+commits = ["d9f1a20"]
+
+[[updates]]
+date = "2026-09-29"
+title = "A program's releases from before its site gain downloads"
+detail = "modGlobalBuild's record step runs the template's record-releases, which records a program's releases StroggForge published before the repository was a Mod Template site from their GitHub releases, checked against GitHub's digests. Sites on an older copy of the template record crates only, as before."
+commits = ["dbaa98f"]
+
+[[updates]]
+date = "2026-09-29"
 title = "Self-referential pins move to v51"
 detail = "Templates and internal workflow/action calls reference v51. A consumer pinned to an older tag keeps that tag's behavior, including its toolchain and builder images."
 commits = ["391c9b8"]
