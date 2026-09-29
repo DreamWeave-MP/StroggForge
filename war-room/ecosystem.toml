@@ -6,6 +6,18 @@ scope = "Every current DreamWeave component that gets engineered, by domain. Thi
 
 # Infrastructure changes that alter what consumers get. Git holds the full history.
 [[updates]]
+date = "2026-09-29"
+title = "Self-referential pins move to v50"
+detail = "Templates and internal workflow/action calls reference v50. A consumer pinned to an older tag keeps that tag's behavior, including its toolchain and builder images."
+commits = ["0211319"]
+
+[[updates]]
+date = "2026-09-29"
+title = "Mod Template sites build before their first release"
+detail = "modGlobalBuild's record step failed on every default-branch run of a site with no mod.lock yet, because it staged locks by a pattern that matched nothing. Sites calling v49 must move to v50."
+commits = ["012d31a"]
+
+[[updates]]
 date = "2026-09-28"
 title = "Self-referential pins move to v49"
 detail = "Templates and internal workflow/action calls reference v49. A consumer pinned to an older tag keeps that tag's behavior, including its toolchain and builder images."
