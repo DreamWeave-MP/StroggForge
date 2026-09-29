@@ -7,6 +7,18 @@ scope = "Every current DreamWeave component that gets engineered, by domain. Thi
 # Infrastructure changes that alter what consumers get. Git holds the full history.
 [[updates]]
 date = "2026-09-29"
+title = "Self-referential pins move to v51"
+detail = "Templates and internal workflow/action calls reference v51. A consumer pinned to an older tag keeps that tag's behavior, including its toolchain and builder images."
+commits = ["391c9b8"]
+
+[[updates]]
+date = "2026-09-29"
+title = "A program's library is recorded in the same run"
+detail = "rustGlobalBuild's Mod Template stage waits for the crates.io publish. A repository that publishes its program and the library it is built on together, like vfstool, records the library's version in the same run as the program's archives."
+commits = ["0ce68a3"]
+
+[[updates]]
+date = "2026-09-29"
 title = "Self-referential pins move to v50"
 detail = "Templates and internal workflow/action calls reference v50. A consumer pinned to an older tag keeps that tag's behavior, including its toolchain and builder images."
 commits = ["0211319"]
