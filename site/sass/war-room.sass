@@ -1,4 +1,8 @@
-// StroggForge skin. Shared documentation behavior remains in docs.sass.
+// StroggForge skin. The imported docs shell (docs.sass, docs.js) owns the layout: three columns
+// from 1200px, the page's contents in a drawer below that, and both drawers in a bar below
+// 768px. This file feeds the tokens it reads, styles what it no longer carries (the header,
+// search and code blocks) and restyles the rest; it leaves the shell's columns and breakpoints
+// alone.
 $mono: ui-monospace, "DejaVu Sans Mono", monospace
 
 .war-room
@@ -9,6 +13,25 @@ $mono: ui-monospace, "DejaVu Sans Mono", monospace
   --accent-alpha-20: #2a1e3c
   --border-color: #49355f
   --muted: #b8aac9
+  // The --dw- tokens docs.sass reads, drawn from the colors above. Faint text is 5.9:1 on the
+  // page.
+  --dw-bg-0: var(--background)
+  --dw-bg-1: #1b1425
+  --dw-bg-2: #241b31
+  --dw-text: var(--color)
+  --dw-text-muted: var(--muted)
+  --dw-text-faint: #9a8bab
+  --dw-line: var(--border-color)
+  --dw-accent: var(--accent)
+  --dw-accent-soft: var(--accent-alpha-20)
+  --dw-code-bg: #1b1426
+  --dw-font-mono: #{$mono}
+  --dw-radius: 3px
+  --dw-radius-lg: 5px
+  --dw-gutter: 28px
+  --dw-sheen: inset 0 1px 0 rgb(255 255 255 / 5%)
+  --dw-shadow-2: 0 2px 4px rgb(0 0 0 / 22%), 0 14px 32px -10px rgb(0 0 0 / 55%)
+  --dw-shadow-3: 0 4px 10px rgb(0 0 0 / 30%), 0 28px 64px -16px rgb(0 0 0 / 70%)
   margin: 0
   background: var(--background)
   color: var(--color)
@@ -78,41 +101,100 @@ $mono: ui-monospace, "DejaVu Sans Mono", monospace
   [hidden]
     display: none !important
 
+  // The docs shell's mobile bar reaches the screen's edges by the gutter, so the page's side
+  // padding is the gutter too.
   .container
     max-width: 1680px
     margin: auto
-    padding: 20px 28px 36px
+    padding: 20px var(--dw-gutter) 36px
 
-  // Docs shell adjustments
+  // Header and search. The shell's header now comes from the Mod Template's base layout, which
+  // this site does not use, so the war room styles its own.
   .docs-header
+    margin-bottom: 1.5em
     border-top: 3px solid #8657ba
-    padding-top: 14px
+    border-bottom: 1px solid var(--border-color)
+    padding: 14px 0 1em
+
+  .docs-header__inner
+    display: grid
+    grid-template-columns: auto minmax(220px, 1fr) auto
+    gap: 1.5em
+    align-items: center
 
   .docs-brand
+    display: flex
+    gap: .45em
     align-items: center
+    color: var(--accent)
+    font-size: 1.05em
     letter-spacing: -.035em
+    text-decoration: none
+    white-space: nowrap
+
+    strong
+      font-weight: 600
 
     span
+      color: var(--color)
       font-size: .75em
+      opacity: .65
 
-  .docs-shell
-    grid-template-columns: 220px minmax(0, 1fr) 180px
-    gap: 28px
+  .docs-header__links
+    display: flex
+    gap: 1em
+    font-size: .85em
+    white-space: nowrap
 
-  .docs-shell--no-toc
-    grid-template-columns: 220px minmax(0, 1fr)
+  .docs-search__label
+    position: absolute
+    width: 1px
+    height: 1px
+    padding: 0
+    overflow: hidden
+    clip: rect(0, 0, 0, 0)
+    white-space: nowrap
+    border: 0
 
+  .docs-search #search
+    width: 100%
+    margin: 0
+    padding: .55em .75em
+    border-color: var(--accent-alpha-70)
+
+  .search-container
+    position: relative
+
+  // Above the docs shell's drawer buttons, which stay in view at z-index 20.
+  .search-results
+    position: absolute
+    top: 100%
+    left: 0
+    right: 0
+    max-height: 60vh
+    overflow: auto
+    border: 1px solid var(--accent)
+    background: #1b1425
+    padding: .75em
+    z-index: 30
+
+  .search-results__header
+    color: var(--muted)
+    font-size: .8em
+
+  .search-results__items
+    list-style: none
+    padding: 0
+    margin: 0
+
+    a
+      display: block
+      padding: .55em .2em
+      border-bottom: 1px solid var(--border-color)
+
+  // Docs shell look
   .docs-sidebar
     font-size: .86rem
-    border-right: 1px solid var(--border-color)
-    padding-right: 10px
-
-  .docs-sidebar__panel > summary
-    color: var(--muted)
-    font-size: .7rem
-    letter-spacing: .045em
-    text-transform: uppercase
-    margin-bottom: 10px
 
   .docs-sidebar__home
     border-left: 3px solid var(--accent)
@@ -150,12 +232,10 @@ $mono: ui-monospace, "DejaVu Sans Mono", monospace
     vertical-align: top
     min-width: 110px
 
-  td
-    overflow-wrap: anywhere
-
   tbody tr:nth-child(even)
     background: #191322
 
+  // A section's children are a list here, not the shell's cards.
   .docs-section-links
     display: block
 
@@ -164,6 +244,13 @@ $mono: ui-monospace, "DejaVu Sans Mono", monospace
     border-bottom: 1px solid var(--border-color)
     border-radius: 0
     padding: .75em 0
+    background: none
+    box-shadow: none
+
+    &:hover, &:focus-visible
+      background: var(--accent-alpha-20)
+      box-shadow: none
+      transform: none
 
     strong
       margin: 0
@@ -171,14 +258,37 @@ $mono: ui-monospace, "DejaVu Sans Mono", monospace
     span
       font-size: .87em
 
-  .docs-footer
-    flex-wrap: wrap
+  // Code blocks, and the copy buttons war-room.js adds to them
+  .docs-article pre
+    overflow-x: auto
+    border: 1px solid var(--accent-alpha-70)
+    background: var(--accent-alpha-20)
+
+  .docs-code-block
+    position: relative
+
+  .docs-code-copy
+    position: absolute
+    z-index: 1
+    top: .5em
+    right: .5em
+    margin: 0
+    border-radius: var(--dw-radius)
+    padding: .2em .55em
+    opacity: .72
+    cursor: pointer
+
+    &:hover, &:focus-visible
+      border-color: var(--accent)
+      background: var(--accent-alpha-20)
+      color: var(--accent)
+      opacity: 1
 
   .skip-link
     position: absolute
     left: 1rem
     top: -100px
-    z-index: 20
+    z-index: 40
     padding: .5em 1em
     background: #21182f
 
@@ -274,64 +384,23 @@ $mono: ui-monospace, "DejaVu Sans Mono", monospace
       margin-top: .7em
       font-size: .8rem
 
-  .search-container
-    position: relative
+  // Below 900px the page column beside the navigation is too narrow for three pulse cells.
+  @media (max-width: 899px)
+    .docs-header__inner
+      grid-template-columns: 1fr auto
 
-  .search-results
-    position: absolute
-    top: 100%
-    left: 0
-    right: 0
-    max-height: 60vh
-    overflow: auto
-    border: 1px solid var(--accent)
-    background: #1b1425
-    padding: .75em
-    z-index: 10
+    .docs-search
+      grid-column: 1 / -1
+      grid-row: 2
 
-  .search-results__header
-    color: var(--muted)
-    font-size: .8em
-
-  .search-results__items
-    list-style: none
-    padding: 0
-    margin: 0
-
-    a
-      display: block
-      padding: .55em .2em
-      border-bottom: 1px solid var(--border-color)
-
-  @media (min-width: 1101px)
-    .docs-sidebar__panel > summary
-      pointer-events: none
-
-  @media (max-width: 1200px) and (min-width: 1101px)
-    .docs-shell
-      grid-template-columns: 195px minmax(0, 1fr) 150px
-      gap: 20px
-
-  @media (max-width: 1100px)
-    .docs-shell
-      display: block
-
-    .docs-sidebar
-      border: 1px solid var(--border-color)
-      padding: .5em
-
-    .docs-sidebar__panel > summary
-      margin: 0
-
-    .docs-toc
-      margin-bottom: 1.3em
-
-    .docs-toc__panel > nav > ul
-      columns: 2
+    .pulse-strip
+      grid-template-columns: repeat(2, minmax(0, 1fr))
 
   @media (max-width: 700px)
+    --dw-gutter: 12px
+
     .container
-      padding: 12px
+      padding: 12px var(--dw-gutter)
 
     .docs-header__inner
       grid-template-columns: 1fr
@@ -340,20 +409,11 @@ $mono: ui-monospace, "DejaVu Sans Mono", monospace
     .docs-header__links
       flex-wrap: wrap
       grid-row: 2
+      gap: .5em
+      font-size: .75em
 
     .docs-search
       grid-row: 3
-
-    .docs-article pre
-      margin-left: 0
-      margin-right: 0
-      border: 1px solid var(--border-color)
-
-    .pulse-strip
-      grid-template-columns: repeat(2, minmax(0, 1fr))
-
-    .docs-toc__panel > nav > ul
-      columns: 1
 
     .docs-footer
       justify-content: flex-start

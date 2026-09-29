@@ -22,9 +22,10 @@ deployments will take turns overwriting each other.
 ## The Mod Template
 
 DreamWeave-Mod-Template supplies the docs shell: recursive sidebar, breadcrumbs, a local
-table of contents, copy buttons, scoped styles and no framework. StroggForge imports that
-shell (the receipt is in `site/UPSTREAM.md`) and puts its own skin on top in separate
-files, so upstream improvements can still be pulled in.
+table of contents, drawers for both on narrow screens, scoped styles and no framework.
+StroggForge imports that shell (the receipt is in `site/UPSTREAM.md`) and puts its own skin,
+search and copy buttons on top in separate files, so upstream improvements can still be
+pulled in.
 
 ## St4sh and Cod3x
 
