@@ -61,6 +61,12 @@ It reads `--dw-ok`, `--dw-info`, `--dw-warn`, `--dw-danger`, `--dw-neutral`, `--
 the radii, `--dw-sheen`, `--dw-shadow-1`, `--link-color` and `--link-hover-color`, none with a
 fallback; `war-room.sass` defines them all.
 
+Its narrow layout switches on at a 600px screen, but from 768px to 899px the docs shell's
+navigation leaves the page column about as narrow as a phone's. In that band `war-room.sass`
+stacks a vertical schematic's support nodes below its flow and gives a horizontal one two
+cards per row. Drop that override once the template's schematic sizes itself by its own width
+instead of the screen's.
+
 Schematic data is JSON in the shortcode's format. Hand-written ones live in
 `site/data/schematics/`; the generator writes the supply-line ones to
 `site/static/generated/schematics/`.
