@@ -44,7 +44,7 @@ Verification and the release builds start together, so a run takes as long as it
 - `publish`, once all of the above passed: packs the muOS apps from the PortMaster archives when `muxapp_dir` is set, refreshes the current tag release or the shared `development` release, uploads the archives and VirusTotal notes, generates and uploads the changelog, opens an issue in each dependent repository on tags, and lists the Nexus Mods uploads.
 - `nexus`: one job per staged Nexus Mods upload, after `publish`; none when Nexus Mods is not configured.
 - `crates` (tags): each binary's crate, or the dependency-ordered workspace with `cargo_publish_workspace`, once everything passed.
-- `aur`, `docs` (rustdoc Pages on main pushes, without `mod_template`), `benchmarks` (tags only, after `publish`), and `mod-template`.
+- `aur`, `docs` (rustdoc Pages on main pushes, without `mod_template`), `benchmarks` (tags only, after `publish`), and `mod-template`. A pull request has nothing to record, so `site-check` builds its site from the start of the run instead.
 - `notify` sends exactly one Discord message per push, after every job has finished. Any failed job turns it into a failure message linking the workflow run; otherwise it links the release and names where it is available (GitHub, crates.io on tagged publishes, the AUR). Cancelled runs, such as ones superseded by a newer push, send nothing.
 
 ## [./.github/workflows/modGlobalBuild.yml](./.github/workflows/modGlobalBuild.yml)
@@ -65,7 +65,7 @@ The pipeline runs these jobs:
 
 ## [./.github/workflows/libGlobalBuild.yml](./.github/workflows/libGlobalBuild.yml)
 
-The library equivalent of `rustGlobalBuild.yml`. Use this for crates that have no distributable binary. It has the same `lint` job, and a `test` job per desktop platform that runs pedantic Clippy with every feature and with the default features a dependent gets, then the tests. `publish` refreshes the GitHub Release, uploads the changelog and on tags opens dependent issues; `crates` publishes on tags; `docs`, `benchmarks` (tags only) and `mod-template` follow. There are no release builds and no AUR publishing.
+The library equivalent of `rustGlobalBuild.yml`. Use this for crates that have no distributable binary. It has the same `lint` job, and a `test` job per desktop platform that runs pedantic Clippy with every feature and with the default features a dependent gets, then the tests. `publish` refreshes the GitHub Release, uploads the changelog and on tags opens dependent issues; `crates` publishes on tags; `docs`, `benchmarks` (tags only) and `mod-template` follow, and a pull request runs `site-check` from the start. There are no release builds and no AUR publishing.
 
 Inputs:
 

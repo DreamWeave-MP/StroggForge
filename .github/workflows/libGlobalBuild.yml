@@ -352,7 +352,7 @@ jobs:
   # and deploy the site. On a tag it waits for the crates.io publish, so the version is there.
   mod-template:
     needs: [publish, crates]
-    if: always() && !cancelled() && inputs.mod_template && (github.event_name == 'pull_request' || needs.publish.result == 'success') && (github.ref_type != 'tag' || !inputs.cargo_publish || needs.crates.result == 'success')
+    if: always() && !cancelled() && inputs.mod_template && github.event_name != 'pull_request' && needs.publish.result == 'success' && (github.ref_type != 'tag' || !inputs.cargo_publish || needs.crates.result == 'success')
     permissions:
       actions: write
       contents: write
@@ -360,6 +360,18 @@ jobs:
       pages: write
     uses: DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml@rework-ci
     secrets: inherit
+    with:
+      rust_release: true
+
+  # A pull request has nothing to record, so it checks and builds the site from the start.
+  site-check:
+    if: inputs.mod_template && github.event_name == 'pull_request'
+    permissions:
+      actions: write
+      contents: write
+      id-token: write
+      pages: write
+    uses: DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml@rework-ci
     with:
       rust_release: true
 
