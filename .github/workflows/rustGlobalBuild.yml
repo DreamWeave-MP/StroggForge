@@ -936,9 +936,11 @@ jobs:
   # Superseded (cancelled) runs stay quiet; the run that replaced them reports instead.
   # The DreamWeave Mod Template stage: record the published archives in mod.lock, then build and
   # deploy the site. Pull requests build the site without recording or deploying anything.
+  # After the crates.io publish too, whether it ran or not: a repository that also publishes the
+  # library its program is built on records that version in the same run.
   mod-template:
     if: always() && !cancelled() && inputs.mod_template && (github.event_name == 'pull_request' || needs.github-publish.result == 'success')
-    needs: [github-publish]
+    needs: [github-publish, cargo-publish, cargo-publish-workspace]
     permissions:
       actions: write
       contents: write

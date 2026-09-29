@@ -47,7 +47,9 @@ jobs:
 
       # Optional: set true if this repository is a DreamWeave Mod Template site. Once the release
       # is published, the Mod Template stage records its archives in mod.lock and builds and deploys
-      # the site in place of rustdoc. Grant `actions: write` in the permissions above as well.
+      # the site in place of rustdoc. With cargo_publish_workspace, a library the site also lists
+      # is recorded from crates.io in the same run. Grant `actions: write` in the permissions above
+      # as well.
       # mod_template: true
 
       # Optional: set false if this project does not publish to crates.io.

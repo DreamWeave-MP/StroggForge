@@ -32,7 +32,7 @@ Inputs:
 1. `enable_android`: Optional, default `false`. Builds Android ARM64 ELF release artifacts using the Android NDK at API level 23. This does not produce an APK.
 1. `enable_portmaster`: Optional, default `false`. Builds Portmaster ARM64 release artifacts for `aarch64-unknown-linux-gnu` cross-compiled with clang and lld in the EL9 Portmaster builder against an EL9 AArch64 sysroot, for the same glibc 2.34 compatibility as `release-linux`.
 1. `muxapp_dir`: Optional, default empty. A directory of muOS app files, such as `mux_launch.sh`. Each PortMaster archive is packaged with them as `<binary>-Portmaster-ARM64.muxapp` and published beside it. Requires `enable_portmaster`.
-1. `mod_template`: Optional, default `false`. The repository is a DreamWeave Mod Template site: after `github-publish`, the `mod-template` job calls `modGlobalBuild.yml` to record the archives in `mod.lock` and deploy the site, in place of rustdoc Pages. The caller also grants `actions: write`.
+1. `mod_template`: Optional, default `false`. The repository is a DreamWeave Mod Template site: after `github-publish` and, on tags, the crates.io publish, the `mod-template` job calls `modGlobalBuild.yml` to record the archives in `mod.lock` and deploy the site, in place of rustdoc Pages. A library the site also lists, published with `cargo_publish_workspace`, is recorded from crates.io in the same run. The caller also grants `actions: write`.
 
 The pipeline runs these jobs:
 
