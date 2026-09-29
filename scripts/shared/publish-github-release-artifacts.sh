@@ -14,11 +14,11 @@ cleanup() {
 trap cleanup EXIT
 
 shopt -s nullglob
-release_files=("$download_dir"/*.zip)
+release_files=("$download_dir"/*.zip "$download_dir"/*.muxapp)
 shopt -u nullglob
 
 if (( ${#release_files[@]} == 0 )); then
-  echo "::error::No GitHub Release zip artifacts found in ${download_dir}."
+  echo "::error::No GitHub Release zip or muxapp artifacts found in ${download_dir}."
   exit 1
 fi
 

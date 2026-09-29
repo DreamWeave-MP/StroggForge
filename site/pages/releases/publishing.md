@@ -25,6 +25,7 @@ has the manual checklist for Rust applications.
 | AUR | Configured pushes after the platform builds | Package name, SSH key, the AUR environment |
 | Nexus | Configured non-PR runs after the builds | API key plus a file group ID per platform |
 | PortMaster | Opt-in ARM64 native binary | A device that runs it. Catalog submission is a separate, manual step. |
+| muOS app | Opt-in `.muxapp` of the PortMaster build, with `muxapp_dir` | `enable_portmaster`, and the app's files in the repository |
 | Mod Template site | With `mod_template`, after the GitHub Release or crates.io publish | `actions: write` for the caller; the site's `mod.lock` on the default branch is committed by CI |
 
 ## A Partial Release Is Not a Clean Slate

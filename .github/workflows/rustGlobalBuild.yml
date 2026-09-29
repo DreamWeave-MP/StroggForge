@@ -112,6 +112,12 @@ on:
         default: false
         description: "Build and publish Portmaster ARM64 release artifacts targeting aarch64-unknown-linux-gnu cross-compiled with clang and lld against an EL9 (glibc 2.34) sysroot."
 
+      muxapp_dir:
+        type: string
+        required: false
+        default: ''
+        description: "A directory in the repository holding muOS app files (mux_launch.sh and the rest). Each PortMaster archive is packaged with them as <binary>-Portmaster-ARM64.muxapp and published beside it. Requires enable_portmaster."
+
       mod_template:
         type: boolean
         required: false
@@ -741,9 +747,43 @@ jobs:
           rust_target: aarch64-unknown-linux-gnu
 
   # Refresh the GitHub Release, then publish the staged platform archives to it.
+  # Package the PortMaster build with the repository's muOS app files, published beside it.
+  release-muxapp:
+    if: always() && inputs.muxapp_dir != '' && inputs.enable_portmaster && github.event_name != 'pull_request' && needs.release-portmaster.result == 'success'
+    needs: [release-portmaster]
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/checkout@v6
+        with:
+          repository: DreamWeave-MP/StroggForge
+          ref: v48
+          path: .stroggforge
+
+      - name: Download the PortMaster Archives
+        uses: actions/download-artifact@v8.0.1
+        with:
+          pattern: github-release-*-Portmaster-ARM64
+          path: .corprus-crucible/portmaster
+          merge-multiple: true
+
+      - name: Package muOS Apps
+        env:
+          MUXAPP_DIR: ${{ inputs.muxapp_dir }}
+        run: bash .stroggforge/scripts/corprus-crucible/package-muxapp.sh "$MUXAPP_DIR" .corprus-crucible/portmaster .corprus-crucible/muxapp
+
+      - name: Stage muOS Apps
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: github-release-muxapp
+          path: .corprus-crucible/muxapp
+          if-no-files-found: error
+
   github-publish:
-    if: always() && github.event_name != 'pull_request' && needs.release.result == 'success' && needs.release-linux.result == 'success' && (!inputs.enable_android || needs.release-android.result == 'success') && (!inputs.enable_portmaster || needs.release-portmaster.result == 'success')
-    needs: [release, release-linux, release-android, release-portmaster]
+    if: always() && github.event_name != 'pull_request' && needs.release.result == 'success' && needs.release-linux.result == 'success' && (!inputs.enable_android || needs.release-android.result == 'success') && (!inputs.enable_portmaster || needs.release-portmaster.result == 'success') && (inputs.muxapp_dir == '' || needs.release-muxapp.result == 'success')
+    needs: [release, release-linux, release-android, release-portmaster, release-muxapp]
     runs-on: ubuntu-slim
     outputs:
       release_name: ${{ steps.release.outputs.release_name }}
@@ -912,7 +952,7 @@ jobs:
 
   call-discord-webhook:
     if: always() && !cancelled() && inputs.generate_discord_notification && github.event_name == 'push'
-    needs: [test, fmt, clippy, audit, msrv, release, release-linux, release-android, release-portmaster, github-publish, docs, changelog, benchmarks, nexus-publish, cargo-publish, cargo-publish-workspace, aur-publish, mod-template]
+    needs: [test, fmt, clippy, audit, msrv, release, release-linux, release-android, release-portmaster, release-muxapp, github-publish, docs, changelog, benchmarks, nexus-publish, cargo-publish, cargo-publish-workspace, aur-publish, mod-template]
     uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v48
     secrets:
       WEBHOOK_URL: ${{ secrets.DISCORD_CHANNEL_WEBHOOK || secrets.DW_TOOLS_CHANNEL_WEBHOOK }}
