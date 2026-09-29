@@ -48,19 +48,46 @@ runs:
       shell: bash
       run: bash "${{ github.action_path }}/../../../scripts/shared/setup-llvm.sh" "${{ inputs.toolchain }}" ""
 
-    - name: Cache the Cargo registry
+    # The downloaded crates, not their unpacked sources, which Cargo unpacks again faster than a
+    # cache restores their many small files. Pull requests restore the default branch's caches but
+    # save nothing, since GitHub scopes what they save to the pull request.
+    - name: Cache the downloaded crates
+      if: github.event_name != 'pull_request'
       uses: actions/cache@v5.0.5
       with:
         path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-        key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+        key: ${{ runner.os }}-${{ runner.arch }}-cargo-crates-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
         restore-keys: |
-          ${{ runner.os }}-${{ runner.arch }}-cargo-registry-
+          ${{ runner.os }}-${{ runner.arch }}-cargo-crates-
+
+    - name: Restore the downloaded crates
+      if: github.event_name == 'pull_request'
+      uses: actions/cache/restore@v5.0.5
+      with:
+        path: |
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+        key: ${{ runner.os }}-${{ runner.arch }}-cargo-crates-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ runner.arch }}-cargo-crates-
 
     - name: Cache the ${{ inputs.cache }} target directory
-      if: inputs.cache != ''
+      if: inputs.cache != '' && github.event_name != 'pull_request'
       uses: actions/cache@v5.0.5
+      with:
+        path: ${{ inputs.target-dir }}
+        key: ${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache }}-target-${{ steps.rust.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache }}-target-${{ steps.rust.outputs.cachekey }}-
+          ${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache }}-target-
+
+    - name: Restore the ${{ inputs.cache }} target directory
+      if: inputs.cache != '' && github.event_name == 'pull_request'
+      uses: actions/cache/restore@v5.0.5
       with:
         path: ${{ inputs.target-dir }}
         key: ${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache }}-target-${{ steps.rust.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}

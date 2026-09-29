@@ -79,15 +79,31 @@ runs:
       shell: bash
       run: rustup target add "${{ inputs.rust_target }}"
 
-    # Pull requests read the default branch's caches too (GitHub scopes what they save to the pull
-    # request), so they do not compile everything cold.
-    - name: ⚡ Cache Cargo registry
+    # The same crate cache as rust-setup's. Pull requests restore the default branch's caches but
+    # save nothing, since GitHub scopes what they save to the pull request.
+    - name: ⚡ Cache the downloaded crates
+      if: github.event_name != 'pull_request'
       uses: actions/cache@v5.0.5
       with:
         path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-        key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+        key: ${{ runner.os }}-${{ runner.arch }}-cargo-crates-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ runner.arch }}-cargo-crates-
+
+    - name: ⚡ Restore the downloaded crates
+      if: github.event_name == 'pull_request'
+      uses: actions/cache/restore@v5.0.5
+      with:
+        path: |
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+        key: ${{ runner.os }}-${{ runner.arch }}-cargo-crates-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ runner.arch }}-cargo-crates-
 
     - name: ⚡ Restore Cargo target cache
       id: cache_release_target
