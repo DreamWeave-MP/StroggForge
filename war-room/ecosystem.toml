@@ -7,6 +7,18 @@ scope = "Every current DreamWeave component that gets engineered, by domain. Thi
 # Infrastructure changes that alter what consumers get. Git holds the full history.
 [[updates]]
 date = "2026-09-29"
+title = "Self-referential pins move to v53"
+detail = "Templates and internal workflow/action calls reference v53, and the builder images are tagged v53. A consumer pinned to an older tag keeps that tag's behavior, including its toolchain and builder images."
+commits = ["682991f"]
+
+[[updates]]
+date = "2026-09-29"
+title = "Releases build alongside the checks, and every platform lints what it ships"
+detail = "rustGlobalBuild starts its release builds with the tests instead of after them, and publish waits for all of them, so nothing ships unless every check and build passed. Each desktop test job runs pedantic Clippy with every feature and with the features its release ships, then the tests; Android and PortMaster lint their cross builds; libGlobalBuild's test jobs lint with the default features a dependent gets. Jobs are merged and renamed: lint, test, publish, crates, nexus, aur, notify. Benchmarks run on tags only. A pull request builds its site from the start of the run (site-check) and saves no caches. modGlobalBuild runs one job per path. Measured on pull requests: greenmote 3m22s against 12-15 minutes, dream-net 2m58s against 17-24 minutes."
+commits = ["7c5170a", "21bc271", "2445f20", "7b2dd0c", "d309651", "553d997"]
+
+[[updates]]
+date = "2026-09-29"
 title = "Self-referential pins move to v52"
 detail = "Templates and internal workflow/action calls reference v52. A consumer pinned to an older tag keeps that tag's behavior, including its toolchain and builder images."
 commits = ["d9f1a20"]
