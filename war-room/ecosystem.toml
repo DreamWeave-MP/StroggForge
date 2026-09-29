@@ -7,6 +7,18 @@ scope = "Every current DreamWeave component that gets engineered, by domain. Thi
 # Infrastructure changes that alter what consumers get. Git holds the full history.
 [[updates]]
 date = "2026-09-28"
+title = "Self-referential pins move to v49"
+detail = "Templates and internal workflow/action calls reference v49. A consumer pinned to an older tag keeps that tag's behavior, including its toolchain and builder images."
+commits = ["9f494e3"]
+
+[[updates]]
+date = "2026-09-28"
+title = "The Mod Template pipeline moves into StroggForge"
+detail = "modGlobalBuild runs DreamWeave Mod Template sites. rustGlobalBuild and libGlobalBuild gain mod_template, which records a published Rust release in the site's protocol manifest and deploys the site in place of rustdoc, and rustGlobalBuild gains muxapp_dir, which publishes the PortMaster build as a muOS app."
+commits = ["f5acf9f", "2e5de82"]
+
+[[updates]]
+date = "2026-09-28"
 title = "Self-referential pins move to v48"
 detail = "Templates and internal workflow/action calls reference v48. A consumer pinned to an older tag keeps that tag's behavior, including its toolchain and builder images."
 commits = ["c2bf587"]
