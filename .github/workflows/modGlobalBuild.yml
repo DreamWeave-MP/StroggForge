@@ -37,7 +37,7 @@ permissions:
 env:
   PYTHON_VERSION: '3.12'
   # Keyless signatures made in a reusable workflow name it as the signer, so the manifest does too.
-  DREAMWEAVE_SIGNING_IDENTITY: https://github.com/DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml@refs/tags/v49
+  DREAMWEAVE_SIGNING_IDENTITY: https://github.com/DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml@refs/tags/v50
 
 jobs:
   check:
@@ -97,7 +97,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v49
+          ref: v50
           path: .stroggforge
 
       - uses: actions/setup-python@v7
@@ -190,7 +190,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v49
+          ref: v50
           path: .stroggforge
 
       - uses: actions/setup-python@v7
