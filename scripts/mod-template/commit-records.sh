@@ -23,10 +23,13 @@ for attempt in 1 2 3 4 5; do
     ./buildSite record
   fi
   ./buildSite record-crates
-  git add --all -- '*mod.lock'
-  if git diff --cached --quiet; then
+  # Listed rather than added by pattern: before a site's first release there is no mod.lock at
+  # all, and git add fails on a pathspec that matches nothing.
+  mapfile -t locks < <(git ls-files --modified --others --exclude-standard -- '*mod.lock')
+  if (( ${#locks[@]} == 0 )); then
     exit 0
   fi
+  git add -- "${locks[@]}"
   git commit --quiet -m "$message"
   if git push --quiet origin "HEAD:refs/heads/${default_branch}"; then
     exit 0
