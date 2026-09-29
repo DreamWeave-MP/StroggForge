@@ -142,10 +142,10 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v52
+          ref: rework-ci
           path: .stroggforge
 
-      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v52
+      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@rework-ci
         with:
           components: rustfmt
           llvm: ${{ inputs.cargo_publish && github.ref_type != 'tag' }}
@@ -195,7 +195,7 @@ jobs:
           MSRV_INPUT: ${{ inputs.msrv }}
         run: bash .stroggforge/scripts/shared/resolve-msrv.sh "$MSRV_INPUT"
 
-      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v52
+      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@rework-ci
         if: inputs.msrv != ''
         with:
           toolchain: ${{ steps.msrv.outputs.toolchain }}
@@ -241,10 +241,10 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v52
+          ref: rework-ci
           path: .stroggforge
 
-      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v52
+      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@rework-ci
         with:
           components: clippy
           cache: test
@@ -279,7 +279,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           submodules: true
-      - uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v52
+      - uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@rework-ci
         with:
           binary_name: ${{ matrix.app_names }}
           cargo_package: ${{ inputs.binary_package }}
@@ -307,7 +307,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           submodules: true
-      - uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v52
+      - uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@rework-ci
         with:
           binary_name: ${{ matrix.app_names }}
           cargo_package: ${{ inputs.binary_package }}
@@ -361,7 +361,7 @@ jobs:
             echo "BINDGEN_EXTRA_CLANG_ARGS=--sysroot=$NDK/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
             echo "PKG_CONFIG_ALLOW_CROSS=1"
           } >> "$GITHUB_ENV"
-      - uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v52
+      - uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@rework-ci
         with:
           binary_name: ${{ matrix.app_names }}
           cargo_package: ${{ inputs.binary_package }}
@@ -407,7 +407,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           submodules: true
-      - uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v52
+      - uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@rework-ci
         with:
           binary_name: ${{ matrix.app_names }}
           cargo_package: ${{ inputs.binary_package }}
@@ -442,7 +442,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v52
+          ref: rework-ci
           path: .stroggforge
 
       - name: Download the release archives
@@ -546,7 +546,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v52
+          ref: rework-ci
           path: .stroggforge
 
       - uses: actions/download-artifact@v8.0.1
@@ -587,10 +587,10 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v52
+          ref: rework-ci
           path: .stroggforge
 
-      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v52
+      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@rework-ci
         with:
           cache: crates
 
@@ -657,9 +657,9 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v52
+          ref: rework-ci
           path: .stroggforge
-      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v52
+      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@rework-ci
         with:
           cache: docs
       - name: Build the documentation
@@ -690,9 +690,9 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v52
+          ref: rework-ci
           path: .stroggforge
-      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v52
+      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@rework-ci
         with:
           cache: benchmarks
       - name: Run the benchmarks and upload BENCHMARKS.md
@@ -717,7 +717,7 @@ jobs:
       contents: write
       id-token: write
       pages: write
-    uses: DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml@v52
+    uses: DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml@rework-ci
     secrets: inherit
     with:
       rust_release: true
@@ -728,7 +728,7 @@ jobs:
   notify:
     needs: [lint, test, release, release-linux, release-android, release-portmaster, publish, nexus, crates, aur, docs, benchmarks, mod-template]
     if: always() && !cancelled() && inputs.generate_discord_notification && github.event_name == 'push'
-    uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v52
+    uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@rework-ci
     secrets:
       WEBHOOK_URL: ${{ secrets.DISCORD_CHANNEL_WEBHOOK || secrets.DW_TOOLS_CHANNEL_WEBHOOK }}
     with:
