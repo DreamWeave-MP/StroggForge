@@ -3,16 +3,16 @@
 [workflow.rustGlobalBuild]
 purpose = "Manufacture Rust application releases across desktop and opt-in portable targets."
 intended_for = "Binary repositories, including directory-based monorepos and root workspace package/bin selection."
-release_behavior = "Quality gates precede builds. PRs produce build artifacts. Non-PR builds sign binaries, package, scan and stage archives; github-publish refreshes the release boundary and uploads. Tags enable configured crates.io publication. Main pushes may deploy rustdoc. AUR runs on configured pushes; Nexus on configured non-PR runs."
+release_behavior = "Verification and release builds start together: one lint job (fmt, audit, MSRV, packaging dry runs), a test job per desktop that runs Clippy twice (every feature, and the features its release ships) and the tests, and the platform builds, of which Android and PortMaster lint their own cross builds. publish runs only when all of them pass: it packs muOS apps, refreshes the GitHub Release, uploads archives and the changelog, and on tags opens dependent issues. Tags publish crates. Nexus uploads, AUR, rustdoc and the Mod Template stage follow publish; benchmarks run on tags only."
 artifacts = ["Per-binary/per-platform archives and Cosign verification bundles", "Workflow staging artifacts and VirusTotal release links", "Optional rustdoc Pages, changelog and benchmark documents", "Configured crates.io, AUR and Nexus publication"]
 assumptions = ["Caller grants contents: write, id-token: write for signing, and pages: write when deploying docs.", "VT_API_KEY is operationally required for non-PR binary releases even though the reusable input marks the secret optional.", "binary_names is a JSON array. binary_package overrides directory detection with --package or --workspace.", "CARGO_REGISTRY_TOKEN is required when cargo_publish is enabled. Set cargo_publish: false deliberately when appropriate.", "The caller's StroggForge ref must contain every helper referenced by the workflows/actions."]
-failures = ["Compiler/LLVM major mismatch: inspect setup-llvm and the platform matrix.", "Missing VT token, signing OIDC permission, Nexus group IDs or registry token: inspect the failing stage, not the archive name.", "Release material races: changelog/benchmarks require the refreshed github-publish boundary.", "The msrv job must remain present even when its steps skip; a skipped dependency can suppress releases."]
+failures = ["Compiler/LLVM major mismatch: inspect rust-setup, setup-llvm.sh and the platform matrix.", "Clippy with the features the release ships fails where Clippy with every feature passes: code dead or broken in that platform's feature set, from .stroggforge/cargo-build-args.sh.", "Missing VT token, signing OIDC permission, Nexus group IDs or registry token: inspect the failing stage, not the archive name.", "A failed test or lint on one platform holds back publish even though every build finished: builds do not wait for tests, publishing does."]
 example = "Use the generated [binary caller template](@/stroggforge/integration.md#binary-integration-template). Read [publishing](@/releases/publishing.md) before pushing a tag."
 
 [workflow.libGlobalBuild]
 purpose = "Verify Rust libraries, publish crates and deploy their API documentation."
 intended_for = "Library crates/workspaces; crate_names match Cargo package names, not guessed directory names."
-release_behavior = "Quality gates precede release_cleanup. Tagged enabled jobs publish crates; non-tag publication checks are dry runs. cargo_publish_workspace selects the dependency-ordered workspace publisher. Main pushes can deploy rustdoc. Changelog and benchmark uploads wait for release_cleanup."
+release_behavior = "One lint job (fmt, audit, MSRV, packaging dry runs) and a test job per desktop (Clippy with every feature and with default features, then the tests). publish refreshes the GitHub Release, uploads the changelog and on tags opens dependent issues; tagged runs publish crates, per crate or as the dependency-ordered workspace. Main pushes can deploy rustdoc. Benchmarks run on tags only, after publish."
 artifacts = ["crates.io packages", "Rustdoc Pages", "Refreshed GitHub Release with optional changelog/benchmarks", "Dependent repository notifications on configured tags"]
 assumptions = ["Caller permissions must allow release contents writes and Pages/OIDC when selected.", "resolve-crate-manifest.sh uses cargo metadata and normalizes hyphens/underscores.", "Workspace publishing removes the temporary .stroggforge checkout before Cargo's dirty-tree check.", "Registry token is required for publishing; dependent issue creation requires DW_BOT_PAT."]
 failures = ["Manifest/package mismatch: use [package].name, not the repository spelling.", "Crates.io 429 or dependency visibility: workspace publisher retries and waits for the index; inspect its log before manual publishing.", "Missing full Git history breaks changelog quality."]
@@ -21,7 +21,7 @@ example = "Use the generated [library caller template](@/stroggforge/integration
 [workflow.modGlobalBuild]
 purpose = "Run the DreamWeave Mod Template pipeline: validate a site's projects, record releases in the protocol manifest, and build and deploy the site."
 intended_for = "Mod Template sites directly, and Rust repositories through rustGlobalBuild or libGlobalBuild with mod_template."
-release_behavior = "Runs the consumer's own ./buildSite. Mod tags build, sign, record and publish the archive; default-branch pushes publish the development release and deploy Pages. With rust_release it publishes nothing: it records the archives the application workflow staged, or the versions crates.io has, commits mod.lock to the default branch, deploys the site, and after a tag starts a default-branch run of the calling workflow."
+release_behavior = "Runs the consumer's own ./buildSite, in one job per path. site (branches and pull requests) validates, tests and builds; on the default branch it also records what crates.io and GitHub published, signs and publishes the development release (mods only), and hands the site to deploy. release (tags) validates, builds, signs, records mod.lock on the default branch, publishes a mod's release, and starts a default-branch run of the calling workflow. With rust_release it publishes nothing of its own."
 artifacts = ["mod.lock commits on the default branch", "Protocol manifests and the site on GitHub Pages", "Mod archives, Sigstore bundles and GitHub Releases (mods only)", "Nexus uploads for mods with a file group"]
 assumptions = ["The caller grants actions: write (the refresh run), contents: write, id-token: write and pages: write.", "The consumer's ./buildSite, tools/ and templates come from the Mod Template; the workflow never supplies its own copy.", "Keyless signatures name this workflow at its tag, so DREAMWEAVE_SIGNING_IDENTITY moves with every version bump.", "record-crates reads the crates.io index and downloads each .crate it records."]
 failures = ["mod.lock push rejected: the default branch is protected against GitHub Actions.", "A binary release is refused when an archive listed in [[platforms]] is missing from the staged github-release artifacts.", "A .crate whose SHA-256 differs from the crates.io index checksum is never recorded; rerun, then report it."]
@@ -34,7 +34,7 @@ release_behavior = "Deletes and recreates an existing release. For development i
 artifacts = ["GitHub Release", "release_name output"]
 assumptions = ["Caller grants contents: write.", "Tagged calls use the tag name; non-tag calls use development."]
 failures = ["Insufficient token permission prevents refresh.", "Concurrent or premature uploads can be deleted by release refresh; honor the dependency graph."]
-example = "Internal caller: libGlobalBuild.yml / release_cleanup. See its generated job graph."
+example = "No StroggForge workflow calls it any more: rustGlobalBuild's and libGlobalBuild's publish jobs refresh the release with the same script. Kept for callers of their own."
 
 [workflow.dependent]
 purpose = "Notify dependent repositories through update issues."
@@ -43,7 +43,7 @@ release_behavior = "Creates update issues for the supplied owner/repo list. Does
 artifacts = ["GitHub issues in configured repositories"]
 assumptions = ["DW_BOT_PAT must be able to create issues in the destinations.", "dependent_repo_names accepts newline-separated owner/repo entries and legacy JSON arrays."]
 failures = ["Invalid repository list or insufficient PAT scope: inspect create-dependent-update-issues.sh."]
-example = "Set dependent_repo_names in the public binary/library caller; those workflows invoke this helper after the release boundary."
+example = "Set dependent_repo_names in the public binary/library caller; their publish jobs open the issues with the same script. This workflow is kept for callers of their own."
 
 [workflow.discord]
 purpose = "Send one release or failure notification to a configured Discord webhook."
@@ -56,21 +56,39 @@ example = "Prefer the public workflows' generate_discord_notification flag and i
 
 [workflow.corprus-crucible]
 purpose = "Build a release binary, sign it, archive it, scan it and stage publication artifacts."
-intended_for = "Platform build jobs in rustGlobalBuild; this action does not run tests."
+intended_for = "Platform build jobs in rustGlobalBuild; this action does not run tests. With lint it runs Clippy on the build as released first, for targets no test job compiles."
 release_behavior = "Non-PR: validate token, build, keyless Cosign sign binary, create zip, scan, stage. PR: build and upload a workflow artifact. Final GitHub/Nexus publishing belongs to later workflow jobs."
 artifacts = ["Release binary", "Cosign bundle included with the zip", "Staged GitHub/Nexus workflow artifacts"]
-assumptions = ["Quality checks run in the reusable workflow before this action.", "contents/id-token write are needed by release jobs; vt_api_key is required outside PRs.", "Platform overrides select archive names/target; cargo_package controls root-workspace selection."]
+assumptions = ["Quality checks run in the reusable workflow alongside this action; nothing it stages is published unless they pass.", "contents/id-token write are needed by release jobs; vt_api_key is required outside PRs.", "Platform overrides select archive names/target; cargo_package controls root-workspace selection. Pull requests restore the default branch's caches."]
 failures = ["Build context/manifest confusion: inspect resolve-build-context.sh and build-release-binary.sh.", "Missing include_files or archiver: inspect create-release-archive.sh.", "OIDC/signing or scan failures: inspect sign-release-binary.sh and format-virustotal-links.sh."]
 example = "Use rustGlobalBuild rather than bypassing its quality gates. The action's inputs and ordered steps are generated below."
 
 [workflow.setup-llvm]
 purpose = "Install and select clang/lld compatible with the active Rust compiler's LLVM major."
-intended_for = "Every compiling Rust job; fmt and audit do not compile."
+intended_for = "Kept for callers of their own: StroggForge's compiling jobs install LLVM through rust-setup, or Corprus Crucible, which run the same setup-llvm.sh."
 release_behavior = "Toolchain setup only; produces no release. Migration across consumers is tracked separately from this configuration."
 artifacts = ["Compiler/linker environment for subsequent Cargo commands"]
 assumptions = ["Run after dtolnay/rust-toolchain; pass the MSRV toolchain for older compiler checks.", "Ubuntu uses apt.llvm.org; macOS uses Homebrew; Windows and apt-less Linux use release archives; EL9 uses dnf/stream packages.", "Matching a major is policy; LLVM 22.1.8 is a measured reference, not an unconditional patch pin."]
 failures = ["Stream clang or lld differs from rustc LLVM: fail loudly and inspect package availability.", "l3i requires clang, lld and cross-language LTO flags together; a compiler binary alone is insufficient."]
-example = "Compiling jobs in the public workflows call this action after Rust setup. For platform exceptions see [toolchains](@/releases/platforms.md)."
+example = "Use rust-setup in a compiling job. For platform exceptions see [toolchains](@/releases/platforms.md)."
+
+[workflow.rust-setup]
+purpose = "Start a compiling job: the Rust toolchain, clang and lld matching its LLVM, and the Cargo registry and target caches."
+intended_for = "Every compiling job in rustGlobalBuild and libGlobalBuild."
+release_behavior = "Toolchain and cache setup only. The target cache is named per job (lint, test, msrv, crates, docs, benchmarks) and keyed by runner, toolchain and lockfile."
+artifacts = ["Compiler, linker and cache state for later Cargo commands"]
+assumptions = ["llvm: false only for jobs that compile nothing.", "An MSRV check passes its toolchain, which installs the LLVM that toolchain uses."]
+failures = ["Stream clang or lld differs from rustc's LLVM: setup-llvm.sh fails loudly; inspect package availability."]
+example = "uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@<tag> with a cache name."
+
+[workflow.mod-template-setup]
+purpose = "Give a job what ./buildSite needs: Python with the template's requirements and the Zola version the site pins."
+intended_for = "modGlobalBuild's site and release jobs."
+release_behavior = "Setup only."
+artifacts = ["Python, the template's requirements and Zola"]
+assumptions = ["The consumer's tools/requirements.txt and ./buildSite come from the Mod Template."]
+failures = ["A Zola version taiki-e/install-action cannot install: inspect ./buildSite zola-version."]
+example = "uses: DreamWeave-MP/StroggForge/.github/actions/mod-template-setup@<tag> after checking out the site."
 
 # Supply-chain stages, ordered by the earliest point each can start; jobs overlap where the
 # workflows' needs graphs allow. The exact order is each workflow's generated job graph.
@@ -89,14 +107,14 @@ id = "toolchain"
 name = "Toolchain"
 kind = "tool"
 summary = "clang and lld matching rustc's LLVM major in every compiling job; EL9 builder images published separately for Linux and PortMaster."
-jobs = ["setup-llvm/Install LLVM matching rustc", "publish-linux-x86_64-el9-builder/publish", "publish-portmaster-aarch64-el9-builder/publish"]
+jobs = ["rust-setup/Install clang and lld matching rustc's LLVM", "publish-linux-x86_64-el9-builder/publish", "publish-portmaster-aarch64-el9-builder/publish"]
 
 [[stage]]
 id = "verify"
 name = "Verify"
 kind = "boundary"
-summary = "Tests, formatting, pedantic Clippy with warnings denied, RustSec audit, MSRV and non-tag crates.io dry runs run in parallel. Release and docs jobs need every gate; Corprus Crucible never runs tests itself."
-jobs = ["rustGlobalBuild/test", "rustGlobalBuild/fmt", "rustGlobalBuild/clippy", "rustGlobalBuild/audit", "rustGlobalBuild/msrv", "rustGlobalBuild/cargo-publish-dry-run", "rustGlobalBuild/cargo-publish-workspace-dry-run", "libGlobalBuild/test", "libGlobalBuild/fmt", "libGlobalBuild/clippy", "libGlobalBuild/audit", "libGlobalBuild/msrv", "libGlobalBuild/cargo-publish-dry-run", "libGlobalBuild/cargo-publish-workspace-dry-run"]
+summary = "One lint job (formatting, RustSec audit, MSRV, non-tag crates.io dry runs) and a test job per desktop platform, each running pedantic Clippy with every feature and with the features its release ships, then the tests. They run alongside the builds; publishing needs every one."
+jobs = ["rustGlobalBuild/lint", "rustGlobalBuild/test", "libGlobalBuild/lint", "libGlobalBuild/test", "corprus-crucible/Lint the build as released"]
 [[stage]]
 id = "build"
 name = "Build"
@@ -123,19 +141,19 @@ id = "publish"
 name = "Publish"
 kind = "service"
 summary = "Refresh the GitHub Release boundary, then upload. Tagged runs publish crates, per package or as a dependency-ordered workspace."
-jobs = ["rustGlobalBuild/github-publish", "libGlobalBuild/release_cleanup", "createRelease/ensure-fresh-release", "rustGlobalBuild/cargo-publish", "rustGlobalBuild/cargo-publish-workspace", "libGlobalBuild/cargo-publish", "libGlobalBuild/cargo-publish-workspace"]
+jobs = ["rustGlobalBuild/publish", "libGlobalBuild/publish", "rustGlobalBuild/crates", "libGlobalBuild/crates"]
 
 
 [[stage]]
 id = "document"
 name = "Document"
 kind = "component"
-summary = "Rustdoc Pages on configured main pushes, after the gates and alongside builds. Changelog and benchmark documents wait for the refreshed release boundary."
-jobs = ["rustGlobalBuild/docs", "rustGlobalBuild/changelog", "rustGlobalBuild/benchmarks", "libGlobalBuild/docs", "libGlobalBuild/changelog", "libGlobalBuild/benchmarks"]
+summary = "Rustdoc Pages on configured main pushes, after the gates. The changelog is uploaded by publish; benchmarks run on tags after it."
+jobs = ["rustGlobalBuild/docs", "rustGlobalBuild/benchmarks", "libGlobalBuild/docs", "libGlobalBuild/benchmarks"]
 
 [[stage]]
 id = "distribute"
 name = "Distribute and announce"
 kind = "service"
 summary = "Configured AUR and Nexus uploads, dependent-repository update issues, and one aggregated Discord notification."
-jobs = ["rustGlobalBuild/aur-publish", "rustGlobalBuild/nexus-publish", "rustGlobalBuild/nag-dependents", "libGlobalBuild/nag-dependents", "dependent/notify-dependents", "discord/discord-notify"]
+jobs = ["rustGlobalBuild/aur", "rustGlobalBuild/nexus", "discord/discord-notify"]

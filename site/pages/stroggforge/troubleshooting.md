@@ -19,7 +19,8 @@ failed first. Fix the first failure, not the loudest one.
 
 | Symptom | Look at | Do |
 |---|---|---|
-| Release never started | test, fmt, clippy, audit, msrv | Fix the first failing gate. The `msrv` job must exist even when its steps skip, or every release job that needs it skips too. |
+| Release never published | `lint`, `test` | Builds do not wait for the checks; `publish` does. Fix the first failing check. |
+| Clippy fails only with the release's features | `.stroggforge/cargo-build-args.sh`, the `test` job's second Clippy | Code is dead or broken in the feature set that platform ships. Gate it on the features that use it. |
 | clang, lld and rustc disagree | `scripts/shared/setup-llvm.sh`, `rustc -vV` | Match rustc's LLVM major. The MSRV job has to pass its own `toolchain`, or it gets stable's LLVM. |
 | l3i refuses the build flags | the consumer's `.cargo/config.toml`, L3i's `TOOLCHAIN.md` | clang, lld and `-Clinker-plugin-lto` go together. Cargo does not inherit a dependency's config, so every consumer carries its own. |
 | Windows proc macro rejects `-Clinker-plugin-lto` | `CARGO_BUILD_TARGET` in the job log | setup-llvm pins the host triple. If something unset it, target rustflags reach proc macros again. |
@@ -31,7 +32,7 @@ failed first. Fix the first failure, not the loudest one.
 | Archive missing files | `create-release-archive.sh`, `include_files` | Reproduce the staging locally before uploading anything. |
 | Signing fails | `sign-release-binary.sh`, `id-token: write` | Without OIDC permission, keyless signing has no identity to sign with. |
 | VirusTotal step fails | `VT_API_KEY` | Non-PR binary releases need it, even though the contract marks the secret optional. |
-| Release assets vanished | `github-publish` / `release_cleanup` ordering | The refresh deletes and recreates the release. Anything uploaded before it is gone. |
+| Release assets vanished | the `publish` job's refresh step | The refresh deletes and recreates the release. Anything uploaded before it is gone. |
 | crates.io 429 or missing dependency | `publish_workspace.py`, the job log | It retries and waits for the index already. Read the log before publishing by hand. |
 | Cargo refuses a dirty tree | the `.stroggforge` helper checkout | The workflow copies the publisher to `$RUNNER_TEMP` and removes the checkout first. A custom step has to do the same. |
 | Changelog empty or wrong | `fetch-depth` | It needs full history. |
@@ -39,7 +40,7 @@ failed first. Fix the first failure, not the loudest one.
 | Pages overwritten | `publish_docs` | rustdoc and a project's own site cannot both own Pages. Pick one. |
 | Nexus upload fails | `NEXUS_API_KEY`, `NEXUS_GROUP_IDS` | Check the group ID for that exact OS and architecture. |
 | AUR update fails | the AUR environment, package name, SSH key | Usually ownership or key access. |
-| Discord says success after a failure | `call-discord-webhook.needs` | Every job that can fail a release belongs in that list. A missing webhook skips on purpose. |
+| Discord says success after a failure | `notify.needs` | Every job that can fail a release belongs in that list. A missing webhook skips on purpose. |
 | War room build rejects the TOML | the error message | It names the record and the reference. Fix `war-room/*.toml`, never the generated pages. |
 
 ## The Ref Contract
