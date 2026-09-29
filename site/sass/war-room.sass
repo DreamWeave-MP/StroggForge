@@ -369,38 +369,6 @@ $mono: ui-monospace, "DejaVu Sans Mono", monospace
     &::before, &::after
       display: none
 
-  // schematic.sass narrows at a 600px screen, but from 768px to 899px the docs shell keeps the
-  // navigation beside a page column of 460 to 590px. There a vertical schematic stacks its
-  // support nodes below the flow, as it does on a phone, and a horizontal one takes two cards
-  // per row.
-  @media (min-width: 768px) and (max-width: 899px)
-    .docs-schematic__canvas
-      display: block
-
-    .docs-schematic__support
-      margin-top: 1.5em
-
-    .docs-schematic__support::before
-      top: -1.5em
-      right: auto
-      bottom: auto
-      left: 50%
-      width: 1px
-      height: 1.5em
-      border-top: 0
-      border-left: 1px dashed var(--accent)
-
-    .docs-schematic--horizontal .docs-schematic__nodes
-      grid-template-columns: repeat(2, minmax(0, 1fr))
-
-    .docs-schematic--horizontal .docs-schematic__nodes > li:nth-child(3n):not(:last-child)
-      &::before, &::after
-        display: block
-
-    .docs-schematic--horizontal .docs-schematic__nodes > li:nth-child(2n):not(:last-child)
-      &::before, &::after
-        display: none
-
   .system-map
     margin: 1em 0
     border: 1px solid var(--border-color)

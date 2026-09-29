@@ -5,13 +5,15 @@ fetched at build time, so a clean checkout always has everything.
 
 ## Docs shell: DreamWeave-Mod-Template
 
-Imported at `208857655d07903844fe55335da13396b39024de` (branch `V5`) from
+Imported at `27e10020899e9017167991d4a73f8326ebffa78e` (branch `V5`) from
 <https://github.com/DreamWeave-MP/DreamWeave-Mod-Template>, licensed **AGPL-3.0**. The full
 license text ships as `site/static/LICENSE-AGPL-3.0.txt` and is linked from every page's
 footer. Attribution stays with the Mod Template's contributors.
 
 Files: `templates/docs/{base,breadcrumbs,page,section,sidebar,toc}.html`, `sass/docs.sass`,
-`static/docs/docs.js`. Only `docs/base.html` differs from upstream.
+`static/docs/docs.js`. Only `docs/base.html` differs from upstream. It leaves out the
+`docs-sidebar__panel--manuals` class upstream adds with the manual switcher, which never shows
+here.
 
 `docs.sass` and `docs.js` work as a pair. Three columns from 1200px; below that the page's
 contents fold into a drawer, and below 768px the navigation does too, the two buttons making
@@ -51,7 +53,7 @@ taxonomy or download automation came along.
 
 The shortcode started in S3ctors-S3cret-St4sh; its home is now the Mod Template, which took
 it from St4sh at `86cbc261` and moved its colors onto the palette tokens. Imported from the
-template at `208857655d07903844fe55335da13396b39024de`, the docs shell's revision.
+template at `27e10020899e9017167991d4a73f8326ebffa78e`, the docs shell's revision.
 
 - `templates/shortcodes/schematic.html`: unchanged.
 - `sass/schematic.sass`: the template's `sass/_schematic.sass`, unchanged. It compiles to its
@@ -61,11 +63,8 @@ It reads `--dw-ok`, `--dw-info`, `--dw-warn`, `--dw-danger`, `--dw-neutral`, `--
 the radii, `--dw-sheen`, `--dw-shadow-1`, `--link-color` and `--link-hover-color`, none with a
 fallback; `war-room.sass` defines them all.
 
-Its narrow layout switches on at a 600px screen, but from 768px to 899px the docs shell's
-navigation leaves the page column about as narrow as a phone's. In that band `war-room.sass`
-stacks a vertical schematic's support nodes below its flow and gives a horizontal one two
-cards per row. Drop that override once the template's schematic sizes itself by its own width
-instead of the screen's.
+Each schematic is a size container and stacks below 36rem of its own width, so it follows the
+page column rather than the screen, including beside the docs navigation from 768px to 899px.
 
 Schematic data is JSON in the shortcode's format. Hand-written ones live in
 `site/data/schematics/`; the generator writes the supply-line ones to
