@@ -1,0 +1,29 @@
+name: Build, release and publish
+
+# A DreamWeave Mod Template site of mods, as build_site.yml. Rust repositories do not use this
+# file: their rustGlobalBuild or libGlobalBuild caller sets mod_template: true instead.
+
+on:
+  push:
+    branches: ['**']
+    # Release tags only: a version always starts with a digit, and slugs cannot contain '-'.
+    tags: ['*-[0-9]*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dreamweave-${{ github.ref }}
+  cancel-in-progress: ${{ !(github.event_name != 'pull_request' && (github.ref_type == 'tag' || github.ref_name == github.event.repository.default_branch)) }}
+
+jobs:
+  site:
+    permissions:
+      actions: write # the default-branch run a release tag starts
+      contents: write # releases, and the mod.lock commit
+      id-token: write # Sigstore and Pages
+      pages: write
+    uses: DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml@v48
+    secrets: inherit

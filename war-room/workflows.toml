@@ -18,6 +18,15 @@ assumptions = ["Caller permissions must allow release contents writes and Pages/
 failures = ["Manifest/package mismatch: use [package].name, not the repository spelling.", "Crates.io 429 or dependency visibility: workspace publisher retries and waits for the index; inspect its log before manual publishing.", "Missing full Git history breaks changelog quality."]
 example = "Use the generated [library caller template](@/stroggforge/integration.md#library-integration-template)."
 
+[workflow.modGlobalBuild]
+purpose = "Run the DreamWeave Mod Template pipeline: validate a site's projects, record releases in the protocol manifest, and build and deploy the site."
+intended_for = "Mod Template sites directly, and Rust repositories through rustGlobalBuild or libGlobalBuild with mod_template."
+release_behavior = "Runs the consumer's own ./buildSite. Mod tags build, sign, record and publish the archive; default-branch pushes publish the development release and deploy Pages. With rust_release it publishes nothing: it records the archives the application workflow staged, or the versions crates.io has, commits mod.lock to the default branch, deploys the site, and after a tag starts a default-branch run of the calling workflow."
+artifacts = ["mod.lock commits on the default branch", "Protocol manifests and the site on GitHub Pages", "Mod archives, Sigstore bundles and GitHub Releases (mods only)", "Nexus uploads for mods with a file group"]
+assumptions = ["The caller grants actions: write (the refresh run), contents: write, id-token: write and pages: write.", "The consumer's ./buildSite, tools/ and templates come from the Mod Template; the workflow never supplies its own copy.", "Keyless signatures name this workflow at its tag, so DREAMWEAVE_SIGNING_IDENTITY moves with every version bump.", "record-crates reads the crates.io index and downloads each .crate it records."]
+failures = ["mod.lock push rejected: the default branch is protected against GitHub Actions.", "A binary release is refused when an archive listed in [[platforms]] is missing from the staged github-release artifacts.", "A .crate whose SHA-256 differs from the crates.io index checksum is never recorded; rerun, then report it."]
+example = "Mod sites use the generated [Mod Template caller](@/stroggforge/integration.md#mod-template-integration-template); Rust sites set mod_template: true on their application or library caller."
+
 [workflow.createRelease]
 purpose = "Refresh a GitHub Release boundary and report its name."
 intended_for = "Internal reusable release coordination, especially library jobs."

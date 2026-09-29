@@ -65,6 +65,12 @@ on:
         default: true
         description: "Generate a discord notification to DreamWeave upon success."
 
+      mod_template:
+        type: boolean
+        required: false
+        default: false
+        description: "The repository is a DreamWeave Mod Template site. modGlobalBuild records each version crates.io has in mod.lock, after a tag's publish, and builds and deploys the site. Replaces rustdoc Pages; the caller also grants actions: write."
+
 concurrency:
   group: stroggforge-lib-global-${{ github.repository }}-${{ github.ref }}
   cancel-in-progress: true
@@ -391,7 +397,7 @@ jobs:
   # Build cargo doc and deploy to GitHub Pages.
   # Requires Pages to be enabled with "GitHub Actions" as the source in repo settings.
   docs:
-    if: inputs.publish_docs && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: inputs.publish_docs && !inputs.mod_template && github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [test, clippy, fmt, audit, msrv]
     runs-on: ubuntu-22.04
     permissions:
@@ -519,9 +525,24 @@ jobs:
 
   # One notification per run, after every release and publish job has finished, so it can report any failure.
   # Superseded (cancelled) runs stay quiet; the run that replaced them reports instead.
+  # The DreamWeave Mod Template stage: record crate versions from crates.io, after a tag's publish,
+  # then build and deploy the site. Pull requests build the site without recording or deploying.
+  mod-template:
+    if: always() && !cancelled() && inputs.mod_template && (github.event_name == 'pull_request' || needs.release_cleanup.result == 'success') && (github.ref_type != 'tag' || !inputs.cargo_publish || needs.cargo-publish.result == 'success' || needs.cargo-publish-workspace.result == 'success')
+    needs: [release_cleanup, cargo-publish, cargo-publish-workspace]
+    permissions:
+      actions: write
+      contents: write
+      id-token: write
+      pages: write
+    uses: DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml@v48
+    secrets: inherit
+    with:
+      rust_release: true
+
   call-discord-webhook:
     if: always() && !cancelled() && inputs.generate_discord_notification && github.event_name == 'push'
-    needs: [test, fmt, clippy, audit, msrv, release_cleanup, docs, changelog, benchmarks, cargo-publish, cargo-publish-workspace]
+    needs: [test, fmt, clippy, audit, msrv, release_cleanup, docs, changelog, benchmarks, cargo-publish, cargo-publish-workspace, mod-template]
     uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v48
     secrets:
       WEBHOOK_URL: ${{ secrets.DISCORD_CHANNEL_WEBHOOK || secrets.DW_TOOLS_CHANNEL_WEBHOOK }}

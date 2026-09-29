@@ -20,8 +20,10 @@ FILES=(
   .github/workflows/libGlobalBuild.yml
   .github/workflows/createRelease.yml
   .github/workflows/dependent.yml
+  .github/workflows/modGlobalBuild.yml
   .github/action_templates/rust_template.yaml
   .github/action_templates/lib_template.yaml
+  .github/action_templates/mod_template.yaml
   .github/action_templates/daily_quality_template.yaml
 )
 
@@ -39,6 +41,7 @@ for f in "${FILES[@]}"; do
   sed -i \
     -e "s|StroggForge/\(.*\)@${OLD_TAG}|StroggForge/\1@${NEW_TAG}|g" \
     -e "s|ref: ${OLD_TAG}$|ref: ${NEW_TAG}|g" \
+    -e "s|StroggForge/\(.*\)@refs/tags/${OLD_TAG}|StroggForge/\1@refs/tags/${NEW_TAG}|g" \
     -e "s|${LINUX_BUILDER_IMAGE}:${OLD_TAG}|${LINUX_BUILDER_IMAGE}:${NEW_TAG}|g" \
     -e "s|${PORTMASTER_BUILDER_IMAGE}:${OLD_TAG}|${PORTMASTER_BUILDER_IMAGE}:${NEW_TAG}|g" \
     -e "s|\`@${OLD_TAG}\`|\`@${NEW_TAG}\`|g" \

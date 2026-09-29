@@ -31,6 +31,7 @@ Inputs:
 1. `generate_discord_notification`: Optional, default `true`. Set `false` to skip the Discord notification, e.g. when another workflow in the same run already sends one.
 1. `enable_android`: Optional, default `false`. Builds Android ARM64 ELF release artifacts using the Android NDK at API level 23. This does not produce an APK.
 1. `enable_portmaster`: Optional, default `false`. Builds Portmaster ARM64 release artifacts for `aarch64-unknown-linux-gnu` cross-compiled with clang and lld in the EL9 Portmaster builder against an EL9 AArch64 sysroot, for the same glibc 2.34 compatibility as `release-linux`.
+1. `mod_template`: Optional, default `false`. The repository is a DreamWeave Mod Template site: after `github-publish`, the `mod-template` job calls `modGlobalBuild.yml` to record the archives in `mod.lock` and deploy the site, in place of rustdoc Pages. The caller also grants `actions: write`.
 
 The pipeline runs these jobs:
 
@@ -41,6 +42,25 @@ The pipeline runs these jobs:
 - Doc/artifact generation: `docs` deploys GitHub Pages on main pushes after gates pass; `changelog` and `benchmarks` upload release files after `github-publish` succeeds.
 - External publish/notification: `cargo-publish` or `cargo-publish-workspace` (crates.io, tag only), `aur-publish`, and `nexus-publish` fan out after builds; `nag-dependents` waits for the GitHub Release publish boundary.
 - Notification: `call-discord-webhook` sends exactly one Discord message per push, after every gate, build, release, docs, changelog, benchmark, and publish job has finished. Any failed job (or a missing changelog when `generate_changelog` is on) turns it into a failure message linking the workflow run; otherwise it links the release and names where it is available (GitHub, crates.io on tagged publishes, the AUR). Cancelled runs, such as ones superseded by a newer push, send nothing.
+
+## [./.github/workflows/modGlobalBuild.yml](./.github/workflows/modGlobalBuild.yml)
+
+The DreamWeave Mod Template pipeline. Sites of mods call it directly from their `build_site.yml` (template: [mod_template.yaml](./.github/action_templates/mod_template.yaml)); `rustGlobalBuild` and `libGlobalBuild` call it when their caller sets `mod_template: true`. It runs the site's own `./buildSite`.
+
+Inputs:
+
+1. `rust_release`: Optional, default `false`. The calling Rust workflow built and published this run's release: record it in `mod.lock`, publish nothing, and leave GitHub releases alone.
+1. `rust_archives`: Optional, default `false`. The calling workflow staged program archives as `github-release-*` artifacts: download them into `dist/binaries/` to record.
+
+The pipeline runs these jobs:
+
+- `check`: `./buildSite check` and the template's own tests.
+- `release` (tags): builds the tagged release (a mod archive, or the staged program archives), signs mod archives with Sigstore when asked, and records the release, plus any crate versions crates.io has, in `mod.lock` on the default branch through `scripts/mod-template/commit-records.sh`.
+- `site` (other refs): records crate versions on the default branch, builds the development build and protocol documents, checks schemas and links, and uploads the Pages artifact.
+- `upload-release` (mods only): publishes the tag's release or replaces the development release, drafts first.
+- `deploy`: GitHub Pages, from the default branch.
+- `refresh-site` (tags): starts a default-branch run of the calling workflow, because `GITHUB_TOKEN` pushes start no runs.
+- `nexus-upload` (mods only): Nexus Mods, for projects with a file group.
 
 ## [./.github/workflows/libGlobalBuild.yml](./.github/workflows/libGlobalBuild.yml)
 
@@ -59,6 +79,7 @@ Inputs:
 1. `generate_changelog`: Optional, default `true`.
 1. `generate_benchmarks`: Optional, default `false`.
 1. `generate_discord_notification`: Optional, default `true`. Set `false` when the same repository also calls `rustGlobalBuild.yml` in one workflow, so each release sends one notification.
+1. `mod_template`: Optional, default `false`. The repository is a DreamWeave Mod Template site: the `mod-template` job calls `modGlobalBuild.yml`, after `release_cleanup` and, on tags, the crates.io publish, to record each version crates.io has in `mod.lock` and deploy the site, in place of rustdoc Pages. The caller also grants `actions: write`.
 
 The library Discord notification follows the same rules as the application one: one message after every job has finished, reporting any failure.
 

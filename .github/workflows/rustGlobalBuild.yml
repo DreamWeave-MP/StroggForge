@@ -112,6 +112,12 @@ on:
         default: false
         description: "Build and publish Portmaster ARM64 release artifacts targeting aarch64-unknown-linux-gnu cross-compiled with clang and lld against an EL9 (glibc 2.34) sysroot."
 
+      mod_template:
+        type: boolean
+        required: false
+        default: false
+        description: "The repository is a DreamWeave Mod Template site. After the release is published, modGlobalBuild records its archives in mod.lock and builds and deploys the site. Replaces rustdoc Pages; the caller also grants actions: write."
+
 concurrency:
   group: stroggforge-rust-global-${{ github.repository }}-${{ github.ref }}
   cancel-in-progress: true
@@ -434,7 +440,7 @@ jobs:
   # Build cargo doc and deploy to GitHub Pages.
   # Requires Pages to be enabled with "GitHub Actions" as the source in repo settings.
   docs:
-    if: inputs.publish_docs && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: inputs.publish_docs && !inputs.mod_template && github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [test, clippy, fmt, audit, msrv]
     runs-on: ubuntu-22.04
     permissions:
@@ -888,9 +894,25 @@ jobs:
 
   # One notification per run, after every build, release, and publish job has finished, so it can report any failure.
   # Superseded (cancelled) runs stay quiet; the run that replaced them reports instead.
+  # The DreamWeave Mod Template stage: record the published archives in mod.lock, then build and
+  # deploy the site. Pull requests build the site without recording or deploying anything.
+  mod-template:
+    if: always() && !cancelled() && inputs.mod_template && (github.event_name == 'pull_request' || needs.github-publish.result == 'success')
+    needs: [github-publish]
+    permissions:
+      actions: write
+      contents: write
+      id-token: write
+      pages: write
+    uses: DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml@v48
+    secrets: inherit
+    with:
+      rust_release: true
+      rust_archives: true
+
   call-discord-webhook:
     if: always() && !cancelled() && inputs.generate_discord_notification && github.event_name == 'push'
-    needs: [test, fmt, clippy, audit, msrv, release, release-linux, release-android, release-portmaster, github-publish, docs, changelog, benchmarks, nexus-publish, cargo-publish, cargo-publish-workspace, aur-publish]
+    needs: [test, fmt, clippy, audit, msrv, release, release-linux, release-android, release-portmaster, github-publish, docs, changelog, benchmarks, nexus-publish, cargo-publish, cargo-publish-workspace, aur-publish, mod-template]
     uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v48
     secrets:
       WEBHOOK_URL: ${{ secrets.DISCORD_CHANNEL_WEBHOOK || secrets.DW_TOOLS_CHANNEL_WEBHOOK }}

@@ -925,7 +925,7 @@ fn workflow_pages(site: &Site, root: &Path, model: &Model) -> Result<()> {
     }
 
     let mut integration = String::from(
-        "## Callers\n\nProjects whose repositories call a StroggForge workflow, as recorded in `war-room/ecosystem.toml`. Rust manufacturing goes through `rustGlobalBuild` and `libGlobalBuild`; static sites on the Lua(u)/OpenMW and web sides call only `createRelease`.\n\n",
+        "## Callers\n\nProjects whose repositories call a StroggForge workflow, as recorded in `war-room/ecosystem.toml`. Rust manufacturing goes through `rustGlobalBuild` and `libGlobalBuild`; Mod Template sites go through `modGlobalBuild`, which Rust repositories reach through `mod_template`.\n\n",
     );
     integration.push_str(&callers_list(model));
     for (heading, introduction, template) in [
@@ -938,6 +938,11 @@ fn workflow_pages(site: &Site, root: &Path, model: &Model) -> Result<()> {
             "Library integration template",
             "`crate_names` must match Cargo `[package].name`. Enable `cargo_publish_workspace` for dependency-ordered workspace publishing.",
             "lib_template.yaml",
+        ),
+        (
+            "Mod Template integration template",
+            "For a site of mods, as `build_site.yml`. Rust repositories set `mod_template: true` on their application or library caller instead.",
+            "mod_template.yaml",
         ),
         (
             "Daily quality template",

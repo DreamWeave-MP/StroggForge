@@ -45,6 +45,11 @@ jobs:
       # Optional: set false if this project uses its own SSG for docs.
       # publish_docs: false
 
+      # Optional: set true if this repository is a DreamWeave Mod Template site. Once the release
+      # is published, the Mod Template stage records its archives in mod.lock and builds and deploys
+      # the site in place of rustdoc. Grant `actions: write` in the permissions above as well.
+      # mod_template: true
+
       # Optional: set false if this project does not publish to crates.io.
       # cargo_publish: false
 
