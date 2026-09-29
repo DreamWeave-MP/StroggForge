@@ -1,0 +1,69 @@
+name: "Rust setup"
+description: "The Rust toolchain, clang and lld matching its LLVM, and the Cargo registry and target caches: what every StroggForge Rust job starts with."
+
+inputs:
+  toolchain:
+    description: "Rust toolchain to install."
+    required: false
+    default: stable
+  components:
+    description: "Comma-separated rustup components, such as clippy,rustfmt."
+    required: false
+    default: ""
+  targets:
+    description: "Comma-separated extra Rust targets."
+    required: false
+    default: ""
+  llvm:
+    description: "Install clang and lld matching the toolchain's LLVM, as l3i's toolchain policy requires. 'false' for jobs that compile nothing."
+    required: false
+    default: "true"
+  cache:
+    description: "Name of this job's target cache, such as test or lint. Empty caches only the registry."
+    required: false
+    default: ""
+  target-dir:
+    description: "The Cargo target directory to cache."
+    required: false
+    default: target
+
+outputs:
+  cachekey:
+    description: "The toolchain's cache key, from dtolnay/rust-toolchain."
+    value: ${{ steps.rust.outputs.cachekey }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install Rust ${{ inputs.toolchain }}
+      id: rust
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ inputs.toolchain }}
+        components: ${{ inputs.components }}
+        targets: ${{ inputs.targets }}
+
+    - name: Install clang and lld matching rustc's LLVM
+      if: inputs.llvm == 'true'
+      shell: bash
+      run: bash "${{ github.action_path }}/../../../scripts/shared/setup-llvm.sh" "${{ inputs.toolchain }}" ""
+
+    - name: Cache the Cargo registry
+      uses: actions/cache@v5.0.5
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+        key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ runner.arch }}-cargo-registry-
+
+    - name: Cache the ${{ inputs.cache }} target directory
+      if: inputs.cache != ''
+      uses: actions/cache@v5.0.5
+      with:
+        path: ${{ inputs.target-dir }}
+        key: ${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache }}-target-${{ steps.rust.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache }}-target-${{ steps.rust.outputs.cachekey }}-
+          ${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache }}-target-
