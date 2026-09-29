@@ -35,6 +35,10 @@ inputs:
     description: "Optional Rust target triple for cross-compiled release builds."
     required: false
     default: ""
+  lint:
+    description: "Run Clippy on the build as released (its target and features) before building. For targets no test job compiles, such as Android and PortMaster."
+    required: false
+    default: "false"
   cargo_package:
     description: "Optional Cargo package that provides the binary, built from the repository root with `--package <name> --bin <binary_name>`. `workspace` builds with `--workspace --bin <binary_name>` instead. Empty keeps directory detection."
     required: false
@@ -63,6 +67,8 @@ runs:
     - name: Setup Rust
       uses: dtolnay/rust-toolchain@stable
       id: rust_toolchain
+      with:
+        components: ${{ inputs.lint == 'true' && 'clippy' || '' }}
 
     - name: Setup LLVM
       shell: bash
@@ -73,9 +79,10 @@ runs:
       shell: bash
       run: rustup target add "${{ inputs.rust_target }}"
 
+    # Pull requests read the default branch's caches too (GitHub scopes what they save to the pull
+    # request), so they do not compile everything cold.
     - name: ⚡ Cache Cargo registry
       uses: actions/cache@v5.0.5
-      if: github.event_name != 'pull_request'
       with:
         path: |
           ~/.cargo/registry
@@ -85,7 +92,6 @@ runs:
     - name: ⚡ Restore Cargo target cache
       id: cache_release_target
       uses: actions/cache/restore@v5.0.5
-      if: github.event_name != 'pull_request'
       with:
         path: |
           ${{ steps.context.outputs.target_dir }}
@@ -94,6 +100,17 @@ runs:
           ${{ inputs.platform_os || runner.os }}-${{ inputs.platform_arch || runner.arch }}-release-target-${{ inputs.binary_name }}-${{ inputs.rust_target || 'native' }}-${{ steps.rust_toolchain.outputs.cachekey }}-
           ${{ inputs.platform_os || runner.os }}-${{ inputs.platform_arch || runner.arch }}-release-target-${{ inputs.binary_name }}-${{ inputs.rust_target || 'native' }}-
 
+    - name: Lint the build as released
+      if: inputs.lint == 'true'
+      shell: bash
+      run: >-
+        bash "${{ github.action_path }}/../../../scripts/corprus-crucible/clippy-release.sh"
+        '["${{ inputs.binary_name }}"]'
+        "${{ inputs.cargo_package }}"
+        "${{ inputs.platform_os || runner.os }}"
+        "${{ inputs.platform_arch || runner.arch }}"
+        "${{ inputs.rust_target }}"
+        "${{ steps.context.outputs.target_dir }}"
     - name: Build Release
       id: build_release
       shell: bash

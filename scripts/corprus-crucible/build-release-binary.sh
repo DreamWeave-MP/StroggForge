@@ -21,73 +21,11 @@ else
   built_binary="$target_dir/release/$built_binary_name"
 fi
 release_binary="$dist_dir/$built_binary_name"
-cargo_args_hook=.stroggforge/cargo-build-args.sh
-feature_cargo_args=()
-feature_cargo_arg_count=0
-hook_platform_os=$platform_os
-hook_platform_arch=$platform_arch
-
-case "$hook_platform_arch" in
-  X64)
-    hook_platform_arch=x64
-    ;;
-  X86)
-    hook_platform_arch=x86
-    ;;
-esac
-
-if [ -f "$cargo_args_hook" ]; then
-  if [ ! -x "$cargo_args_hook" ]; then
-    echo "::error::$cargo_args_hook exists but is not executable"
-    exit 1
-  fi
-
-  echo "Using Cargo feature args from $cargo_args_hook"
-  hook_output=$(mktemp)
-  trap 'rm -f "$hook_output"' EXIT
-  "$cargo_args_hook" "$hook_platform_os" "$hook_platform_arch" "$rust_target" "$binary_name" > "$hook_output"
-
-  expecting_features_value=false
-  while IFS= read -r cargo_arg || [ -n "$cargo_arg" ]; do
-    [ -n "$cargo_arg" ] || continue
-
-    if [ "$expecting_features_value" = true ]; then
-      feature_cargo_args+=("$cargo_arg")
-      feature_cargo_arg_count=$((feature_cargo_arg_count + 1))
-      expecting_features_value=false
-      continue
-    fi
-
-    case "$cargo_arg" in
-      --features|-F)
-        feature_cargo_args+=("$cargo_arg")
-        feature_cargo_arg_count=$((feature_cargo_arg_count + 1))
-        expecting_features_value=true
-        ;;
-      --features=*|-F=*|--no-default-features|--all-features)
-        feature_cargo_args+=("$cargo_arg")
-        feature_cargo_arg_count=$((feature_cargo_arg_count + 1))
-        ;;
-      *)
-        echo "::error::$cargo_args_hook emitted non-feature Cargo argument '$cargo_arg'; only --features, -F, --no-default-features, and --all-features are allowed"
-        exit 1
-        ;;
-    esac
-  done < "$hook_output"
-  rm -f "$hook_output"
-
-  if [ "$expecting_features_value" = true ]; then
-    echo "::error::$cargo_args_hook ended after --features/-F without a feature list"
-    exit 1
-  fi
-
-  if [ "$feature_cargo_arg_count" -gt 0 ]; then
-    printf 'Extra Cargo feature args from %s:\n' "$cargo_args_hook"
-    printf '  %s\n' "${feature_cargo_args[@]}"
-  else
-    echo "$cargo_args_hook emitted no extra Cargo feature args"
-  fi
-fi
+feature_args_file=$(mktemp)
+trap 'rm -f "$feature_args_file"' EXIT
+bash "$(dirname "$0")/feature-args.sh" "$platform_os" "$platform_arch" "$rust_target" "$binary_name" > "$feature_args_file"
+mapfile -t feature_cargo_args < "$feature_args_file"
+feature_cargo_arg_count=${#feature_cargo_args[@]}
 
 mkdir -p "$target_dir" "$dist_dir"
 rm -f "$built_binary"
