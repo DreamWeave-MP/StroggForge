@@ -129,280 +129,452 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Run the full test suite on all platforms. Blocks release.
-  test:
-    strategy:
-      matrix:
-        os: [macos-latest, macos-15-intel, ubuntu-22.04, windows-2025-vs2026]
-    runs-on: ${{ matrix.os }}
+  # Everything that does not depend on the platform, in one job: formatting, the RustSec audit,
+  # the minimum supported Rust version, and whether each crate would package for crates.io.
+  lint:
+    name: Format, audit, MSRV and packaging
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
         with:
           submodules: true
-      - uses: dtolnay/rust-toolchain@stable
-        id: rust_toolchain
-      - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v52
-      - name: Cache Cargo registry
-        uses: actions/cache@v5.0.5
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
-      - name: Cache Cargo target directory
-        uses: actions/cache@v5.0.5
-        with:
-          path: |
-            target
-          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
-          restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-
-            ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-
-      - name: Run Tests
-        run: cargo test --workspace --all-targets --all-features -- --show-output
 
-  # Check formatting. Blocks release.
-  fmt:
-    runs-on: ubuntu-22.04
-    steps:
       - uses: actions/checkout@v6
-        with:
-          submodules: true
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Check Formatting
-        run: cargo fmt --all --check
-
-  # Run Clippy at pedantic level. Blocks release.
-  clippy:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          submodules: true
-      - uses: dtolnay/rust-toolchain@stable
-        id: rust_toolchain
-      - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v52
-      - name: Cache Cargo registry
-        uses: actions/cache@v5.0.5
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
-      - name: Cache Cargo target directory
-        uses: actions/cache@v5.0.5
-        with:
-          path: |
-            target
-          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
-          restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-
-            ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-
-      - name: Run Clippy
-        run: cargo clippy --workspace --all-targets --all-features -- -W clippy::pedantic -D warnings
-
-  # Scan Cargo.lock against the RustSec advisory database. Blocks release.
-  audit:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          submodules: true
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Generate Cargo.lock
-        run: |
-          if [ ! -f Cargo.lock ]; then
-            cargo generate-lockfile
-          fi
-      - uses: taiki-e/install-action@cargo-audit
-      - name: Run Cargo audit
-        run: cargo audit
-        working-directory: ${{ github.workspace }}
-
-  # Check the workspace on its minimum supported Rust version. Blocks release.
-  # Always runs so release jobs can depend on it; with no msrv input it only logs a skip.
-  msrv:
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Skip MSRV Check
-        if: inputs.msrv == ''
-        run: echo "msrv input is empty; skipping the MSRV check."
-      - uses: actions/checkout@v6
-        if: inputs.msrv != ''
-        with:
-          submodules: true
-      - uses: actions/checkout@v6
-        if: inputs.msrv != ''
         with:
           repository: DreamWeave-MP/StroggForge
           ref: v52
           path: .stroggforge
-      - uses: dtolnay/rust-toolchain@stable
-        if: inputs.msrv != ''
-      - name: Resolve MSRV
+
+      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v52
+        with:
+          components: rustfmt
+          llvm: ${{ inputs.cargo_publish && github.ref_type != 'tag' }}
+          cache: lint
+
+      - name: Check formatting
+        run: cargo fmt --all --check
+
+      - name: Generate Cargo.lock for the audit
+        run: |
+          if [ ! -f Cargo.lock ]; then
+            cargo generate-lockfile
+          fi
+
+      - uses: taiki-e/install-action@cargo-audit
+
+      - name: Audit dependencies against RustSec
+        run: cargo audit
+
+      # Informational: a crate that would not package does not hold back a development build.
+      - name: Package each crate for crates.io (dry run)
+        if: inputs.cargo_publish && github.ref_type != 'tag'
+        continue-on-error: true
+        env:
+          BINARY_NAMES: ${{ inputs.binary_names }}
+          BINARY_PACKAGE: ${{ inputs.binary_package }}
+          PUBLISH_WORKSPACE: ${{ inputs.cargo_publish_workspace }}
+        run: |
+          if [ "$PUBLISH_WORKSPACE" = true ]; then
+            cargo publish --workspace --dry-run
+            exit 0
+          fi
+          for binary in $(jq -r '.[]' <<<"$BINARY_NAMES"); do
+            if [ -n "$BINARY_PACKAGE" ] && [ "$BINARY_PACKAGE" != workspace ]; then
+              cargo publish --dry-run --package "$BINARY_PACKAGE"
+            elif [ -d "$binary" ]; then
+              cargo publish --dry-run --manifest-path "$binary/Cargo.toml"
+            else
+              cargo publish --dry-run
+            fi
+          done
+
+      - name: Resolve the MSRV
         if: inputs.msrv != ''
         id: msrv
         env:
           MSRV_INPUT: ${{ inputs.msrv }}
         run: bash .stroggforge/scripts/shared/resolve-msrv.sh "$MSRV_INPUT"
-      - uses: dtolnay/rust-toolchain@master
-        if: inputs.msrv != ''
-        id: rust_toolchain
-        with:
-          toolchain: ${{ steps.msrv.outputs.toolchain }}
-      - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v52
+
+      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v52
         if: inputs.msrv != ''
         with:
           toolchain: ${{ steps.msrv.outputs.toolchain }}
-      - name: Cache Cargo registry
-        if: inputs.msrv != ''
-        uses: actions/cache@v5.0.5
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-msrv-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
-          restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-cargo-registry-msrv-
-      - name: Cache Cargo target directory
-        if: inputs.msrv != ''
-        uses: actions/cache@v5.0.5
-        with:
-          path: |
-            target
-          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
-          restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-
-      - name: Check on MSRV
+          cache: msrv
+          target-dir: target/msrv
+
+      - name: Check on the MSRV
         if: inputs.msrv != ''
         env:
           # Without a Cargo.lock, resolve dependency versions that still build on the MSRV.
           CARGO_RESOLVER_INCOMPATIBLE_RUST_VERSIONS: fallback
+          CARGO_TARGET_DIR: target/msrv
           MSRV_TOOLCHAIN: ${{ steps.msrv.outputs.toolchain }}
         run: cargo "+$MSRV_TOOLCHAIN" check --workspace --all-features --all-targets
 
-  # Verify each crate would be publishable to crates.io. Informational — does not block release.
-  cargo-publish-dry-run:
-    if: inputs.cargo_publish && !inputs.cargo_publish_workspace && github.ref_type != 'tag'
-    runs-on: ubuntu-22.04
+  # Every desktop platform lints and tests, not only Linux: code behind cfg(windows) or
+  # cfg(target_os = "macos") is only compiled, and so only checked, where it builds. Each job
+  # lints twice, with every feature and with the features its platform's release ships.
+  test:
+    name: Test and lint on ${{ matrix.platform_os }} ${{ matrix.platform_arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            platform_os: macOS
+            platform_arch: ARM64
+          - os: macos-15-intel
+            platform_os: macOS
+            platform_arch: X64
+          - os: ubuntu-22.04
+            platform_os: Linux
+            platform_arch: X64
+          - os: windows-2025-vs2026
+            platform_os: Windows
+            platform_arch: X64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: true
+
+      - uses: actions/checkout@v6
+        with:
+          repository: DreamWeave-MP/StroggForge
+          ref: v52
+          path: .stroggforge
+
+      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v52
+        with:
+          components: clippy
+          cache: test
+
+      - name: Clippy with every feature
+        run: cargo clippy --workspace --all-targets --all-features -- -W clippy::pedantic -D warnings
+
+      - name: Clippy with the features the release ships
+        shell: bash
+        run: >-
+          bash .stroggforge/scripts/corprus-crucible/clippy-release.sh
+          '${{ inputs.binary_names }}' '${{ inputs.binary_package }}'
+          '${{ matrix.platform_os }}' '${{ matrix.platform_arch }}'
+
+      - name: Test
+        run: cargo test --workspace --all-targets --all-features -- --show-output
+
+  # The release builds start with the tests rather than after them: a release takes as long as the
+  # slowest platform, not the slowest test plus the slowest build. Nothing is published unless
+  # every test, lint and build passed.
+  release:
+    name: Build ${{ matrix.app_names }} for ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, macos-15-intel, windows-2025-vs2026]
+        app_names: ${{ fromJson(inputs.binary_names) }}
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: true
+      - uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v52
+        with:
+          binary_name: ${{ matrix.app_names }}
+          cargo_package: ${{ inputs.binary_package }}
+          include_files: ${{ inputs.include_files }}
+          vt_api_key: ${{ secrets.VT_API_KEY }}
+          release_name: ${{ github.ref_type == 'tag' && github.ref_name || 'development' }}
+          nexus_api_key: ${{ secrets.NEXUS_API_KEY }}
+          nexus_group_ids: ${{ secrets.NEXUS_GROUP_IDS }}
+
+  # Linux builds inside the EL9 builder (CentOS Stream 9, glibc 2.34: RHEL/AlmaLinux 9, Ubuntu
+  # 22.04, Debian 12 and newer run the result), which carries the clang and lld the LLVM toolchain
+  # policy needs; AlmaLinux 8 (glibc 2.28) cannot run LLVM 22.
+  release-linux:
+    name: Build ${{ matrix.app_names }} for Linux
     strategy:
       matrix:
         app_names: ${{ fromJson(inputs.binary_names) }}
+    runs-on: ubuntu-latest
+    # This builder image is versioned with the StroggForge release tag.
+    container: ghcr.io/dreamweave-mp/stroggforge-linux-x86_64-el9-builder:v52
+    permissions:
+      contents: write
+      id-token: write
     steps:
       - uses: actions/checkout@v6
         with:
           submodules: true
-      - uses: dtolnay/rust-toolchain@stable
-        id: rust_toolchain
-      - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v52
-      - name: Cache Cargo registry
-        uses: actions/cache@v5.0.5
+      - uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v52
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
-      - name: Cache Cargo target directory
-        uses: actions/cache@v5.0.5
-        with:
-          path: |
-            target
-          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
-          restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-
-            ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-
-      - name: Publish Dry Run
-        env:
-          BINARY_PACKAGE: ${{ inputs.binary_package }}
-        run: |
-          if [ -n "$BINARY_PACKAGE" ] && [ "$BINARY_PACKAGE" != workspace ]; then
-            cargo publish --dry-run --package "$BINARY_PACKAGE"
-          elif [ -d "${{ matrix.app_names }}" ]; then
-            cargo publish --dry-run --manifest-path ${{ matrix.app_names }}/Cargo.toml
-          else
-            cargo publish --dry-run
-          fi
+          binary_name: ${{ matrix.app_names }}
+          cargo_package: ${{ inputs.binary_package }}
+          include_files: ${{ inputs.include_files }}
+          vt_api_key: ${{ secrets.VT_API_KEY }}
+          release_name: ${{ github.ref_type == 'tag' && github.ref_name || 'development' }}
+          nexus_api_key: ${{ secrets.NEXUS_API_KEY }}
+          nexus_group_ids: ${{ secrets.NEXUS_GROUP_IDS }}
 
-  # Publish each crate to crates.io on tagged releases, after all release builds succeed.
-  cargo-publish:
-    if: always() && inputs.cargo_publish && !inputs.cargo_publish_workspace && github.ref_type == 'tag' && needs.release.result == 'success' && needs.release-linux.result == 'success' && (!inputs.enable_android || needs.release-android.result == 'success') && (!inputs.enable_portmaster || needs.release-portmaster.result == 'success')
-    needs: [release, release-linux, release-android, release-portmaster]
-    runs-on: ubuntu-22.04
+  # Android ARM64 ELF builds for API level 23; not an APK. No runner is Android, so this job lints
+  # the Android build, which nothing else compiles, before building it.
+  release-android:
+    name: Build ${{ matrix.app_names }} for Android
+    if: inputs.enable_android
     strategy:
       matrix:
         app_names: ${{ fromJson(inputs.binary_names) }}
+    runs-on: ubuntu-latest
+    env:
+      ANDROID_API_LEVEL: '23'
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Install archive dependencies
+        run: sudo apt-get update && sudo apt-get install -y p7zip-full
+      - uses: actions/checkout@v6
+        with:
+          submodules: true
+      - name: Set up the Android NDK
+        id: setup_ndk
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r27c
+      - name: Point Cargo at the NDK
+        env:
+          NDK: ${{ steps.setup_ndk.outputs.ndk-path }}
+        run: |
+          bin="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          {
+            echo "ANDROID_NDK_HOME=$NDK"
+            echo "NDK_HOME=$NDK"
+            echo "CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=$bin/aarch64-linux-android${ANDROID_API_LEVEL}-clang"
+            echo "CARGO_TARGET_AARCH64_LINUX_ANDROID_AR=$bin/llvm-ar"
+            echo "CC_aarch64_linux_android=$bin/aarch64-linux-android${ANDROID_API_LEVEL}-clang"
+            echo "CXX_aarch64_linux_android=$bin/aarch64-linux-android${ANDROID_API_LEVEL}-clang++"
+            echo "AR_aarch64_linux_android=$bin/llvm-ar"
+            echo "CMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake"
+            echo "ANDROID_ABI=arm64-v8a"
+            echo "ANDROID_PLATFORM=android-${ANDROID_API_LEVEL}"
+            echo "BINDGEN_EXTRA_CLANG_ARGS=--sysroot=$NDK/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+            echo "PKG_CONFIG_ALLOW_CROSS=1"
+          } >> "$GITHUB_ENV"
+      - uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v52
+        with:
+          binary_name: ${{ matrix.app_names }}
+          cargo_package: ${{ inputs.binary_package }}
+          include_files: ${{ inputs.include_files }}
+          vt_api_key: ${{ secrets.VT_API_KEY }}
+          release_name: ${{ github.ref_type == 'tag' && github.ref_name || 'development' }}
+          nexus_api_key: ${{ secrets.NEXUS_API_KEY }}
+          nexus_group_ids: ${{ secrets.NEXUS_GROUP_IDS }}
+          platform_os: Android
+          platform_arch: ARM64
+          rust_target: aarch64-linux-android
+          lint: true
+
+  # PortMaster ARM64, cross-compiled with the EL9 builder's clang and lld against an EL9 aarch64
+  # sysroot: the same glibc 2.34 floor and LLVM toolchain as the Linux release. Linted as built.
+  release-portmaster:
+    name: Build ${{ matrix.app_names }} for PortMaster
+    if: inputs.enable_portmaster
+    strategy:
+      matrix:
+        app_names: ${{ fromJson(inputs.binary_names) }}
+    runs-on: ubuntu-latest
+    # This builder image is versioned with the StroggForge release tag.
+    container: ghcr.io/dreamweave-mp/stroggforge-portmaster-aarch64-el9-builder:v52
+    permissions:
+      contents: write
+      id-token: write
+    env:
+      # The whole LLVM toolchain policy goes in RUSTFLAGS, where l3i's build script looks for it
+      # (this variable replaces a repository's own [target] rustflags), plus the cross target and
+      # sysroot for clang's link step.
+      CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_RUSTFLAGS: -Clinker-plugin-lto -Clinker=clang -Clink-arg=-fuse-ld=lld -Clink-arg=--target=aarch64-linux-gnu -Clink-arg=--sysroot=/usr/aarch64-linux-gnu/sys-root
+      CC_aarch64_unknown_linux_gnu: clang
+      CXX_aarch64_unknown_linux_gnu: clang++
+      AR_aarch64_unknown_linux_gnu: llvm-ar
+      CFLAGS_aarch64_unknown_linux_gnu: --target=aarch64-linux-gnu --sysroot=/usr/aarch64-linux-gnu/sys-root
+      CXXFLAGS_aarch64_unknown_linux_gnu: --target=aarch64-linux-gnu --sysroot=/usr/aarch64-linux-gnu/sys-root
+      BINDGEN_EXTRA_CLANG_ARGS: --target=aarch64-unknown-linux-gnu --sysroot=/usr/aarch64-linux-gnu/sys-root
+      PKG_CONFIG_ALLOW_CROSS: '1'
+      PKG_CONFIG_SYSROOT_DIR: /usr/aarch64-linux-gnu/sys-root
+      PKG_CONFIG_LIBDIR: /usr/aarch64-linux-gnu/sys-root/usr/lib64/pkgconfig:/usr/aarch64-linux-gnu/sys-root/usr/share/pkgconfig
     steps:
       - uses: actions/checkout@v6
         with:
           submodules: true
-      - uses: dtolnay/rust-toolchain@stable
-        id: rust_toolchain
-      - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v52
-      - name: Cache Cargo registry
-        uses: actions/cache@v5.0.5
+      - uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v52
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
-      - name: Cache Cargo target directory
-        uses: actions/cache@v5.0.5
+          binary_name: ${{ matrix.app_names }}
+          cargo_package: ${{ inputs.binary_package }}
+          include_files: ${{ inputs.include_files }}
+          vt_api_key: ${{ secrets.VT_API_KEY }}
+          release_name: ${{ github.ref_type == 'tag' && github.ref_name || 'development' }}
+          nexus_api_key: ${{ secrets.NEXUS_API_KEY }}
+          nexus_group_ids: ${{ secrets.NEXUS_GROUP_IDS }}
+          platform_os: Portmaster
+          platform_arch: ARM64
+          rust_target: aarch64-unknown-linux-gnu
+          lint: true
+
+  # One job publishes the release: the muOS apps packed from the PortMaster build, the GitHub
+  # release with every archive and its VirusTotal links, the changelog, and on tags an issue in
+  # each dependent repository. It lists the Nexus Mods uploads for the job after it.
+  publish:
+    name: Publish the release
+    needs: [lint, test, release, release-linux, release-android, release-portmaster]
+    if: always() && !cancelled() && github.event_name != 'pull_request' && needs.lint.result == 'success' && needs.test.result == 'success' && needs.release.result == 'success' && needs.release-linux.result == 'success' && (!inputs.enable_android || needs.release-android.result == 'success') && (!inputs.enable_portmaster || needs.release-portmaster.result == 'success')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    outputs:
+      release_name: ${{ steps.release.outputs.release_name }}
+      nexus: ${{ steps.nexus.outputs.uploads }}
+    steps:
+      - uses: actions/checkout@v6
         with:
-          path: |
-            target
-          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
-          restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-
-            ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-
-      - name: Publish to crates.io
+          fetch-depth: 0
+
+      - uses: actions/checkout@v6
+        with:
+          repository: DreamWeave-MP/StroggForge
+          ref: v52
+          path: .stroggforge
+
+      - name: Download the release archives
+        uses: actions/download-artifact@v8.0.1
+        with:
+          pattern: github-release-*
+          path: .corprus-crucible/github-release-downloads
+          merge-multiple: true
+
+      - name: Package the muOS apps
+        if: inputs.muxapp_dir != '' && inputs.enable_portmaster
         env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-          BINARY_PACKAGE: ${{ inputs.binary_package }}
+          MUXAPP_DIR: ${{ inputs.muxapp_dir }}
+        run: bash .stroggforge/scripts/corprus-crucible/package-muxapp.sh "$MUXAPP_DIR" .corprus-crucible/github-release-downloads .corprus-crucible/github-release-downloads
+
+      - name: Refresh the GitHub release
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_NAME: ${{ github.ref_type == 'tag' && github.ref_name || 'development' }}
+          WORKFLOW_RUN_ID: ${{ github.run_id }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
         run: |
-          if [ -n "$BINARY_PACKAGE" ] && [ "$BINARY_PACKAGE" != workspace ]; then
-            cargo publish --package "$BINARY_PACKAGE"
-          elif [ -d "${{ matrix.app_names }}" ]; then
-            cargo publish --manifest-path ${{ matrix.app_names }}/Cargo.toml
+          echo "release_name=$RELEASE_NAME" >> "$GITHUB_OUTPUT"
+          bash .stroggforge/scripts/shared/refresh-github-release.sh "$RELEASE_NAME" "$WORKFLOW_RUN_ID" "$RELEASE_REPOSITORY"
+
+      - name: Collect the VirusTotal links
+        id: release_body
+        run: |
+          body_file=.corprus-crucible/github-release-downloads/release-body.md
+          : > "$body_file"
+          shopt -s nullglob
+          for vt_file in .corprus-crucible/github-release-downloads/*.vt.md; do
+            if [ -s "$vt_file" ]; then
+              printf '%s\n' "$(< "$vt_file")" >> "$body_file"
+            fi
+          done
+          echo "body_path=$body_file" >> "$GITHUB_OUTPUT"
+
+      - name: Upload the archives to the GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >-
+          bash .stroggforge/scripts/shared/publish-github-release-artifacts.sh
+          "${{ steps.release.outputs.release_name }}"
+          "${{ steps.release_body.outputs.body_path }}"
+          .corprus-crucible/github-release-downloads
+          "${{ github.repository }}"
+
+      - name: Generate and upload the changelog
+        if: inputs.generate_changelog
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_NAME: ${{ steps.release.outputs.release_name }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          bash .stroggforge/scripts/shared/changelog.sh CHANGELOG.md
+          gh release upload "$RELEASE_NAME" CHANGELOG.md --clobber --repo "$REPOSITORY"
+
+      - name: Download the Nexus Mods uploads
+        uses: actions/download-artifact@v8.0.1
+        with:
+          pattern: nexus-*
+          path: .corprus-crucible/nexus-downloads
+
+      - name: List the Nexus Mods uploads
+        id: nexus
+        run: |
+          shopt -s nullglob
+          uploads=()
+          for dir in .corprus-crucible/nexus-downloads/nexus-*; do
+            uploads+=("$(basename "$dir")")
+          done
+          if [ ${#uploads[@]} -eq 0 ]; then
+            echo "uploads=[]" >> "$GITHUB_OUTPUT"
           else
-            cargo publish
+            echo "uploads=$(printf '%s\n' "${uploads[@]}" | jq -R . | jq -cs .)" >> "$GITHUB_OUTPUT"
           fi
 
-  # Package and verify every publishable workspace member against the others. Informational — does not block release.
-  cargo-publish-workspace-dry-run:
-    if: inputs.cargo_publish && inputs.cargo_publish_workspace && github.ref_type != 'tag'
-    runs-on: ubuntu-22.04
+      - name: Open an issue in each dependent repository
+        if: github.ref_type == 'tag' && inputs.dependent_repo_names != '' && inputs.dependent_repo_names != '[]'
+        env:
+          GH_TOKEN: ${{ secrets.DW_BOT_PAT }}
+          GITHUB_EVENT_REPOSITORY_NAME: ${{ github.event.repository.name }}
+          DEPENDENT_REPO_NAMES: ${{ inputs.dependent_repo_names }}
+          AUR_PACKAGE_NAME: ${{ inputs.aur_package_name }}
+        run: bash .stroggforge/scripts/shared/create-dependent-update-issues.sh "$DEPENDENT_REPO_NAMES" "$AUR_PACKAGE_NAME"
+
+  # Nexus Mods takes one file per call of its upload action, so each platform's archive is its own
+  # job; the list comes from the archives that were actually built for Nexus Mods.
+  nexus:
+    name: Upload ${{ matrix.upload }} to Nexus Mods
+    needs: publish
+    if: needs.publish.result == 'success' && needs.publish.outputs.nexus != '[]'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        upload: ${{ fromJson(needs.publish.outputs.nexus) }}
     steps:
       - uses: actions/checkout@v6
         with:
-          submodules: true
-      - uses: dtolnay/rust-toolchain@stable
-        id: rust_toolchain
-      - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v52
-      - name: Cache Cargo registry
-        uses: actions/cache@v5.0.5
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
-      - name: Cache Cargo target directory
-        uses: actions/cache@v5.0.5
-        with:
-          path: |
-            target
-          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
-          restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-
-            ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-
-      - name: Publish Dry Run
-        run: cargo publish --workspace --dry-run
+          repository: DreamWeave-MP/StroggForge
+          ref: v52
+          path: .stroggforge
 
-  # Publish every publishable workspace member, dependencies first, on tagged releases after all release builds succeed.
-  # Rerunning is safe: versions already on crates.io are skipped, and crates.io's new-crate rate limit is waited out.
-  cargo-publish-workspace:
-    if: always() && inputs.cargo_publish && inputs.cargo_publish_workspace && github.ref_type == 'tag' && needs.release.result == 'success' && needs.release-linux.result == 'success' && (!inputs.enable_android || needs.release-android.result == 'success') && (!inputs.enable_portmaster || needs.release-portmaster.result == 'success')
-    needs: [release, release-linux, release-android, release-portmaster]
-    runs-on: ubuntu-22.04
+      - uses: actions/download-artifact@v8.0.1
+        with:
+          name: ${{ matrix.upload }}
+          path: .corprus-crucible/nexus-downloads/${{ matrix.upload }}
+
+      - name: Read the upload
+        id: nexus_upload
+        run: bash .stroggforge/scripts/corprus-crucible/read-nexusmods-upload-artifact.sh ".corprus-crucible/nexus-downloads/${{ matrix.upload }}"
+
+      - uses: Nexus-Mods/upload-action@v1.0.0-beta.5
+        with:
+          api_key: ${{ secrets.NEXUS_API_KEY }}
+          file_group_id: ${{ steps.nexus_upload.outputs.group_id }}
+          filename: ${{ steps.nexus_upload.outputs.filename }}
+          display_name: ${{ steps.nexus_upload.outputs.display_name }}
+          version: ${{ steps.nexus_upload.outputs.version }}
+          description: ${{ steps.nexus_upload.outputs.description }}
+          archive_existing_file: ${{ steps.nexus_upload.outputs.archive_existing_file }}
+
+  # On tags, after every build passed: each binary's crate, or every publishable workspace member
+  # in dependency order. Rerunning is safe: versions already on crates.io are skipped.
+  crates:
+    name: Publish to crates.io
+    needs: [lint, test, release, release-linux, release-android, release-portmaster]
+    if: always() && !cancelled() && inputs.cargo_publish && github.ref_type == 'tag' && needs.lint.result == 'success' && needs.test.result == 'success' && needs.release.result == 'success' && needs.release-linux.result == 'success' && (!inputs.enable_android || needs.release-android.result == 'success') && (!inputs.enable_portmaster || needs.release-portmaster.result == 'success')
+    runs-on: ubuntu-24.04
     timeout-minutes: 240
     concurrency:
       group: stroggforge-crates-io-${{ github.repository }}
@@ -411,44 +583,66 @@ jobs:
       - uses: actions/checkout@v6
         with:
           submodules: true
+
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
           ref: v52
           path: .stroggforge
-      - uses: dtolnay/rust-toolchain@stable
-        id: rust_toolchain
-      - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v52
-      - name: Cache Cargo registry
-        uses: actions/cache@v5.0.5
+
+      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v52
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
-      - name: Cache Cargo target directory
-        uses: actions/cache@v5.0.5
-        with:
-          path: |
-            target
-          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
-          restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-
-            ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-
-      - name: Publish Workspace to crates.io
+          cache: crates
+
+      - name: Publish to crates.io
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          BINARY_NAMES: ${{ inputs.binary_names }}
+          BINARY_PACKAGE: ${{ inputs.binary_package }}
+          PUBLISH_WORKSPACE: ${{ inputs.cargo_publish_workspace }}
         run: |
-          cp .stroggforge/.github/scripts/publish_workspace.py "$RUNNER_TEMP/publish_workspace.py"
+          if [ "$PUBLISH_WORKSPACE" = true ]; then
+            cp .stroggforge/.github/scripts/publish_workspace.py "$RUNNER_TEMP/publish_workspace.py"
+            rm -rf .stroggforge
+            python3 "$RUNNER_TEMP/publish_workspace.py"
+            exit 0
+          fi
           rm -rf .stroggforge
-          python3 "$RUNNER_TEMP/publish_workspace.py"
+          for binary in $(jq -r '.[]' <<<"$BINARY_NAMES"); do
+            if [ -n "$BINARY_PACKAGE" ] && [ "$BINARY_PACKAGE" != workspace ]; then
+              cargo publish --package "$BINARY_PACKAGE"
+            elif [ -d "$binary" ]; then
+              cargo publish --manifest-path "$binary/Cargo.toml"
+            else
+              cargo publish
+            fi
+          done
 
-  # Build cargo doc and deploy to GitHub Pages.
-  # Requires Pages to be enabled with "GitHub Actions" as the source in repo settings.
+  # For application repositories which are also hosted in the AUR, update the AUR package as well.
+  aur:
+    name: Publish to the AUR
+    needs: publish
+    if: needs.publish.result == 'success' && github.event_name == 'push' && inputs.aur_package_name != ''
+    runs-on: ubuntu-latest
+    environment: AUR
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: true
+      - uses: varrcan/aur-publish-action@v1
+        with:
+          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          package_name: ${{ inputs.aur_package_name }}
+          git_username: ${{ inputs.git_username }}
+          git_email: ${{ inputs.git_email }}
+
+  # cargo doc, deployed to GitHub Pages from the default branch. A Mod Template site replaces it.
+  # Requires Pages with "GitHub Actions" as the source in the repository's settings.
   docs:
+    name: Publish the API documentation
+    needs: [lint, test]
     if: inputs.publish_docs && !inputs.mod_template && github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [test, clippy, fmt, audit, msrv]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       pages: write
@@ -465,31 +659,14 @@ jobs:
           repository: DreamWeave-MP/StroggForge
           ref: v52
           path: .stroggforge
-      - uses: dtolnay/rust-toolchain@stable
-        id: rust_toolchain
-      - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v52
-      - name: Cache Cargo registry
-        uses: actions/cache@v5.0.5
+      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v52
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
-      - name: Cache Cargo target directory
-        uses: actions/cache@v5.0.5
-        with:
-          path: |
-            target
-          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
-          restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-
-            ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-
-      - name: Remove stale documentation output
-        run: rm -rf target/doc
-      - name: Build Documentation
-        run: cargo doc --no-deps --workspace
-      - name: Create Index Redirect
-        run: bash .stroggforge/scripts/shared/docs-index.sh '${{ inputs.binary_names }}' target/doc/index.html
+          cache: docs
+      - name: Build the documentation
+        run: |
+          rm -rf target/doc
+          cargo doc --no-deps --workspace
+          bash .stroggforge/scripts/shared/docs-index.sh '${{ inputs.binary_names }}' target/doc/index.html
       - uses: actions/configure-pages@v6.0.0
       - uses: actions/upload-pages-artifact@v5.0.0
         with:
@@ -498,449 +675,43 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v5.0.0
 
-  # Generate a CHANGELOG.md from git history and upload it to the release.
-  changelog:
-    if: inputs.generate_changelog && github.event_name != 'pull_request'
-    needs: [github-publish]
-    runs-on: ubuntu-22.04
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          submodules: true
-          fetch-depth: 0
-      - uses: actions/checkout@v6
-        with:
-          repository: DreamWeave-MP/StroggForge
-          ref: v52
-          path: .stroggforge
-      - name: Generate Changelog
-        run: bash .stroggforge/scripts/shared/changelog.sh CHANGELOG.md
-      - name: Upload Changelog to Release
-        uses: softprops/action-gh-release@v3
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ needs['github-publish'].outputs.release_name }}
-          files: CHANGELOG.md
-
-  # Run cargo bench, generate BENCHMARKS.md from Criterion output or the raw benchmark log, and upload to the release.
+  # Tagged releases only: cargo bench, summarized as BENCHMARKS.md on the release.
   benchmarks:
-    if: inputs.generate_benchmarks && github.event_name != 'pull_request'
-    needs: [github-publish]
-    runs-on: ubuntu-22.04
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          submodules: true
-      - uses: actions/checkout@v6
-        with:
-          repository: DreamWeave-MP/StroggForge
-          ref: v52
-          path: .stroggforge
-      - uses: dtolnay/rust-toolchain@stable
-        id: rust_toolchain
-      - uses: DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v52
-      - name: Cache Cargo registry
-        uses: actions/cache@v5.0.5
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: ${{ runner.os }}-${{ runner.arch }}-cargo-registry-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
-      - name: Cache Cargo target directory
-        uses: actions/cache@v5.0.5
-        with:
-          path: |
-            target
-          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
-          restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-${{ steps.rust_toolchain.outputs.cachekey }}-
-            ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-target-
-      - name: Remove stale benchmark output
-        run: rm -rf target/criterion benchmark-output.txt BENCHMARKS.md
-      - name: Generate Benchmark Docs
-        run: bash .stroggforge/scripts/shared/generate-benchmark-docs.sh .stroggforge/.github/scripts/gen_benchmarks.py
-      - name: Upload Benchmark Docs to Release
-        uses: softprops/action-gh-release@v3
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ needs['github-publish'].outputs.release_name }}
-          files: BENCHMARKS.md
-
-  # Build, sign, scan, package, and stage Rust app archives on macOS and Windows.
-  release:
-    needs: [test, clippy, fmt, audit, msrv]
-
-    strategy:
-      matrix:
-        os: [macos-latest, macos-15-intel, windows-2025-vs2026]
-        app_names: ${{ fromJson(inputs.binary_names) }}
-
-    runs-on: ${{ matrix.os }}
-
-    permissions:
-      contents: write
-      id-token: write
-
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          submodules: true
-      - name: Run Corprus Crucible
-        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v52
-        with:
-          binary_name: ${{ matrix.app_names }}
-          cargo_package: ${{ inputs.binary_package }}
-          include_files: ${{ inputs.include_files }}
-          vt_api_key: ${{ secrets.VT_API_KEY }}
-          release_name: ${{ github.ref_type == 'tag' && github.ref_name || 'development' }}
-          nexus_api_key: ${{ secrets.NEXUS_API_KEY }}
-          nexus_group_ids: ${{ secrets.NEXUS_GROUP_IDS }}
-
-  # Build, sign, scan, package, and stage Rust app archives on Linux.
-  # Runs inside the EL9 builder (CentOS Stream 9, glibc 2.34: RHEL/AlmaLinux 9, Ubuntu 22.04,
-  # Debian 12 and newer can run the result). It carries the clang and lld the LLVM toolchain
-  # policy needs; AlmaLinux 8 (glibc 2.28) cannot run LLVM 22 and was given up for that reason.
-  release-linux:
-    needs: [test, clippy, fmt, audit, msrv]
-
-    strategy:
-      matrix:
-        app_names: ${{ fromJson(inputs.binary_names) }}
-
-    runs-on: ubuntu-latest
-    # This builder image is versioned with the StroggForge release tag.
-    container: ghcr.io/dreamweave-mp/stroggforge-linux-x86_64-el9-builder:v52
-
-    permissions:
-      contents: write
-      id-token: write
-
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          submodules: true
-      - name: Run Corprus Crucible
-        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v52
-        with:
-          binary_name: ${{ matrix.app_names }}
-          cargo_package: ${{ inputs.binary_package }}
-          include_files: ${{ inputs.include_files }}
-          vt_api_key: ${{ secrets.VT_API_KEY }}
-          release_name: ${{ github.ref_type == 'tag' && github.ref_name || 'development' }}
-          nexus_api_key: ${{ secrets.NEXUS_API_KEY }}
-          nexus_group_ids: ${{ secrets.NEXUS_GROUP_IDS }}
-
-  # Build, sign, scan, package, and stage Android ARM64 ELF artifacts.
-  # Android builds target API level 23. Keep this fixed until a consumer actually needs another minSdk.
-  # This deliberately does not build an APK; it only validates and publishes the native Rust artifact.
-  release-android:
-    if: inputs.enable_android
-    needs: [test, clippy, fmt, audit, msrv]
-
-    strategy:
-      matrix:
-        app_names: ${{ fromJson(inputs.binary_names) }}
-        android_target: [aarch64-linux-android]
-
-    runs-on: ubuntu-latest
-
-    env:
-      ANDROID_API_LEVEL: '23'
-
-    permissions:
-      contents: write
-      id-token: write
-
-    steps:
-      - name: Install Archive Dependencies
-        run: sudo apt-get update && sudo apt-get install -y p7zip-full
-      - uses: actions/checkout@v6
-        with:
-          submodules: true
-      - name: Setup Android NDK
-        id: setup_ndk
-        uses: nttld/setup-ndk@v1
-        with:
-          ndk-version: r27c
-      - name: Run Corprus Crucible
-        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v52
-        env:
-          ANDROID_NDK_HOME: ${{ steps.setup_ndk.outputs.ndk-path }}
-          NDK_HOME: ${{ steps.setup_ndk.outputs.ndk-path }}
-          CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER: ${{ steps.setup_ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android${{ env.ANDROID_API_LEVEL }}-clang
-          CARGO_TARGET_AARCH64_LINUX_ANDROID_AR: ${{ steps.setup_ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
-          CC_aarch64_linux_android: ${{ steps.setup_ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android${{ env.ANDROID_API_LEVEL }}-clang
-          CXX_aarch64_linux_android: ${{ steps.setup_ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android${{ env.ANDROID_API_LEVEL }}-clang++
-          AR_aarch64_linux_android: ${{ steps.setup_ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
-          CMAKE_TOOLCHAIN_FILE: ${{ steps.setup_ndk.outputs.ndk-path }}/build/cmake/android.toolchain.cmake
-          ANDROID_ABI: arm64-v8a
-          ANDROID_PLATFORM: android-${{ env.ANDROID_API_LEVEL }}
-          BINDGEN_EXTRA_CLANG_ARGS: --sysroot=${{ steps.setup_ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/sysroot
-          PKG_CONFIG_ALLOW_CROSS: '1'
-        with:
-          binary_name: ${{ matrix.app_names }}
-          cargo_package: ${{ inputs.binary_package }}
-          include_files: ${{ inputs.include_files }}
-          vt_api_key: ${{ secrets.VT_API_KEY }}
-          release_name: ${{ github.ref_type == 'tag' && github.ref_name || 'development' }}
-          nexus_api_key: ${{ secrets.NEXUS_API_KEY }}
-          nexus_group_ids: ${{ secrets.NEXUS_GROUP_IDS }}
-          platform_os: Android
-          platform_arch: ARM64
-          rust_target: ${{ matrix.android_target }}
-
-  # Build, sign, scan, package, and stage Portmaster ARM64 artifacts.
-  # Cross-compiles with the EL9 builder's clang and lld against an EL9 aarch64 sysroot, so the
-  # artifact has the same glibc 2.34 floor and LLVM toolchain as the native Linux release.
-  release-portmaster:
-    if: inputs.enable_portmaster
-    needs: [test, clippy, fmt, audit, msrv]
-
-    strategy:
-      matrix:
-        app_names: ${{ fromJson(inputs.binary_names) }}
-
-    runs-on: ubuntu-latest
-    # This builder image is versioned with the StroggForge release tag.
-    container: ghcr.io/dreamweave-mp/stroggforge-portmaster-aarch64-el9-builder:v52
-
-    permissions:
-      contents: write
-      id-token: write
-
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          submodules: true
-      - name: Run Corprus Crucible
-        uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v52
-        env:
-          # The whole LLVM toolchain policy goes in RUSTFLAGS, where l3i's build script looks for
-          # it (this variable replaces a repository's own [target] rustflags), plus the cross
-          # target and sysroot for clang's link step.
-          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_RUSTFLAGS: -Clinker-plugin-lto -Clinker=clang -Clink-arg=-fuse-ld=lld -Clink-arg=--target=aarch64-linux-gnu -Clink-arg=--sysroot=/usr/aarch64-linux-gnu/sys-root
-          CC_aarch64_unknown_linux_gnu: clang
-          CXX_aarch64_unknown_linux_gnu: clang++
-          AR_aarch64_unknown_linux_gnu: llvm-ar
-          CFLAGS_aarch64_unknown_linux_gnu: --target=aarch64-linux-gnu --sysroot=/usr/aarch64-linux-gnu/sys-root
-          CXXFLAGS_aarch64_unknown_linux_gnu: --target=aarch64-linux-gnu --sysroot=/usr/aarch64-linux-gnu/sys-root
-          BINDGEN_EXTRA_CLANG_ARGS: --target=aarch64-unknown-linux-gnu --sysroot=/usr/aarch64-linux-gnu/sys-root
-          PKG_CONFIG_ALLOW_CROSS: '1'
-          PKG_CONFIG_SYSROOT_DIR: /usr/aarch64-linux-gnu/sys-root
-          PKG_CONFIG_LIBDIR: /usr/aarch64-linux-gnu/sys-root/usr/lib64/pkgconfig:/usr/aarch64-linux-gnu/sys-root/usr/share/pkgconfig
-        with:
-          binary_name: ${{ matrix.app_names }}
-          cargo_package: ${{ inputs.binary_package }}
-          include_files: ${{ inputs.include_files }}
-          vt_api_key: ${{ secrets.VT_API_KEY }}
-          release_name: ${{ github.ref_type == 'tag' && github.ref_name || 'development' }}
-          nexus_api_key: ${{ secrets.NEXUS_API_KEY }}
-          nexus_group_ids: ${{ secrets.NEXUS_GROUP_IDS }}
-          platform_os: Portmaster
-          platform_arch: ARM64
-          rust_target: aarch64-unknown-linux-gnu
-
-  # Refresh the GitHub Release, then publish the staged platform archives to it.
-  # Package the PortMaster build with the repository's muOS app files, published beside it.
-  release-muxapp:
-    if: always() && inputs.muxapp_dir != '' && inputs.enable_portmaster && github.event_name != 'pull_request' && needs.release-portmaster.result == 'success'
-    needs: [release-portmaster]
+    name: Benchmark the release
+    needs: publish
+    if: inputs.generate_benchmarks && github.ref_type == 'tag' && needs.publish.result == 'success'
     runs-on: ubuntu-24.04
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: actions/checkout@v6
-        with:
-          repository: DreamWeave-MP/StroggForge
-          ref: v52
-          path: .stroggforge
-
-      - name: Download the PortMaster Archives
-        uses: actions/download-artifact@v8.0.1
-        with:
-          pattern: github-release-*-Portmaster-ARM64
-          path: .corprus-crucible/portmaster
-          merge-multiple: true
-
-      - name: Package muOS Apps
-        env:
-          MUXAPP_DIR: ${{ inputs.muxapp_dir }}
-        run: bash .stroggforge/scripts/corprus-crucible/package-muxapp.sh "$MUXAPP_DIR" .corprus-crucible/portmaster .corprus-crucible/muxapp
-
-      - name: Stage muOS Apps
-        uses: actions/upload-artifact@v7.0.1
-        with:
-          name: github-release-muxapp
-          path: .corprus-crucible/muxapp
-          if-no-files-found: error
-
-  github-publish:
-    if: always() && github.event_name != 'pull_request' && needs.release.result == 'success' && needs.release-linux.result == 'success' && (!inputs.enable_android || needs.release-android.result == 'success') && (!inputs.enable_portmaster || needs.release-portmaster.result == 'success') && (inputs.muxapp_dir == '' || needs.release-muxapp.result == 'success')
-    needs: [release, release-linux, release-android, release-portmaster, release-muxapp]
-    runs-on: ubuntu-slim
-    outputs:
-      release_name: ${{ steps.release.outputs.release_name }}
     permissions:
       contents: write
-
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          repository: DreamWeave-MP/StroggForge
-          ref: v52
-          path: .stroggforge
-
-      - name: Refresh GitHub Release
-        id: release
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_REPO: ${{ github.repository }}
-          RELEASE_IS_TAG: ${{ startsWith(github.ref, 'refs/tags/') }}
-          RELEASE_REF_NAME: ${{ github.ref_name }}
-          WORKFLOW_RUN_ID: ${{ github.run_id }}
-          RELEASE_REPOSITORY: ${{ github.repository }}
-        run: |
-          if [[ "$RELEASE_IS_TAG" == true ]]; then
-            release_name="$RELEASE_REF_NAME"
-          else
-            release_name=development
-          fi
-
-          echo "release_name=$release_name" >> "$GITHUB_OUTPUT"
-
-          bash .stroggforge/scripts/shared/refresh-github-release.sh "$release_name" "$WORKFLOW_RUN_ID" "$RELEASE_REPOSITORY"
-
-      - name: Download GitHub Release Artifacts
-        uses: actions/download-artifact@v8.0.1
-        with:
-          pattern: github-release-*
-          path: .corprus-crucible/github-release-downloads
-          merge-multiple: true
-
-      - name: Collect VirusTotal Release Notes
-        id: release_body
-        shell: bash
-        run: |
-          body_file=.corprus-crucible/github-release-downloads/release-body.md
-          : > "$body_file"
-          shopt -s nullglob
-          for vt_file in .corprus-crucible/github-release-downloads/*.vt.md; do
-            if [ -s "$vt_file" ]; then
-              printf '%s\n' "$(< "$vt_file")" >> "$body_file"
-            fi
-          done
-          echo "body_path=$body_file" >> "$GITHUB_OUTPUT"
-
-      - name: Upload to GitHub Release
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: >-
-          bash .stroggforge/scripts/shared/publish-github-release-artifacts.sh
-          "${{ steps.release.outputs.release_name }}"
-          "${{ steps.release_body.outputs.body_path }}"
-          .corprus-crucible/github-release-downloads
-          "${{ github.repository }}"
-
-  # Publish Nexus Mods files after all platform archives are built.
-  nexus-publish:
-    if: always() && github.event_name != 'pull_request' && needs.release.result == 'success' && needs.release-linux.result == 'success' && (!inputs.enable_android || needs.release-android.result == 'success') && (!inputs.enable_portmaster || needs.release-portmaster.result == 'success')
-    needs: [release, release-linux, release-android, release-portmaster]
-    runs-on: ubuntu-latest
-    env:
-      NEXUS_API_KEY: ${{ secrets.NEXUS_API_KEY }}
-      NEXUS_GROUP_IDS: ${{ secrets.NEXUS_GROUP_IDS }}
-
-    strategy:
-      fail-fast: false
-      matrix:
-        app_names: ${{ fromJson(inputs.binary_names) }}
-        platform:
-          - os: macOS
-            arch: ARM64
-          - os: macOS
-            arch: X64
-          - os: Windows
-            arch: X64
-          - os: Linux
-            arch: X64
-          - os: Android
-            arch: ARM64
-          - os: Portmaster
-            arch: ARM64
-
-    steps:
-      - uses: actions/checkout@v6
-        if: (env.NEXUS_API_KEY != '' || env.NEXUS_GROUP_IDS != '') && (matrix.platform.os != 'Portmaster' || inputs.enable_portmaster)
-        with:
-          repository: DreamWeave-MP/StroggForge
-          ref: v52
-          path: .stroggforge
-
-      - name: Download Nexus Mods Upload Artifact
-        if: (env.NEXUS_API_KEY != '' || env.NEXUS_GROUP_IDS != '') && (matrix.platform.os != 'Portmaster' || inputs.enable_portmaster)
-        id: download_nexus_artifact
-        continue-on-error: true
-        uses: actions/download-artifact@v8.0.1
-        with:
-          name: nexus-${{ matrix.app_names }}-${{ matrix.platform.os }}-${{ matrix.platform.arch }}
-          path: .corprus-crucible/nexus-downloads/nexus-${{ matrix.app_names }}-${{ matrix.platform.os }}-${{ matrix.platform.arch }}
-
-      - name: Read Nexus Mods Upload Artifact
-        if: (env.NEXUS_API_KEY != '' || env.NEXUS_GROUP_IDS != '') && steps.download_nexus_artifact.outcome == 'success'
-        id: nexus_upload
-        run: >-
-          bash .stroggforge/scripts/corprus-crucible/read-nexusmods-upload-artifact.sh
-          ".corprus-crucible/nexus-downloads/nexus-${{ matrix.app_names }}-${{ matrix.platform.os }}-${{ matrix.platform.arch }}"
-
-      - name: Upload to Nexus Mods
-        if: (env.NEXUS_API_KEY != '' || env.NEXUS_GROUP_IDS != '') && steps.download_nexus_artifact.outcome == 'success'
-        uses: Nexus-Mods/upload-action@v1.0.0-beta.5
-        with:
-          api_key: ${{ secrets.NEXUS_API_KEY }}
-          file_group_id: ${{ steps.nexus_upload.outputs.group_id }}
-          filename: ${{ steps.nexus_upload.outputs.filename }}
-          display_name: ${{ steps.nexus_upload.outputs.display_name }}
-          version: ${{ steps.nexus_upload.outputs.version }}
-          description: ${{ steps.nexus_upload.outputs.description }}
-          archive_existing_file: ${{ steps.nexus_upload.outputs.archive_existing_file }}
-
-  # For application repositories which are also hosted in the AUR,
-  # update the AUR package as well.
-  aur-publish:
-    runs-on: ubuntu-latest
-    if: always() && github.event_name == 'push' && inputs.aur_package_name != '' && needs.release.result == 'success' && needs.release-linux.result == 'success' && (!inputs.enable_android || needs.release-android.result == 'success') && (!inputs.enable_portmaster || needs.release-portmaster.result == 'success')
-    needs: [release, release-linux, release-android, release-portmaster]
-    environment: AUR
-
     steps:
       - uses: actions/checkout@v6
         with:
           submodules: true
-      - uses: varrcan/aur-publish-action@v1
+      - uses: actions/checkout@v6
         with:
-          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
-          package_name: ${{ inputs.aur_package_name }}
-          git_username: ${{ inputs.git_username }}
-          git_email: ${{ inputs.git_email }}
+          repository: DreamWeave-MP/StroggForge
+          ref: v52
+          path: .stroggforge
+      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v52
+        with:
+          cache: benchmarks
+      - name: Run the benchmarks and upload BENCHMARKS.md
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_NAME: ${{ needs.publish.outputs.release_name }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          rm -rf target/criterion benchmark-output.txt BENCHMARKS.md
+          bash .stroggforge/scripts/shared/generate-benchmark-docs.sh .stroggforge/.github/scripts/gen_benchmarks.py
+          gh release upload "$RELEASE_NAME" BENCHMARKS.md --clobber --repo "$REPOSITORY"
 
-  # One notification per run, after every build, release, and publish job has finished, so it can report any failure.
-  # Superseded (cancelled) runs stay quiet; the run that replaced them reports instead.
   # The DreamWeave Mod Template stage: record the published archives in mod.lock, then build and
-  # deploy the site. Pull requests build the site without recording or deploying anything.
-  # After the crates.io publish too, whether it ran or not: a repository that also publishes the
-  # library its program is built on records that version in the same run.
+  # deploy the site. Pull requests build the site without recording or deploying anything. It
+  # waits for the crates.io publish too, whether that ran or not: a repository that also publishes
+  # the library its program is built on records that version in the same run.
   mod-template:
-    if: always() && !cancelled() && inputs.mod_template && (github.event_name == 'pull_request' || needs.github-publish.result == 'success')
-    needs: [github-publish, cargo-publish, cargo-publish-workspace]
+    needs: [publish, crates]
+    if: always() && !cancelled() && inputs.mod_template && (github.event_name == 'pull_request' || needs.publish.result == 'success')
     permissions:
       actions: write
       contents: write
@@ -952,26 +723,14 @@ jobs:
       rust_release: true
       rust_archives: true
 
-  call-discord-webhook:
+  # One notification per run, after everything has finished, so it can report any failure.
+  # Superseded (cancelled) runs stay quiet; the run that replaced them reports instead.
+  notify:
+    needs: [lint, test, release, release-linux, release-android, release-portmaster, publish, nexus, crates, aur, docs, benchmarks, mod-template]
     if: always() && !cancelled() && inputs.generate_discord_notification && github.event_name == 'push'
-    needs: [test, fmt, clippy, audit, msrv, release, release-linux, release-android, release-portmaster, release-muxapp, github-publish, docs, changelog, benchmarks, nexus-publish, cargo-publish, cargo-publish-workspace, aur-publish, mod-template]
     uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v52
     secrets:
       WEBHOOK_URL: ${{ secrets.DISCORD_CHANNEL_WEBHOOK || secrets.DW_TOOLS_CHANNEL_WEBHOOK }}
     with:
-      title: ${{ (contains(needs.*.result, 'failure') || (inputs.generate_changelog && needs.changelog.result != 'success')) && format('{0} pipeline failed! 😭', github.event.repository.name) || '' }}
-      description: ${{ (contains(needs.*.result, 'failure') || (inputs.generate_changelog && needs.changelog.result != 'success')) && format('[Workflow Results](https://github.com/{0}/actions/runs/{1})', github.repository, github.run_id) || format('[{0}](https://github.com/{1}/releases/tag/{0}) is now available on {2}.', github.ref_type == 'tag' && github.ref_name || 'development', github.repository, ((github.ref_type == 'tag' && (needs['cargo-publish'].result == 'success' || needs['cargo-publish-workspace'].result == 'success')) && inputs.aur_package_name != '' && 'GitHub, crates.io, and the AUR') || ((github.ref_type == 'tag' && (needs['cargo-publish'].result == 'success' || needs['cargo-publish-workspace'].result == 'success')) && 'GitHub and crates.io') || (inputs.aur_package_name != '' && 'GitHub and the AUR') || 'GitHub') }}
-
-  # For any repositories which use this one as a dependent,
-  # notify them by creating an issue within the DreamWeave org's scope.
-  nag-dependents:
-    if: success() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && inputs.dependent_repo_names != '' && inputs.dependent_repo_names != '[]'
-    needs: [github-publish]
-
-    uses: DreamWeave-MP/StroggForge/.github/workflows/dependent.yml@v52
-
-    secrets:
-      DW_BOT_PAT: ${{ secrets.DW_BOT_PAT }}
-    with:
-      aur_package_name: ${{ inputs.aur_package_name }}
-      dependent_repo_names: ${{ inputs.dependent_repo_names }}
+      title: ${{ contains(needs.*.result, 'failure') && format('{0} pipeline failed! 😭', github.event.repository.name) || '' }}
+      description: ${{ contains(needs.*.result, 'failure') && format('[Workflow Results](https://github.com/{0}/actions/runs/{1})', github.repository, github.run_id) || format('[{0}](https://github.com/{1}/releases/tag/{0}) is now available on {2}.', github.ref_type == 'tag' && github.ref_name || 'development', github.repository, ((github.ref_type == 'tag' && needs.crates.result == 'success') && inputs.aur_package_name != '' && 'GitHub, crates.io, and the AUR') || ((github.ref_type == 'tag' && needs.crates.result == 'success') && 'GitHub and crates.io') || (inputs.aur_package_name != '' && 'GitHub and the AUR') || 'GitHub') }}
