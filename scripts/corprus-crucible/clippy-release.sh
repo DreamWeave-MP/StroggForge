@@ -14,7 +14,11 @@ rust_target=${5:-}
 target_dir=${6:-}
 script_dir=$(dirname "$0")
 
-mapfile -t binaries < <(jq -r '.[]' <<<"$binary_names")
+# macOS runs bash 3.2: no mapfile, and an empty array is unbound under set -u.
+binaries=()
+while IFS= read -r binary_name; do
+  binaries+=("$binary_name")
+done < <(jq -r '.[]' <<<"$binary_names")
 if [ ${#binaries[@]} -eq 0 ]; then
   echo "::error::clippy-release.sh: no binary names in $binary_names"
   exit 1
@@ -31,7 +35,10 @@ for binary_name in "${binaries[@]}"; do
 
   feature_args_file=$(mktemp)
   bash "$script_dir/feature-args.sh" "$platform_os" "$platform_arch" "$rust_target" "$binary_name" > "$feature_args_file"
-  mapfile -t feature_args < "$feature_args_file"
+  feature_args=()
+  while IFS= read -r feature_arg; do
+    feature_args+=("$feature_arg")
+  done < "$feature_args_file"
   rm -f "$feature_args_file"
 
   clippy=(cargo clippy --manifest-path "$build_dir/Cargo.toml")
@@ -40,7 +47,9 @@ for binary_name in "${binaries[@]}"; do
     workspace) clippy+=(--workspace --bin "$binary_name") ;;
     *) clippy+=(--package "$cargo_package" --bin "$binary_name") ;;
   esac
-  clippy+=("${feature_args[@]}")
+  if [ ${#feature_args[@]} -gt 0 ]; then
+    clippy+=("${feature_args[@]}")
+  fi
   if [ -n "$rust_target" ]; then
     clippy+=(--target "$rust_target")
   fi

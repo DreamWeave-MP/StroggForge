@@ -24,7 +24,11 @@ release_binary="$dist_dir/$built_binary_name"
 feature_args_file=$(mktemp)
 trap 'rm -f "$feature_args_file"' EXIT
 bash "$(dirname "$0")/feature-args.sh" "$platform_os" "$platform_arch" "$rust_target" "$binary_name" > "$feature_args_file"
-mapfile -t feature_cargo_args < "$feature_args_file"
+# macOS runs bash 3.2: no mapfile, and an empty array is unbound under set -u.
+feature_cargo_args=()
+while IFS= read -r feature_arg; do
+  feature_cargo_args+=("$feature_arg")
+done < "$feature_args_file"
 feature_cargo_arg_count=${#feature_cargo_args[@]}
 
 mkdir -p "$target_dir" "$dist_dir"
