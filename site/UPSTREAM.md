@@ -1,6 +1,6 @@
 # Imported DreamWeave site components
 
-Two pieces of this site come from other DreamWeave repositories. They are copied in, not
+Two pieces of this site come from the DreamWeave Mod Template. They are copied in, not
 fetched at build time, so a clean checkout always has everything.
 
 ## Docs shell: DreamWeave-Mod-Template
@@ -47,14 +47,19 @@ shortcodes. `war-room.sass` also styles what the shell stopped carrying: the hea
 search, code blocks and their copy buttons. None of the Mod Template's initializer, storefront
 taxonomy or download automation came along.
 
-## Schematic shortcode: S3ctors-S3cret-St4sh
+## Schematic shortcode: DreamWeave-Mod-Template
 
-Imported at `86cbc26146de7daf30f5fbf57d791d847dd8ac9b` from
-<https://github.com/DreamWeave-MP/S3ctors-S3cret-St4sh>.
+The shortcode started in S3ctors-S3cret-St4sh; its home is now the Mod Template, which took
+it from St4sh at `86cbc261` and moved its colors onto the palette tokens. Imported from the
+template at `208857655d07903844fe55335da13396b39024de`, the docs shell's revision.
 
 - `templates/shortcodes/schematic.html`: unchanged.
-- `sass/schematic.sass`: every `docs-schematic` rule from St4sh's `sass/docs.sass`,
-  including its responsive `@media` blocks, and nothing else.
+- `sass/schematic.sass`: the template's `sass/_schematic.sass`, unchanged. It compiles to its
+  own `schematic.css` here, so it has no underscore.
+
+It reads `--dw-ok`, `--dw-info`, `--dw-warn`, `--dw-danger`, `--dw-neutral`, `--dw-accent`,
+the radii, `--dw-sheen`, `--dw-shadow-1`, `--link-color` and `--link-hover-color`, none with a
+fallback; `war-room.sass` defines them all.
 
 Schematic data is JSON in the shortcode's format. Hand-written ones live in
 `site/data/schematics/`; the generator writes the supply-line ones to

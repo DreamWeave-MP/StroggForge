@@ -28,7 +28,7 @@ history. There is no server, database or client-side framework.
 - **Domains.** Projects belong to the Rust ecosystem, the Lua(u)/OpenMW side or the web
   sites. Only the first runs through StroggForge.
 - **Structure is rendered, not drawn in glyphs.** Flows use the schematic shortcode
-  imported from St4sh; graphs use Mermaid rendered to SVG.
+  imported from the Mod Template (it started in St4sh); graphs use Mermaid rendered to SVG.
 - **Sass, indented syntax.** Not SCSS.
 
 ## Open items
