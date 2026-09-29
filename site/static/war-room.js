@@ -1,4 +1,6 @@
-// Optional local search over Zola's static index. All navigation works without it.
+// The war room's page script: local search over Zola's static index, its `/` shortcut, and copy
+// buttons on code blocks. The imported docs.js only runs the docs shell's drawers and contents.
+// All navigation works without either.
 (() => {
   const script = document.currentScript;
   const search = document.getElementById('search');
@@ -48,4 +50,63 @@
   document.addEventListener('click', event => {
     if (!event.target.closest('.search-container')) results.hidden = true;
   });
+  // `/` jumps to the search from anywhere but a text field; Escape closes the results.
+  document.addEventListener('keydown', event => {
+    const active = document.activeElement;
+    const typing = active?.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(active?.tagName);
+    if (event.key === '/' && !typing && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      event.preventDefault();
+      search.focus();
+    } else if (event.key === 'Escape' && (active === search || results.contains(active))) {
+      results.hidden = true;
+      search.blur();
+    }
+  });
+})();
+
+(() => {
+  const copyCode = async code => {
+    try {
+      await navigator.clipboard.writeText(code.textContent);
+      return true;
+    } catch {
+      try {
+        const selection = window.getSelection();
+        if (!selection) return false;
+        const range = document.createRange();
+        range.selectNodeContents(code);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        const copied = document.execCommand('copy');
+        selection.removeAllRanges();
+        return copied;
+      } catch {
+        return false;
+      }
+    }
+  };
+
+  for (const block of document.querySelectorAll('.docs-article pre')) {
+    const code = block.querySelector('code');
+    if (!code || block.parentElement.classList.contains('docs-code-block')) continue;
+    const frame = document.createElement('div');
+    frame.className = 'docs-code-block';
+    block.before(frame);
+    frame.append(block);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'docs-code-copy';
+    button.textContent = 'Copy';
+    button.setAttribute('aria-label', 'Copy code to clipboard');
+    frame.append(button);
+    button.addEventListener('click', async () => {
+      const copied = await copyCode(code);
+      button.textContent = copied ? 'Copied' : 'Copy failed';
+      button.setAttribute('aria-label', copied ? 'Code copied to clipboard' : 'Copying code failed');
+      window.setTimeout(() => {
+        button.textContent = 'Copy';
+        button.setAttribute('aria-label', 'Copy code to clipboard');
+      }, 1500);
+    });
+  }
 })();
