@@ -92,10 +92,14 @@ install_linux() {
 install_macos() {
   # Homebrew ships lld as its own formula, separate from llvm: install both, versioned when a
   # versioned formula exists, and put both bin directories on PATH (lld provides ld64.lld,
-  # which `clang -fuse-ld=lld` needs for Mach-O).
+  # which `clang -fuse-ld=lld` needs for Mach-O). A fresh runner has nothing to clean up or
+  # re-check, and its formula index usually knows the version already: update it only when the
+  # install without updating fails.
+  export HOMEBREW_NO_INSTALL_CLEANUP=1 HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=1
   local formula
   for formula in llvm lld; do
-    if brew install "$formula@$llvm_major" >/dev/null 2>&1; then
+    if HOMEBREW_NO_AUTO_UPDATE=1 brew install "$formula@$llvm_major" >/dev/null 2>&1 \
+      || brew install "$formula@$llvm_major" >/dev/null 2>&1; then
       add_path "$(brew --prefix "$formula@$llvm_major")/bin"
     else
       brew install "$formula"
