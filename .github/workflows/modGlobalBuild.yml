@@ -7,12 +7,13 @@ name: Mod Template
 # Mod repositories call it directly. rustGlobalBuild and libGlobalBuild call it with rust_release
 # when their caller sets mod_template: they build and publish the Rust release, and this records it.
 #
-# Pull requests and other branches: validate, test, build the site. Nothing is published.
-# The default branch: all of that, record crate versions crates.io has, publish the development
-# release (mods only; a Rust workflow publishes its own), and deploy the site. Release tags: build
-# the tagged release (a mod's archive, or the archives the Rust workflow staged), record it in
-# mod.lock on the default branch, publish it (mods only), then start a default-branch run of the
-# calling workflow so the site lists it.
+# Pull requests and other branches, one job: validate, test, build the site. Nothing is published.
+# The default branch: the same job also records what crates.io and GitHub have published, signs
+# and publishes the development release (mods only; a Rust workflow publishes its own), and hands
+# the site to a deploy job. Release tags, one job: validate, build the tagged release (a mod's
+# archive, or the archives the Rust workflow staged), record it in mod.lock on the default branch,
+# publish it (mods only), and start a default-branch run of the calling workflow so the site lists
+# it. A mod with Nexus Mods uploads gets one more job per file.
 
 on:
   workflow_call:
@@ -40,28 +41,30 @@ env:
   DREAMWEAVE_SIGNING_IDENTITY: https://github.com/DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml@refs/tags/v52
 
 jobs:
-  check:
-    name: Validate and test
+  site:
+    name: Validate, test and build the site
+    if: github.ref_type != 'tag'
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write # the development release, and releases recorded on the default branch
+      pages: read
+      id-token: write # Sigstore
+    env:
+      PUBLISHING: ${{ github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch }}
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@v7
+        with:
+          repository: DreamWeave-MP/StroggForge
+          ref: v52
+          path: .stroggforge
+
+      - uses: DreamWeave-MP/StroggForge/.github/actions/mod-template-setup@v52
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install Python requirements
-        run: python -m pip install -r tools/requirements.txt
-
-      - name: Read the Zola version archives are rendered with
-        id: zola
-        run: echo "version=$(./buildSite zola-version)" >> "$GITHUB_OUTPUT"
-
-      - uses: taiki-e/install-action@v2
-        with:
-          tool: zola@${{ steps.zola.outputs.version }}
 
       - name: Validate every project
         run: ./buildSite check
@@ -77,17 +80,129 @@ jobs:
       - name: Run the template's tests
         run: python -m unittest discover -s tools/tests -v
 
-  release:
-    name: Build and record the tagged release
-    needs: check
-    if: ${{ !cancelled() && github.ref_type == 'tag' && needs.check.result == 'success' }}
+      # crates.io and GitHub never change a published release, so any run on the default branch
+      # may record what they have: a tag's crate, or releases from before the repository was a site.
+      - name: Record releases published to crates.io and GitHub
+        if: env.PUBLISHING == 'true'
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: bash .stroggforge/scripts/mod-template/commit-records.sh "$DEFAULT_BRANCH"
+
+      - name: Find the published site's URL
+        id: pages
+        if: env.PUBLISHING == 'true'
+        uses: actions/configure-pages@v6
+
+      - name: Choose the base URL
+        id: base
+        env:
+          PAGES_URL: ${{ steps.pages.outputs.base_url }}
+        run: |
+          if [ -n "$PAGES_URL" ]; then
+            echo "url=$PAGES_URL" >> "$GITHUB_OUTPUT"
+          else
+            echo "url=$(python -c 'import tomllib; print(tomllib.load(open("config.toml", "rb"))["base_url"])')" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Collect the archives the Rust workflow published
+        if: inputs.rust_archives && github.event_name != 'pull_request'
+        uses: actions/download-artifact@v8
+        with:
+          pattern: github-release-*
+          path: dist/binaries/
+          merge-multiple: true
+
+      - name: Package development builds, build the site, and check it
+        env:
+          DREAMWEAVE_BASE_URL: ${{ steps.base.outputs.url }}
+          DREAMWEAVE_DEVELOPMENT_REF: refs/heads/${{ github.event.repository.default_branch }}
+          BASE_URL: ${{ steps.base.outputs.url }}
+        run: |
+          ./buildSite build
+          ./buildSite schemas
+          zola build --base-url "$BASE_URL"
+          ./buildSite links --base-url "$BASE_URL"
+
+      - name: Check whether anything asks to be signed
+        id: signing
+        env:
+          MOD_RELEASE: ${{ !inputs.rust_release }}
+        run: |
+          if [ -s dist/sign.txt ] && [ "$PUBLISHING" = true ] && [ "$MOD_RELEASE" = true ]; then
+            echo "needed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "needed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: sigstore/cosign-installer@v3
+        if: steps.signing.outputs.needed == 'true'
+
+      - name: Sign development archives with Sigstore (keyless)
+        if: steps.signing.outputs.needed == 'true'
+        working-directory: dist
+        run: |
+          while IFS= read -r archive; do
+            cosign sign-blob --yes --bundle "$archive.sigstore.json" "$archive"
+          done < sign.txt
+
+      # The development release follows the default branch: replaced on every build, and its tag
+      # moved. dist/github-release names it (`development`, or `dev-build` in the template's own
+      # repository). Created as a draft and published once its files are attached.
+      - name: Publish the development release
+        if: env.PUBLISHING == 'true' && !inputs.rust_release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          release=$(cat dist/github-release)
+          shopt -s nullglob
+          files=(dist/*.zip dist/*.sigstore.json)
+          if gh release view "$release" --repo "$REPOSITORY" >/dev/null 2>&1; then
+            gh release delete "$release" --yes --repo "$REPOSITORY"
+          fi
+          gh api -X DELETE "repos/$REPOSITORY/git/refs/tags/$release" >/dev/null 2>&1 || true
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No project publishes a development build."
+            exit 0
+          fi
+          gh release create "$release" --prerelease --draft --target "$GITHUB_SHA" --title "Development build" \
+            --notes "The default branch at $GITHUB_SHA, built by $RUN_URL. It may be ahead of the last release, and it may be broken." \
+            --repo "$REPOSITORY"
+          gh release upload "$release" "${files[@]}" --repo "$REPOSITORY"
+          gh release edit "$release" --draft=false --repo "$REPOSITORY"
+
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        if: env.PUBLISHING == 'true'
+        with:
+          path: public/
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: site
+    if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
     runs-on: ubuntu-24.04
     permissions:
-      contents: write # the mod.lock commit on the default branch
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v5
+
+  release:
+    name: Build, record and publish the tagged release
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: write # the default-branch run that lists the release
+      contents: write # the mod.lock commit on the default branch, and the release
       id-token: write # Sigstore
     outputs:
-      # false when the tag's project records nothing at tag time, as a crate's does.
-      recorded: ${{ steps.build.outputs.recorded }}
       nexus: ${{ steps.nexus.outputs.uploads || '[]' }}
     steps:
       - uses: actions/checkout@v7
@@ -100,20 +215,15 @@ jobs:
           ref: v52
           path: .stroggforge
 
-      - uses: actions/setup-python@v7
+      - uses: DreamWeave-MP/StroggForge/.github/actions/mod-template-setup@v52
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install Python requirements
-        run: python -m pip install -r tools/requirements.txt
+      - name: Validate every project
+        run: ./buildSite check
 
-      - name: Read the Zola version archives are rendered with
-        id: zola
-        run: echo "version=$(./buildSite zola-version)" >> "$GITHUB_OUTPUT"
-
-      - uses: taiki-e/install-action@v2
-        with:
-          tool: zola@${{ steps.zola.outputs.version }}
+      - name: Run the template's tests
+        run: python -m unittest discover -s tools/tests -v
 
       - name: Collect the archives the Rust workflow published
         if: inputs.rust_archives
@@ -158,13 +268,35 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: bash .stroggforge/scripts/mod-template/commit-records.sh "$DEFAULT_BRANCH"
 
+      # A mod's release is this workflow's to publish, created once as a draft and published when
+      # its files are attached. A re-run's archives match the record, so replacing them changes
+      # nothing. Immutable releases work for tags.
+      - name: Publish the GitHub release
+        if: steps.build.outputs.recorded == 'true' && !inputs.rust_release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          release=$(cat dist/github-release)
+          shopt -s nullglob
+          files=(dist/*.zip dist/*.sigstore.json)
+          if gh release view "$release" --repo "$REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$release" "${files[@]}" --clobber --repo "$REPOSITORY"
+            gh release edit "$release" --notes-file dist/release-notes.md --repo "$REPOSITORY"
+          else
+            title=$(jq -r '"\(.name) \(.release.version)"' dist/release.json)
+            gh release create "$release" --verify-tag --draft --title "$title" --notes-file dist/release-notes.md --repo "$REPOSITORY"
+            gh release upload "$release" "${files[@]}" --repo "$REPOSITORY"
+            gh release edit "$release" --draft=false --repo "$REPOSITORY"
+          fi
+
       - name: Read the Nexus Mods uploads
         id: nexus
         if: steps.build.outputs.recorded == 'true' && !inputs.rust_release
         run: echo "uploads=$(cat dist/nexus.json)" >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-artifact@v7
-        if: steps.build.outputs.recorded == 'true' && !inputs.rust_release
+        if: steps.nexus.outputs.uploads != '' && steps.nexus.outputs.uploads != '[]'
         with:
           name: release
           path: |
@@ -172,215 +304,9 @@ jobs:
             !dist/binaries/
           if-no-files-found: error
 
-  # Tag runs skip this: they finish by starting a default-branch run, which builds the site and
-  # the development build from a commit that includes the new record.
-  site:
-    name: Build the site
-    needs: check
-    if: ${{ !cancelled() && github.ref_type != 'tag' && needs.check.result == 'success' }}
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: write # crate versions recorded on the default branch
-      pages: read
-      id-token: write
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - uses: actions/checkout@v7
-        with:
-          repository: DreamWeave-MP/StroggForge
-          ref: v52
-          path: .stroggforge
-
-      - uses: actions/setup-python@v7
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install Python requirements
-        run: python -m pip install -r tools/requirements.txt
-
-      - name: Read the Zola version archives are rendered with
-        id: zola
-        run: echo "version=$(./buildSite zola-version)" >> "$GITHUB_OUTPUT"
-
-      - uses: taiki-e/install-action@v2
-        with:
-          tool: zola@${{ steps.zola.outputs.version }}
-
-      # crates.io never changes a published version, so any run on the default branch may record
-      # what it has: a tag's crate, or crates published before the repository used the template.
-      - name: Record releases published to crates.io and GitHub
-        if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
-        env:
-          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-          GITHUB_TOKEN: ${{ github.token }}
-        run: bash .stroggforge/scripts/mod-template/commit-records.sh "$DEFAULT_BRANCH"
-
-      - name: Find the published site's URL
-        id: pages
-        if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
-        uses: actions/configure-pages@v6
-
-      - name: Choose the base URL
-        id: base
-        env:
-          PAGES_URL: ${{ steps.pages.outputs.base_url }}
-        run: |
-          if [ -n "$PAGES_URL" ]; then
-            echo "url=$PAGES_URL" >> "$GITHUB_OUTPUT"
-          else
-            echo "url=$(python -c 'import tomllib; print(tomllib.load(open("config.toml", "rb"))["base_url"])')" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Collect the archives the Rust workflow published
-        if: inputs.rust_archives && github.event_name != 'pull_request'
-        uses: actions/download-artifact@v8
-        with:
-          pattern: github-release-*
-          path: dist/binaries/
-          merge-multiple: true
-
-      - name: Package development builds and write the protocol files
-        env:
-          DREAMWEAVE_BASE_URL: ${{ steps.base.outputs.url }}
-          DREAMWEAVE_DEVELOPMENT_REF: refs/heads/${{ github.event.repository.default_branch }}
-        run: ./buildSite build
-
-      - name: Check the protocol documents against their schemas
-        run: ./buildSite schemas
-
-      - name: Build the site
-        env:
-          BASE_URL: ${{ steps.base.outputs.url }}
-        run: zola build --base-url "$BASE_URL"
-
-      - name: Check local links and anchors
-        env:
-          BASE_URL: ${{ steps.base.outputs.url }}
-        run: ./buildSite links --base-url "$BASE_URL"
-
-      - name: Check whether anything asks to be signed
-        id: signing
-        env:
-          PUBLISHING: ${{ github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch && !inputs.rust_release }}
-        run: |
-          if [ -s dist/sign.txt ] && [ "$PUBLISHING" = true ]; then
-            echo "needed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "needed=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - uses: sigstore/cosign-installer@v3
-        if: steps.signing.outputs.needed == 'true'
-
-      - name: Sign development archives with Sigstore (keyless)
-        if: steps.signing.outputs.needed == 'true'
-        working-directory: dist
-        run: |
-          while IFS= read -r archive; do
-            cosign sign-blob --yes --bundle "$archive.sigstore.json" "$archive"
-          done < sign.txt
-
-      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
-        if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
-        with:
-          path: public/
-
-      - uses: actions/upload-artifact@v7
-        if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch && !inputs.rust_release
-        with:
-          name: development
-          path: |
-            dist/
-            !dist/binaries/
-          if-no-files-found: ignore
-
-  # A mod's releases are this workflow's to publish. dist/github-release names the GitHub release:
-  # the tag, or the development release, which ./buildSite names (`development`, or `dev-build` in
-  # the template's own repository). Releases are created as drafts and published once their files
-  # are attached, so a release is never seen without its archives. Immutable releases work for
-  # tags; the development release is replaced on every build, which an immutable release forbids.
-  upload-release:
-    name: Publish the GitHub release
-    needs: [release, site]
-    if: ${{ !cancelled() && !inputs.rust_release && github.event_name != 'pull_request' && (github.ref_type == 'tag' && needs.release.result == 'success' && needs.release.outputs.recorded == 'true' || github.ref_name == github.event.repository.default_branch && needs.site.result == 'success') }}
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/download-artifact@v8
-        with:
-          name: ${{ github.ref_type == 'tag' && 'release' || 'development' }}
-          path: dist/
-
-      - name: Publish archives and signatures
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPOSITORY: ${{ github.repository }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          release=$(cat dist/github-release)
-          shopt -s nullglob
-          files=(dist/*.zip dist/*.sigstore.json)
-          development_notes="The default branch at $GITHUB_SHA, built by $RUN_URL. It may be ahead of the last release, and it may be broken."
-
-          if [ "$GITHUB_REF_TYPE" = tag ]; then
-            # Created once. A re-run's archives match the record, so replacing them changes nothing.
-            if gh release view "$release" --repo "$REPOSITORY" >/dev/null 2>&1; then
-              gh release upload "$release" "${files[@]}" --clobber --repo "$REPOSITORY"
-              gh release edit "$release" --notes-file dist/release-notes.md --repo "$REPOSITORY"
-            else
-              title=$(jq -r '"\(.name) \(.release.version)"' dist/release.json)
-              gh release create "$release" --verify-tag --draft --title "$title" --notes-file dist/release-notes.md --repo "$REPOSITORY"
-              gh release upload "$release" "${files[@]}" --repo "$REPOSITORY"
-              gh release edit "$release" --draft=false --repo "$REPOSITORY"
-            fi
-            exit 0
-          fi
-
-          # The development release follows the default branch: replace it, and move its tag.
-          if gh release view "$release" --repo "$REPOSITORY" >/dev/null 2>&1; then
-            gh release delete "$release" --yes --repo "$REPOSITORY"
-          fi
-          gh api -X DELETE "repos/$REPOSITORY/git/refs/tags/$release" >/dev/null 2>&1 || true
-          if [ ${#files[@]} -eq 0 ]; then
-            echo "No project publishes a development build."
-            exit 0
-          fi
-          gh release create "$release" --prerelease --draft --target "$GITHUB_SHA" --title "Development build" \
-            --notes "$development_notes" --repo "$REPOSITORY"
-          gh release upload "$release" "${files[@]}" --repo "$REPOSITORY"
-          gh release edit "$release" --draft=false --repo "$REPOSITORY"
-
-  deploy:
-    name: Deploy to GitHub Pages
-    needs: [site, upload-release]
-    if: ${{ !cancelled() && github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch && needs.site.result == 'success' && (inputs.rust_release || needs.upload-release.result == 'success') }}
-    runs-on: ubuntu-24.04
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy
-        id: deployment
-        uses: actions/deploy-pages@v5
-
-  # GITHUB_TOKEN's pushes start no runs, so the record commit alone would never reach the site.
-  # This starts the calling workflow on the default branch, the one that runs this stage there.
-  refresh-site:
-    name: Rebuild the site with the new release
-    needs: [release, upload-release]
-    if: ${{ !cancelled() && github.ref_type == 'tag' && needs.release.result == 'success' && (inputs.rust_release || needs.release.outputs.recorded == 'false' || needs.upload-release.result == 'success') }}
-    runs-on: ubuntu-24.04
-    permissions:
-      actions: write
-    steps:
-      - name: Start a default-branch run
+      # GITHUB_TOKEN's pushes start no runs, so the record commit alone would never reach the site.
+      # This starts the calling workflow on the default branch, the one that runs this stage there.
+      - name: Start a default-branch run, which lists the release on the site
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
@@ -392,10 +318,11 @@ jobs:
           workflow=${workflow##*/}
           gh workflow run "$workflow" --ref "$DEFAULT_BRANCH" --repo "$REPOSITORY"
 
+  # Nexus Mods takes one file per call of its upload action, so each file is its own job.
   nexus-upload:
     name: Upload to Nexus Mods
-    needs: [release, upload-release]
-    if: ${{ github.ref_type == 'tag' && needs.upload-release.result == 'success' && needs.release.outputs.nexus != '[]' }}
+    needs: release
+    if: needs.release.outputs.nexus != '[]'
     runs-on: ubuntu-24.04
     strategy:
       matrix:
