@@ -264,10 +264,11 @@ jobs:
 
   # The release builds start with the tests rather than after them: a release takes as long as the
   # slowest platform, not the slowest test plus the slowest build. Nothing is published unless
-  # every test, lint and build passed.
+  # every test, lint and build passed, and every platform reports its own failures.
   release:
     name: Build ${{ matrix.app_names }} for ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [macos-latest, macos-15-intel, windows-2025-vs2026]
         app_names: ${{ fromJson(inputs.binary_names) }}
@@ -295,6 +296,7 @@ jobs:
   release-linux:
     name: Build ${{ matrix.app_names }} for Linux
     strategy:
+      fail-fast: false
       matrix:
         app_names: ${{ fromJson(inputs.binary_names) }}
     runs-on: ubuntu-latest
@@ -323,6 +325,7 @@ jobs:
     name: Build ${{ matrix.app_names }} for Android
     if: inputs.enable_android
     strategy:
+      fail-fast: false
       matrix:
         app_names: ${{ fromJson(inputs.binary_names) }}
     runs-on: ubuntu-latest
@@ -381,6 +384,7 @@ jobs:
     name: Build ${{ matrix.app_names }} for PortMaster
     if: inputs.enable_portmaster
     strategy:
+      fail-fast: false
       matrix:
         app_names: ${{ fromJson(inputs.binary_names) }}
     runs-on: ubuntu-latest
