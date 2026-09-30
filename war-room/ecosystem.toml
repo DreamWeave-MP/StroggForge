@@ -160,6 +160,24 @@ approach = "introductory"
 contribution_areas = ["Keyboard and narrow-screen documentation UX", "Reusable documentation shortcodes and examples", "Protocol schemas and the tests that hold code, schema and spec together"]
 
 [[projects]]
+id = "ashyams"
+name = "AsHyAmS"
+kind = "infrastructure"
+domain = "web"
+summary = "The user-facing index of the DreamWeave network: crawls every enrolled site's protocol documents every six hours and publishes what it observed as a static site, a catalog and an updates feed."
+repository = "https://github.com/DreamWeave-MP/AsHyAmS"
+languages = ["Rust", "Tera", "Sass"]
+lifecycle = "active"
+maturity = "evolving"
+owners = ["DreamWeave maintainers"]
+docs = ["https://dreamweave-mp.github.io/AsHyAmS/", "https://dreamweave-mp.github.io/AsHyAmS/about/"]
+packages = []
+distribution = ["github-pages", "source"]
+stroggforge = []
+approach = "intermediate"
+contribution_areas = ["Enroll a published site with cargo network add", "Re-vendor the protocol schemas when the Mod Template changes them", "Crawler fixtures for failures real sites produce"]
+
+[[projects]]
 id = "stash"
 name = "S3ctors-S3cret-St4sh / St4sh"
 kind = "content"
@@ -506,6 +524,12 @@ from = "stroggforge"
 to = "mod-template"
 kind = "documentation"
 label = "vendors docs shell"
+
+[[relationships]]
+from = "ashyams"
+to = "mod-template"
+kind = "documentation"
+label = "reads the protocol it specifies; vendors its schemas and presentation"
 
 [[relationships]]
 from = "stash"
