@@ -18,7 +18,8 @@ if gh release view "$release_name" --repo "$github_repository" --json body >/dev
   if [[ "$release_name" == development ]]; then
     tag_delete_error=$(mktemp)
     if ! gh api -X DELETE "repos/${github_repository}/git/refs/tags/${release_name}" 2>"$tag_delete_error"; then
-      if grep -q 'Not Found' "$tag_delete_error"; then
+      # A development release published without its tag answers 422 "Reference does not exist".
+      if grep -q 'Not Found\|Reference does not exist' "$tag_delete_error"; then
         echo "Development tag was already absent."
       else
         cat "$tag_delete_error" >&2
