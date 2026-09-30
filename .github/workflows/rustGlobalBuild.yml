@@ -462,6 +462,16 @@ jobs:
           MUXAPP_DIR: ${{ inputs.muxapp_dir }}
         run: bash .stroggforge/scripts/corprus-crucible/package-muxapp.sh "$MUXAPP_DIR" .corprus-crucible/github-release-downloads .corprus-crucible/github-release-downloads
 
+      # The site's record job collects the github-release-* artifacts, so a muOS app the site
+      # declares as a platform is staged like the archives it is packed from.
+      - name: Stage the muOS apps for the site's record
+        if: inputs.muxapp_dir != '' && inputs.enable_portmaster
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: github-release-muxapp
+          path: .corprus-crucible/github-release-downloads/*.muxapp
+          if-no-files-found: error
+
       - name: Refresh the GitHub release
         id: release
         env:
