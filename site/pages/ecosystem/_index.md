@@ -18,6 +18,10 @@ DreamWeave is three different kinds of work that happen to share an organization
   Rust programs and libraries publish Mod Template sites: a page, its docs, and the protocol
   manifest a DreamWeave client or index reads, with every release and its digests.
 
+Those sites are the DreamWeave network. [AsHyAmS](@/ecosystem/ashyams.md) is the index of it that
+people are pointed at: every enrolled site, crawled every six hours, as a static site, a catalog
+and a feed. It is where this war room's output is found.
+
 Sharing an organization is not a dependency. The [overview](@/ecosystem/overview.md) lists
 everything by domain, the [map](@/ecosystem/map.md) shows what actually depends on what,
 and the [project directory](@/ecosystem/projects/_index.md) has a page per component.

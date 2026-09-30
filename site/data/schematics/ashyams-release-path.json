@@ -1,0 +1,23 @@
+{
+  "id": "ashyams-release-path",
+  "mode": "flow",
+  "title": "From a tag to AsHyAmS",
+  "heading_level": 3,
+  "description": "StroggForge publishes and the site records. AsHyAmS only ever reads what the site published.",
+  "direction": "vertical",
+  "nodes": [
+    { "id": "tag", "title": "A tag is pushed", "kind": "source", "detail": "The release is declared in the project's mod.toml." },
+    { "id": "build", "title": "rustGlobalBuild / libGlobalBuild", "kind": "tool", "detail": "Builds, signs and publishes the archives, or the crate to crates.io." },
+    { "id": "record", "title": "modGlobalBuild", "kind": "tool", "detail": "Records the release in mod.lock and deploys the site." },
+    { "id": "manifest", "title": "The site's manifest", "kind": "component", "detail": "Lists the release with every artifact's digest. The authority." },
+    { "id": "refresh", "title": "AsHyAmS refresh", "kind": "tool", "detail": "Every six hours: downloads only the manifests whose digest in dreamweave.json changed." },
+    { "id": "updates", "title": "AsHyAmS", "kind": "result", "detail": "The release appears on its project page, in Updates with a typed diff, and in the feed." }
+  ],
+  "edges": [
+    { "from": "tag", "to": "build" },
+    { "from": "build", "to": "record" },
+    { "from": "record", "to": "manifest" },
+    { "from": "manifest", "to": "refresh", "label": "read, never written" },
+    { "from": "refresh", "to": "updates" }
+  ]
+}

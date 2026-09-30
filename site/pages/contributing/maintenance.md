@@ -91,6 +91,17 @@ without further effort. Then:
   tells you about the second case.
 - Update `war-room/toolchains.toml` if a platform baseline or compiler policy moved.
 
+## Keeping AsHyAmS in Step
+
+[AsHyAmS](@/ecosystem/ashyams.md) reads what `modGlobalBuild` publishes, validated against the
+Mod Template's schemas as they were when AsHyAmS last copied them. A change to what a manifest can
+say is not finished when the sites publish it. It is finished when AsHyAmS reads it:
+
+- A new platform, artifact format or manifest field: re-vendor the schema in AsHyAmS, teach its
+  protocol model the field, and run `cargo network inspect` on a real site that uses it.
+- A new Mod Template site: enroll it with `cargo network add` in AsHyAmS. Published but not
+  enrolled means nobody finds it.
+
 ## Checks
 
 ```sh

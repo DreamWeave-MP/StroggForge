@@ -27,6 +27,7 @@ has the manual checklist for Rust applications.
 | PortMaster | Opt-in ARM64 native binary | A device that runs it. Catalog submission is a separate, manual step. |
 | muOS app | Opt-in `.muxapp` of the PortMaster build, with `muxapp_dir` | `enable_portmaster`, and the app's files in the repository |
 | Mod Template site | With `mod_template`, after the GitHub Release or crates.io publish | `actions: write` for the caller; the site's `mod.lock` on the default branch is committed by CI |
+| [AsHyAmS](@/ecosystem/ashyams.md) | Within six hours of the site deploying; nothing to trigger | The site enrolled in AsHyAmS's `network/sources.toml`, and a schema AsHyAmS already reads |
 
 ## A Partial Release Is Not a Clean Slate
 
