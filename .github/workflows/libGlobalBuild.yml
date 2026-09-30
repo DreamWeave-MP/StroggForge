@@ -89,10 +89,10 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v53
+          ref: v54
           path: .stroggforge
 
-      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v53
+      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v54
         with:
           components: rustfmt
           llvm: ${{ inputs.cargo_publish && github.ref_type != 'tag' }}
@@ -136,7 +136,7 @@ jobs:
           MSRV_INPUT: ${{ inputs.msrv }}
         run: bash .stroggforge/scripts/shared/resolve-msrv.sh "$MSRV_INPUT"
 
-      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v53
+      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v54
         if: inputs.msrv != ''
         with:
           toolchain: ${{ steps.msrv.outputs.toolchain }}
@@ -167,7 +167,7 @@ jobs:
         with:
           submodules: true
 
-      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v53
+      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v54
         with:
           components: clippy
           cache: test
@@ -200,7 +200,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v53
+          ref: v54
           path: .stroggforge
 
       - name: Refresh the GitHub release
@@ -251,10 +251,10 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v53
+          ref: v54
           path: .stroggforge
 
-      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v53
+      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v54
         with:
           cache: crates
 
@@ -300,9 +300,9 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v53
+          ref: v54
           path: .stroggforge
-      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v53
+      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v54
         with:
           cache: docs
       - name: Build the documentation
@@ -333,9 +333,9 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v53
+          ref: v54
           path: .stroggforge
-      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v53
+      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v54
         with:
           cache: benchmarks
       - name: Run the benchmarks and upload BENCHMARKS.md
@@ -358,7 +358,7 @@ jobs:
       contents: write
       id-token: write
       pages: write
-    uses: DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml@v53
+    uses: DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml@v54
     secrets: inherit
     with:
       rust_release: true
@@ -371,7 +371,7 @@ jobs:
       contents: write
       id-token: write
       pages: write
-    uses: DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml@v53
+    uses: DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml@v54
     with:
       rust_release: true
 
@@ -380,7 +380,7 @@ jobs:
   notify:
     needs: [lint, test, publish, crates, docs, benchmarks, mod-template]
     if: always() && !cancelled() && inputs.generate_discord_notification && github.event_name == 'push'
-    uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v53
+    uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v54
     secrets:
       WEBHOOK_URL: ${{ secrets.DISCORD_CHANNEL_WEBHOOK || secrets.DW_TOOLS_CHANNEL_WEBHOOK }}
     with:
