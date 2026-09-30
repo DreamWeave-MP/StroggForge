@@ -1,10 +1,22 @@
 # Canonical DreamWeave inventory: reviewed human intent. Facts about StroggForge itself
 # (workflow inputs, jobs, runners) are read from this checkout, not recorded here.
 schema = 1
-reviewed = "2026-09-28"
+reviewed = "2026-09-30"
 scope = "Every current DreamWeave component that gets engineered, by domain. This is not a dump of every repository in the organization, and a lifecycle is a maintainer's call, not a guess from the last commit date."
 
 # Infrastructure changes that alter what consumers get. Git holds the full history.
+[[updates]]
+date = "2026-09-29"
+title = "Self-referential pins move to v54"
+detail = "Templates and internal workflow/action calls reference v54, and the builder images are tagged v54. A consumer pinned to an older tag keeps that tag's behavior, including its toolchain and builder images."
+commits = ["d2ac0a5"]
+
+[[updates]]
+date = "2026-09-29"
+title = "A program's muOS apps are recorded with its other builds"
+detail = "rustGlobalBuild stages the packed muOS apps as release artifacts beside the archives, so a Mod Template site that declares the muos platform records them in its manifest, with their digests, like any other build."
+commits = ["e4d9c3a"]
+
 [[updates]]
 date = "2026-09-29"
 title = "Self-referential pins move to v53"
@@ -134,7 +146,7 @@ id = "mod-template"
 name = "DreamWeave-Mod-Template"
 kind = "documentation"
 domain = "web"
-summary = "Reusable Zola/Tera project storefront and documentation shell; source of this site's docs UX."
+summary = "The DreamWeave project site: a Zola storefront and documentation shell that publishes the protocol's manifests, packages byte-reproducible archives and records releases; source of this site's docs UX."
 repository = "https://github.com/DreamWeave-MP/DreamWeave-Mod-Template"
 languages = ["Tera", "Sass", "JavaScript"]
 lifecycle = "active"
@@ -145,7 +157,7 @@ packages = []
 distribution = ["github-pages", "source"]
 stroggforge = ["modGlobalBuild"]
 approach = "introductory"
-contribution_areas = ["Keyboard and narrow-screen documentation UX", "Reusable documentation shortcodes and examples"]
+contribution_areas = ["Keyboard and narrow-screen documentation UX", "Reusable documentation shortcodes and examples", "Protocol schemas and the tests that hold code, schema and spec together"]
 
 [[projects]]
 id = "stash"
@@ -160,8 +172,8 @@ maturity = "established"
 owners = ["S3ctor", "DreamWeave contributors"]
 docs = ["https://dreamweave-mp.github.io/S3ctors-S3cret-St4sh/"]
 packages = []
-distribution = ["github-pages", "source"]
-stroggforge = ["createRelease"]
+distribution = ["github-pages", "github-releases", "source"]
+stroggforge = ["modGlobalBuild"]
 approach = "introductory"
 contribution_areas = ["Test individual mods in OpenMW", "Document reproducible Lua failures", "Improve mod tutorials and translations"]
 
@@ -212,7 +224,7 @@ languages = ["Rust"]
 lifecycle = "active"
 maturity = "established"
 owners = ["DreamWeave Rust maintainers"]
-docs = ["https://docs.rs/dream_archive"]
+docs = ["https://dreamweave-mp.github.io/dream_archive/", "https://docs.rs/dream_archive"]
 packages = ["dream_archive"]
 distribution = ["crates-io", "source"]
 stroggforge = ["libGlobalBuild"]
@@ -338,7 +350,7 @@ languages = ["Rust"]
 lifecycle = "active"
 maturity = "evolving"
 owners = ["DreamWeave Rust maintainers"]
-docs = ["https://github.com/DreamWeave-MP/dream-ini"]
+docs = ["https://dreamweave-mp.github.io/dream-ini/"]
 packages = ["dream-ini"]
 distribution = ["github-releases", "source"]
 stroggforge = ["rustGlobalBuild"]
@@ -356,7 +368,7 @@ languages = ["Rust"]
 lifecycle = "active"
 maturity = "evolving"
 owners = ["DreamWeave Rust maintainers"]
-docs = ["https://docs.rs/dream_archivetool"]
+docs = ["https://dreamweave-mp.github.io/dream_archivetool/", "https://docs.rs/dream_archivetool"]
 packages = ["dream_archivetool"]
 distribution = ["github-releases", "crates-io"]
 stroggforge = ["rustGlobalBuild"]
@@ -427,7 +439,7 @@ languages = ["Rust", "C++", "Luau"]
 lifecycle = "active"
 maturity = "evolving"
 owners = ["S3ctor", "DreamWeave runtime maintainers"]
-docs = []
+docs = ["https://dreamweave-mp.github.io/l3i/"]
 packages = ["l3i"]
 distribution = ["source"]
 stroggforge = ["libGlobalBuild"]
