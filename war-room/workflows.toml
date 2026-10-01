@@ -68,7 +68,7 @@ purpose = "Install and select clang/lld compatible with the active Rust compiler
 intended_for = "Kept for callers of their own: StroggForge's compiling jobs install LLVM through rust-setup, or Corprus Crucible, which run the same setup-llvm.sh."
 release_behavior = "Toolchain setup only; produces no release. Migration across consumers is tracked separately from this configuration."
 artifacts = ["Compiler/linker environment for subsequent Cargo commands"]
-assumptions = ["Run after dtolnay/rust-toolchain; pass the MSRV toolchain for older compiler checks.", "Ubuntu uses apt.llvm.org; macOS uses Homebrew; Windows and apt-less Linux use release archives; EL9 uses dnf/stream packages.", "Matching a major is policy; LLVM 22.1.8 is a measured reference, not an unconditional patch pin."]
+assumptions = ["Run after dtolnay/rust-toolchain; pass the MSRV toolchain for older compiler checks.", "Ubuntu uses apt.llvm.org; macOS uses LLVM's release archive on ARM64 and conda-forge on Intel; Windows and apt-less Linux use release archives; EL9 uses dnf/stream packages.", "Matching a major is policy; LLVM 22.1.8 is a measured reference, not an unconditional patch pin."]
 failures = ["Stream clang or lld differs from rustc LLVM: fail loudly and inspect package availability.", "l3i requires clang, lld and cross-language LTO flags together; a compiler binary alone is insufficient."]
 example = "Use rust-setup in a compiling job. For platform exceptions see [toolchains](@/releases/platforms.md)."
 

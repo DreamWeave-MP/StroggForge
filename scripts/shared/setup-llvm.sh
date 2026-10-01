@@ -90,22 +90,39 @@ install_linux() {
 }
 
 install_macos() {
-  # Homebrew ships lld as its own formula, separate from llvm: install both, versioned when a
-  # versioned formula exists, and put both bin directories on PATH (lld provides ld64.lld,
-  # which `clang -fuse-ld=lld` needs for Mach-O). A fresh runner has nothing to clean up or
-  # re-check, and its formula index usually knows the version already: update it only when the
-  # install without updating fails.
-  export HOMEBREW_NO_INSTALL_CLEANUP=1 HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=1
-  local formula
-  for formula in llvm lld; do
-    if HOMEBREW_NO_AUTO_UPDATE=1 brew install "$formula@$llvm_major" >/dev/null 2>&1 \
-      || brew install "$formula@$llvm_major" >/dev/null 2>&1; then
-      add_path "$(brew --prefix "$formula@$llvm_major")/bin"
-    else
-      brew install "$formula"
-      add_path "$(brew --prefix "$formula")/bin"
-    fi
-  done
+  # Neither LLVM build below is Apple's clang, so point it at the Xcode SDK for the rest of the
+  # job; without SDKROOT it finds no system headers or libraries.
+  local sdk
+  sdk=$(xcrun --show-sdk-path)
+  if [[ -n "${GITHUB_ENV:-}" ]]; then
+    echo "SDKROOT=$sdk" >> "$GITHUB_ENV"
+  fi
+  export SDKROOT=$sdk
+
+  local prefix="${RUNNER_TEMP:-/tmp}/llvm-$llvm_major"
+  mkdir -p "$prefix"
+  case "$(uname -m)" in
+    arm64)
+      # LLVM's own release, the same build every time and current the day it ships; Homebrew's
+      # bottles lag it.
+      local tag
+      tag=$(release_tag)
+      download_release_asset "$tag" "LLVM-${tag#llvmorg-}-macOS-ARM64.tar.xz" "$prefix.tar.xz"
+      tar -xJf "$prefix.tar.xz" -C "$prefix" --strip-components=1
+      ;;
+    *)
+      # LLVM publishes no Intel macOS build and Homebrew no longer bottles current LLVM for Intel,
+      # so Intel takes conda-forge's clang, clang++ and lld, through a standalone micromamba,
+      # pinned to rustc's LLVM major.
+      local mamba="${RUNNER_TEMP:-/tmp}/micromamba"
+      mkdir -p "$mamba"
+      curl -fsSL --retry 3 https://micro.mamba.pm/api/micromamba/osx-64/latest | tar -xj -C "$mamba" bin/micromamba
+      "$mamba/bin/micromamba" create --yes --quiet --root-prefix "$mamba/root" --prefix "$prefix" \
+        --channel conda-forge --override-channels \
+        "clang=$llvm_major" "clangxx=$llvm_major" "lld=$llvm_major"
+      ;;
+  esac
+  add_path "$prefix/bin"
 }
 
 install_windows() {

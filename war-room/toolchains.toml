@@ -43,9 +43,9 @@ target = "aarch64-apple-darwin"
 workflow = "rustGlobalBuild"
 job = "release"
 baseline = "macos-latest hosted runner"
-compiler = "Homebrew upstream LLVM / lld matched to rustc"
+compiler = "LLVM's official macOS ARM64 release, clang and lld matched to rustc"
 validation = "unknown"
-notes = "Upstream LLVM from Homebrew, never Apple clang, whose version numbers are not LLVM's. Intentional difference: Apple consumers link with clang and lld but leave out -Clinker-plugin-lto, because rustc passes it GNU -plugin-opt arguments that ld64.lld rejects. The deployment floor follows the hosted runner image."
+notes = "Upstream LLVM from LLVM's own release archive, never Apple clang, whose version numbers are not LLVM's. Intentional difference: Apple consumers link with clang and lld but leave out -Clinker-plugin-lto, because rustc passes it GNU -plugin-opt arguments that ld64.lld rejects. The deployment floor follows the hosted runner image."
 
 [[platforms]]
 id = "macos-x64"
@@ -54,9 +54,9 @@ target = "x86_64-apple-darwin"
 workflow = "rustGlobalBuild"
 job = "release"
 baseline = "macos-15-intel hosted runner"
-compiler = "Homebrew upstream LLVM / lld matched to rustc"
+compiler = "conda-forge clang / lld matched to rustc"
 validation = "unknown"
-notes = "Built on its own Intel runner rather than trusting the ARM binary under Rosetta. Same linker-plugin-lto exception as ARM64."
+notes = "Built on its own Intel runner rather than trusting the ARM binary under Rosetta. LLVM publishes no Intel macOS build and Homebrew no longer bottles current LLVM for Intel, so the toolchain comes from conda-forge through a standalone micromamba. Same linker-plugin-lto exception as ARM64."
 
 [[platforms]]
 id = "windows-x64"
