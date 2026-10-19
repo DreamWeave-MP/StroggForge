@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Record releases in mod.lock on the default branch and push the commit: the tagged release a
 # dreamweave-release run left in dist/release.json, any declared crate versions crates.io has, and
-# a program's tagged releases published to GitHub before the repository was a site.
+# a program's tagged releases published to GitHub before the repository was a site, every one of
+# them through the template's own command targets.
 # Another run may push first; each attempt starts again from the branch's newest commit.
 set -euo pipefail
 
@@ -25,14 +26,11 @@ for attempt in 1 2 3 4 5; do
   if [[ -f dist/release.json ]]; then
     jess workspace run --trusted dreamweave-record -- dist/release.json
   fi
-  # Releases crates.io and GitHub already have are recorded by the Python tool until the template
-  # package carries record-crates and record-releases; a site without ./buildSite records none.
-  if [[ -x ./buildSite ]]; then
-    ./buildSite record-crates
-    if ./buildSite record-releases --help >/dev/null 2>&1; then
-      ./buildSite record-releases
-    fi
-  fi
+  # Releases crates.io and GitHub already have: the crate versions a crate project declares, and
+  # the tagged releases of a binary project the Rust workflow published. Both read what those
+  # services serve and hold it to the digests they state.
+  jess workspace run --trusted dreamweave-record-crates
+  jess workspace run --trusted dreamweave-record-releases
   # Listed rather than added by pattern: before a site's first release there is no mod.lock at
   # all, and git add fails on a pathspec that matches nothing.
   mapfile -t locks < <(git ls-files --modified --others --exclude-standard -- '*mod.lock')
