@@ -155,7 +155,7 @@ jobs:
         run: |
           release=$(cat dist/github-release)
           shopt -s nullglob
-          files=(dist/*.zip dist/*.sigstore.json)
+          files=(dist/*.zip dist/*.jpk dist/*.sigstore.json)
           if gh release view "$release" --repo "$REPOSITORY" >/dev/null 2>&1; then
             gh release delete "$release" --yes --repo "$REPOSITORY"
           fi
@@ -230,6 +230,11 @@ jobs:
           path: dist/binaries/
           merge-multiple: true
 
+      # A Jess package's archive is what `jess pack` makes of the tagged commit; the template records
+      # it from dist/jess as it records a Rust workflow's binaries from dist/binaries.
+      - name: Pack the Jess package the repository publishes
+        run: bash .stroggforge/scripts/mod-template/pack-jess.sh
+
       - name: Build the release from the tag
         id: build
         env:
@@ -276,7 +281,7 @@ jobs:
         run: |
           release=$(cat dist/github-release)
           shopt -s nullglob
-          files=(dist/*.zip dist/*.sigstore.json)
+          files=(dist/*.zip dist/*.jpk dist/*.sigstore.json)
           if gh release view "$release" --repo "$REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$release" "${files[@]}" --clobber --repo "$REPOSITORY"
             gh release edit "$release" --notes-file dist/release-notes.md --repo "$REPOSITORY"
