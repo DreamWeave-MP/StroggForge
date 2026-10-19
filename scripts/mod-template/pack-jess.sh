@@ -12,8 +12,13 @@ fi
 
 id=$(jess --format json package inspect . | jq -r '.id')
 version=$(jess --format json package inspect . | jq -r '.version')
-archive="dist/jess/${id}-${version}.jpk"
+name="${id}-${version}.jpk"
+# jess refuses to write an archive inside the Package Source it packs, so it is packed outside the
+# repository and moved into dist/jess, where dreamweave-release reads it.
+staging=$(mktemp -d)
+jess pack . --output "$staging/$name"
 mkdir -p dist/jess
-jess pack . --output "$archive"
-jess --format json package inspect "$archive" > "$archive.json"
-echo "Packed $archive"
+mv "$staging/$name" "dist/jess/$name"
+rmdir "$staging"
+jess --format json package inspect "dist/jess/$name" > "dist/jess/$name.json"
+echo "Packed dist/jess/$name"
