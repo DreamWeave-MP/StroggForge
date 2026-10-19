@@ -1,8 +1,11 @@
 name: Mod Template
 
 # The DreamWeave Mod Template pipeline: validate a site's projects, record and publish their
-# releases in the protocol manifest, and build and deploy the site. It runs the consumer's own
-# ./buildSite, the tooling the template ships in every site, so a site's CI and `zola serve` agree.
+# releases in the protocol manifest, and build and deploy the site. It runs the template's own
+# command targets through jess: `org.dreamweave.mod-template`, which the site's jess.lock pins
+# together with the theme and the generator, and `jess workspace sync --locked` restores from the
+# packages' publisher before anything runs. There is no Zola and no Python here: a site's CI and a
+# maintainer's `jess workspace run` do the same thing with the same bytes.
 #
 # Mod repositories call it directly. rustGlobalBuild and libGlobalBuild call it with rust_release
 # when their caller sets mod_template: they build and publish the Rust release, and this records it.
@@ -36,7 +39,8 @@ permissions:
   contents: read
 
 env:
-  PYTHON_VERSION: '3.12'
+  # The jess release every site builds with. Moving it moves every site at once.
+  JESS_VERSION: 'v0.2.0'
   # Keyless signatures made in a reusable workflow name it as the signer, so the manifest does too.
   DREAMWEAVE_SIGNING_IDENTITY: https://github.com/DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml@refs/tags/v55
 
@@ -62,23 +66,17 @@ jobs:
           ref: v55
           path: .stroggforge
 
-      - uses: DreamWeave-MP/StroggForge/.github/actions/mod-template-setup@v55
+      - uses: DreamWeave-MP/StroggForge/.github/actions/jess-setup@v55
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          jess-version: ${{ env.JESS_VERSION }}
+
+      # The template, the theme and the generator, exactly as jess.lock pins them, from their
+      # publisher: nothing is built from a checkout of either, and the lock is never rewritten here.
+      - name: Restore the template packages the site pins
+        run: jess workspace sync --locked
 
       - name: Validate every project
-        run: ./buildSite check
-
-      # A page still carrying V4 frontmatter fails the check, which suggests a mod.toml for it.
-      - uses: actions/upload-artifact@v7
-        if: failure()
-        with:
-          name: mod-toml-suggestions
-          path: dist/migration/
-          if-no-files-found: ignore
-
-      - name: Run the template's tests
-        run: python -m unittest discover -s tools/tests -v
+        run: jess workspace run --trusted dreamweave-check
 
       # crates.io and GitHub never change a published release, so any run on the default branch
       # may record what they have: a tag's crate, or releases from before the repository was a site.
@@ -102,7 +100,7 @@ jobs:
           if [ -n "$PAGES_URL" ]; then
             echo "url=$PAGES_URL" >> "$GITHUB_OUTPUT"
           else
-            echo "url=$(python -c 'import tomllib; print(tomllib.load(open("config.toml", "rb"))["base_url"])')" >> "$GITHUB_OUTPUT"
+            echo "url=$(sed -n 's/^base_url *= *"\(.*\)"/\1/p' config.toml | head -1)" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Collect the archives the Rust workflow published
@@ -119,10 +117,9 @@ jobs:
           DREAMWEAVE_DEVELOPMENT_REF: refs/heads/${{ github.event.repository.default_branch }}
           BASE_URL: ${{ steps.base.outputs.url }}
         run: |
-          ./buildSite build
-          ./buildSite schemas
-          zola build --base-url "$BASE_URL"
-          ./buildSite links --base-url "$BASE_URL"
+          jess workspace run --trusted dreamweave-build -- "$BASE_URL"
+          jess workspace run --trusted dreamweave-site -- public "$BASE_URL"
+          jess workspace run --trusted dreamweave-links -- public "$BASE_URL"
 
       - name: Check whether anything asks to be signed
         id: signing
@@ -215,15 +212,15 @@ jobs:
           ref: v55
           path: .stroggforge
 
-      - uses: DreamWeave-MP/StroggForge/.github/actions/mod-template-setup@v55
+      - uses: DreamWeave-MP/StroggForge/.github/actions/jess-setup@v55
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          jess-version: ${{ env.JESS_VERSION }}
+
+      - name: Restore the template packages the site pins
+        run: jess workspace sync --locked
 
       - name: Validate every project
-        run: ./buildSite check
-
-      - name: Run the template's tests
-        run: python -m unittest discover -s tools/tests -v
+        run: jess workspace run --trusted dreamweave-check
 
       - name: Collect the archives the Rust workflow published
         if: inputs.rust_archives
@@ -238,7 +235,7 @@ jobs:
         env:
           TAG: ${{ github.ref_name }}
         run: |
-          ./buildSite release "$TAG"
+          jess workspace run --trusted dreamweave-release -- "$TAG"
           if [ -f dist/release.json ]; then echo "recorded=true" >> "$GITHUB_OUTPUT"; else echo "recorded=false" >> "$GITHUB_OUTPUT"; fi
 
       # A Rust workflow signs its own binaries; Sigstore bundles here are for mod archives.

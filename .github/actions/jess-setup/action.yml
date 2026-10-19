@@ -1,0 +1,33 @@
+name: "Jess setup"
+description: "The jess binary a DreamWeave site builds with, from its GitHub release, on PATH."
+
+inputs:
+  jess-version:
+    description: "The jess release tag to install (the DreamWeave-MP/jess release's)."
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Install jess
+      shell: bash
+      env:
+        JESS_VERSION: ${{ inputs.jess-version }}
+      run: |
+        set -euo pipefail
+        case "$RUNNER_OS-$RUNNER_ARCH" in
+          Linux-X64) asset="jess-Linux-X64.zip" ;;
+          macOS-ARM64) asset="jess-macOS-ARM64.zip" ;;
+          macOS-X64) asset="jess-macOS-X64.zip" ;;
+          Windows-X64) asset="jess-Windows-X64.zip" ;;
+          *) echo "no jess release for $RUNNER_OS $RUNNER_ARCH" >&2; exit 1 ;;
+        esac
+        install_dir="$RUNNER_TEMP/jess-$JESS_VERSION"
+        mkdir -p "$install_dir"
+        curl --fail --silent --show-error --location \
+          "https://github.com/DreamWeave-MP/jess/releases/download/$JESS_VERSION/$asset" \
+          --output "$install_dir/$asset"
+        unzip -q -o "$install_dir/$asset" -d "$install_dir"
+        chmod +x "$install_dir/jess"* || true
+        echo "$install_dir" >> "$GITHUB_PATH"
+        "$install_dir/jess" --version
