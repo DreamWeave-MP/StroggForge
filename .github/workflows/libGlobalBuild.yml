@@ -89,7 +89,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v58
+          ref: v59
           path: .stroggforge
 
       - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v59
@@ -200,7 +200,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v58
+          ref: v59
           path: .stroggforge
 
       - name: Refresh the GitHub release
@@ -251,7 +251,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v58
+          ref: v59
           path: .stroggforge
 
       - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v59
@@ -300,7 +300,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v58
+          ref: v59
           path: .stroggforge
       - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v59
         with:
@@ -333,7 +333,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v58
+          ref: v59
           path: .stroggforge
       - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v59
         with:
