@@ -21,8 +21,9 @@ fi
 for attempt in 1 2 3 4 5; do
   git fetch --quiet origin "+refs/heads/${default_branch}:refs/remotes/origin/${default_branch}"
   git checkout --quiet --force --detach "origin/${default_branch}"
-  # The default branch's own pins: the template that records a release is the one its lock names.
-  jess workspace sync --locked
+  # The default branch's own pins: the template that records a release is the one its lock names,
+  # or, while the sites are being brought up, the bootstrap sources.
+  bash "$(dirname "$0")/sync-pins.sh" "$default_branch" false
   if [[ -f dist/release.json ]]; then
     jess workspace run --trusted dreamweave-record -- dist/release.json
   fi
