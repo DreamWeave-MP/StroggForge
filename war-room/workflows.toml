@@ -81,15 +81,6 @@ assumptions = ["llvm: false only for jobs that compile nothing.", "An MSRV check
 failures = ["Stream clang or lld differs from rustc's LLVM: setup-llvm.sh fails loudly; inspect package availability."]
 example = "uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@<tag> with a cache name."
 
-[workflow.mod-template-setup]
-purpose = "Give a job what ./buildSite needs: Python with the template's requirements and the Zola version the site pins."
-intended_for = "modGlobalBuild's site and release jobs."
-release_behavior = "Setup only."
-artifacts = ["Python, the template's requirements and Zola"]
-assumptions = ["The consumer's tools/requirements.txt and ./buildSite come from the Mod Template."]
-failures = ["A Zola version taiki-e/install-action cannot install: inspect ./buildSite zola-version."]
-example = "uses: DreamWeave-MP/StroggForge/.github/actions/mod-template-setup@<tag> after checking out the site."
-
 # Supply-chain stages, ordered by the earliest point each can start; jobs overlap where the
 # workflows' needs graphs allow. The exact order is each workflow's generated job graph.
 # References are <workflow>/<job> or <action>/<step name>;
