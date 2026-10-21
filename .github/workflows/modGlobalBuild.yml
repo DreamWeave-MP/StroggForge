@@ -40,12 +40,12 @@ permissions:
 
 env:
   # The jess release every site builds with. Moving it moves every site at once.
-  JESS_VERSION: 'v0.2.0'
+  JESS_VERSION: 'v0.1.0'
   # Where a site without a jess.lock takes the template from, at the version its
   # jess-workspace.toml asks for; the lock CI then commits names the publisher of every package.
   DREAMWEAVE_TEMPLATE_PUBLISHER: https://dreamweave-mp.github.io/DreamWeave-Mod-Template/
   # Keyless signatures made in a reusable workflow name it as the signer, so the manifest does too.
-  DREAMWEAVE_SIGNING_IDENTITY: https://github.com/DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml@refs/tags/v55
+  DREAMWEAVE_SIGNING_IDENTITY: https://github.com/DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml@refs/tags/v56
 
 jobs:
   site:
@@ -66,10 +66,10 @@ jobs:
       - uses: actions/checkout@v7
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v55
+          ref: v56
           path: .stroggforge
 
-      - uses: DreamWeave-MP/StroggForge/.github/actions/jess-setup@v55
+      - uses: DreamWeave-MP/StroggForge/.github/actions/jess-setup@v56
         with:
           jess-version: ${{ env.JESS_VERSION }}
 
@@ -225,10 +225,10 @@ jobs:
       - uses: actions/checkout@v7
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v55
+          ref: v56
           path: .stroggforge
 
-      - uses: DreamWeave-MP/StroggForge/.github/actions/jess-setup@v55
+      - uses: DreamWeave-MP/StroggForge/.github/actions/jess-setup@v56
         with:
           jess-version: ${{ env.JESS_VERSION }}
 
