@@ -230,11 +230,6 @@ jobs:
           path: dist/binaries/
           merge-multiple: true
 
-      # A Jess package's archive is what `jess pack` makes of the tagged commit; the template records
-      # it from dist/jess as it records a Rust workflow's binaries from dist/binaries.
-      - name: Pack the Jess package the repository publishes
-        run: bash .stroggforge/scripts/mod-template/pack-jess.sh
-
       - name: Build the release from the tag
         id: build
         env:
