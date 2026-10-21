@@ -78,7 +78,9 @@ install_linux() {
     # conda-forge's clang, clang++ and lld of rustc's major take over, through a standalone
     # micromamba, as Intel macOS does below: the official LLVM tarballs can't run on EL9, and
     # conda-forge's builds carry their own libstdc++ and need only glibc 2.17.
-    dnf install -y clang lld
+    # clang and lld are AppStream's and bzip2, which micromamba's tarball needs, is BaseOS's, so
+    # EPEL's mirrors, which have failed whole builds on metadata timeouts, stay out of it.
+    dnf --disablerepo='epel*' install -y clang lld bzip2
     local stream_major
     stream_major=$(clang --version 2>/dev/null | sed -n 's/.*clang version \([0-9]*\).*/\1/p' | head -1)
     if [[ "$stream_major" == "$llvm_major" ]]; then
