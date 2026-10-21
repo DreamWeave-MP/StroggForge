@@ -40,7 +40,13 @@ if [[ -n "$bootstrap" ]]; then
     folder="${RUNNER_TEMP:-/tmp}/dreamweave-bootstrap/${repo//\//__}"
     rm -rf "$folder"
     git clone --quiet --depth 1 --branch "$ref" "https://github.com/$repo" "$folder"
-    sources+=("$folder")
+    # A clone with a manifest at its root is one package, offered outright; one without is a
+    # folder of packages (vfstool holds vfs and vfstool side by side), offered as a package path.
+    if [[ -f "$folder/jess.toml" ]]; then
+      sources+=("$folder")
+    else
+      sources+=(--package-path "$folder")
+    fi
   done
   jess workspace sync --offline "${sources[@]}"
   exit 0
