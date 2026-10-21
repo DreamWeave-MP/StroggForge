@@ -73,6 +73,16 @@ jobs:
         with:
           jess-version: ${{ env.JESS_VERSION }}
 
+      # A copy of the template is a site, not the tool: on its first push to the default branch,
+      # the tool's source and the template's own page go, jess-workspace.toml names the template
+      # as the site's tool, and the result is committed. Never in the template's repository, never
+      # in a fork of it, and never touching a file the developer changed since the copy was made.
+      - name: Make a copy of the template a site
+        if: env.PUBLISHING == 'true' && github.repository != 'DreamWeave-MP/DreamWeave-Mod-Template' && !github.event.repository.fork
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: bash .stroggforge/scripts/mod-template/scaffold.sh "$DEFAULT_BRANCH"
+
       # The template, the theme and the generator, exactly as jess.lock pins them, from their
       # publisher: nothing is built from a checkout of either. A site without a lock yet gets one
       # here, from the template's publisher, committed to the default branch on its first push.
