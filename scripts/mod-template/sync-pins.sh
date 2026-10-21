@@ -29,7 +29,13 @@ fi
 
 if [[ -n "$bootstrap" ]]; then
   echo "No jess.lock, and DREAMWEAVE_BOOTSTRAP_SOURCES is set: syncing offline from git sources, writing no lock to the repository."
-  sources=()
+  root="${RUNNER_TEMP:-/tmp}/dreamweave-bootstrap"
+  rm -rf "$root"
+  # Every clone is a candidate, taken only when something requires it: a package offered outright
+  # must be required, and no site needs every source the variable names. A clone with a manifest
+  # at its root is found through the folder holding the clones; one without (vfstool holds vfs and
+  # vfstool side by side) is a folder of packages itself.
+  paths=(--package-path "$root")
   for source in $bootstrap; do
     repo=${source%@*}
     ref=${source#*@}
@@ -37,18 +43,11 @@ if [[ -n "$bootstrap" ]]; then
     if [[ "${repo,,}" == "${GITHUB_REPOSITORY,,}" ]]; then
       continue # this repository is a member of its own workspace, not something offered to it
     fi
-    folder="${RUNNER_TEMP:-/tmp}/dreamweave-bootstrap/${repo//\//__}"
-    rm -rf "$folder"
+    folder="$root/${repo//\//__}"
     git clone --quiet --depth 1 --branch "$ref" "https://github.com/$repo" "$folder"
-    # A clone with a manifest at its root is one package, offered outright; one without is a
-    # folder of packages (vfstool holds vfs and vfstool side by side), offered as a package path.
-    if [[ -f "$folder/jess.toml" ]]; then
-      sources+=("$folder")
-    else
-      sources+=(--package-path "$folder")
-    fi
+    [[ -f "$folder/jess.toml" ]] || paths+=(--package-path "$folder")
   done
-  jess workspace sync --offline "${sources[@]}"
+  jess workspace sync --offline "${paths[@]}"
   exit 0
 fi
 
