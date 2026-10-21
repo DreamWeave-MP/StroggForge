@@ -41,6 +41,9 @@ permissions:
 env:
   # The jess release every site builds with. Moving it moves every site at once.
   JESS_VERSION: 'v0.2.0'
+  # Where a site without a jess.lock takes the template from, at the version its
+  # jess-workspace.toml asks for; the lock CI then commits names the publisher of every package.
+  DREAMWEAVE_TEMPLATE_PUBLISHER: https://dreamweave-mp.github.io/DreamWeave-Mod-Template/
   # Keyless signatures made in a reusable workflow name it as the signer, so the manifest does too.
   DREAMWEAVE_SIGNING_IDENTITY: https://github.com/DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml@refs/tags/v55
 
@@ -71,9 +74,12 @@ jobs:
           jess-version: ${{ env.JESS_VERSION }}
 
       # The template, the theme and the generator, exactly as jess.lock pins them, from their
-      # publisher: nothing is built from a checkout of either, and the lock is never rewritten here.
+      # publisher: nothing is built from a checkout of either. A site without a lock yet gets one
+      # here, from the template's publisher, committed to the default branch on its first push.
       - name: Restore the template packages the site pins
-        run: jess workspace sync --locked
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: bash .stroggforge/scripts/mod-template/sync-pins.sh "$DEFAULT_BRANCH" "$PUBLISHING"
 
       - name: Validate every project
         run: jess workspace run --trusted dreamweave-check
@@ -217,7 +223,9 @@ jobs:
           jess-version: ${{ env.JESS_VERSION }}
 
       - name: Restore the template packages the site pins
-        run: jess workspace sync --locked
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: bash .stroggforge/scripts/mod-template/sync-pins.sh "$DEFAULT_BRANCH" false
 
       - name: Validate every project
         run: jess workspace run --trusted dreamweave-check
