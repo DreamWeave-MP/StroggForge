@@ -48,8 +48,8 @@ env:
     https://dreamweave-mp.github.io/dreamweave-site/
     https://dreamweave-mp.github.io/dreamweave-theme/
     https://dreamweave-mp.github.io/magick/
-    https://dreamweave-mp.github.io/vfs/
-    https://dreamweave-mp.github.io/dream-archive/
+    https://dreamweave-mp.github.io/vfstool/
+    https://dreamweave-mp.github.io/dream_archive/
   # Set as a repository variable on a DreamWeave package site only while the sites above are being
   # brought up for the first time: `owner/repo@ref` git sources to sync offline from, in place of
   # the publishers that don't exist yet. See scripts/mod-template/sync-pins.sh.
