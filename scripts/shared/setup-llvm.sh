@@ -73,9 +73,26 @@ install_linux() {
   fi
   if command -v dnf >/dev/null 2>&1; then
     # The EL9 builder image (CentOS Stream 9) ships clang and lld from AppStream; they are
-    # installed in the image, and this makes a plain EL9 container work too. The major check at
-    # the end catches the stream and rustc moving to different LLVM releases.
+    # installed in the image, and this makes a plain EL9 container work too. When the stream's
+    # major trails rustc's (it did when rustc moved to LLVM 23 and the stream was still at 22),
+    # conda-forge's clang, clang++ and lld of rustc's major take over, through a standalone
+    # micromamba, as Intel macOS does below: the official LLVM tarballs can't run on EL9, and
+    # conda-forge's builds carry their own libstdc++ and need only glibc 2.17.
     dnf install -y clang lld
+    local stream_major
+    stream_major=$(clang --version 2>/dev/null | sed -n 's/.*clang version \([0-9]*\).*/\1/p' | head -1)
+    if [[ "$stream_major" == "$llvm_major" ]]; then
+      return
+    fi
+    echo "setup-llvm: the stream's clang is LLVM ${stream_major:-unknown}, not $llvm_major; taking conda-forge's"
+    local mamba="${RUNNER_TEMP:-/tmp}/micromamba"
+    local prefix="${RUNNER_TEMP:-/tmp}/llvm-$llvm_major"
+    mkdir -p "$mamba" "$prefix"
+    curl -fsSL --retry 3 https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xj -C "$mamba" bin/micromamba
+    "$mamba/bin/micromamba" create --yes --quiet --root-prefix "$mamba/root" --prefix "$prefix" \
+      --channel conda-forge --override-channels \
+      "clang=$llvm_major" "clangxx=$llvm_major" "lld=$llvm_major"
+    add_path "$prefix/bin"
     return
   fi
   # Neither apt nor dnf: the official release tarball, which needs glibc 2.34 and GCC 12's
