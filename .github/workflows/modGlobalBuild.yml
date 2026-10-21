@@ -79,7 +79,7 @@ jobs:
           ref: v58
           path: .stroggforge
 
-      - uses: DreamWeave-MP/StroggForge/.github/actions/jess-setup@v58
+      - uses: DreamWeave-MP/StroggForge/.github/actions/jess-setup@v59
         with:
           jess-version: ${{ env.JESS_VERSION }}
 
@@ -238,7 +238,7 @@ jobs:
           ref: v58
           path: .stroggforge
 
-      - uses: DreamWeave-MP/StroggForge/.github/actions/jess-setup@v58
+      - uses: DreamWeave-MP/StroggForge/.github/actions/jess-setup@v59
         with:
           jess-version: ${{ env.JESS_VERSION }}
 
