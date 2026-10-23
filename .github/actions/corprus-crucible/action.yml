@@ -142,6 +142,13 @@ runs:
         "${{ inputs.platform_arch || runner.arch }}"
         "${{ inputs.cargo_package }}"
 
+    - name: Check the binary needs nothing of the build machine
+      shell: bash
+      run: >-
+        bash "${{ github.action_path }}/../../../scripts/corprus-crucible/check-release-binary.sh"
+        "${{ steps.build_release.outputs.release_binary }}"
+        "${{ inputs.platform_os || runner.os }}"
+
     - name: ⚡ Save Cargo target cache
       uses: actions/cache/save@v5.0.5
       if: github.event_name != 'pull_request' && steps.cache_release_target.outputs.cache-hit != 'true'

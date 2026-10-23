@@ -57,7 +57,7 @@ example = "Prefer the public workflows' generate_discord_notification flag and i
 [workflow.corprus-crucible]
 purpose = "Build a release binary, sign it, archive it, scan it and stage publication artifacts."
 intended_for = "Platform build jobs in rustGlobalBuild; this action does not run tests. With lint it runs Clippy on the build as released first, for targets no test job compiles."
-release_behavior = "Non-PR: validate token, build, keyless Cosign sign binary, create zip, scan, stage. PR: build and upload a workflow artifact. Final GitHub/Nexus publishing belongs to later workflow jobs."
+release_behavior = "Non-PR: validate token, build, check the binary needs nothing of the build machine, keyless Cosign sign binary, create zip, scan, stage. PR: build, check, and upload a workflow artifact. Final GitHub/Nexus publishing belongs to later workflow jobs."
 artifacts = ["Release binary", "Cosign bundle included with the zip", "Staged GitHub/Nexus workflow artifacts"]
 assumptions = ["Quality checks run in the reusable workflow alongside this action; nothing it stages is published unless they pass.", "contents/id-token write are needed by release jobs; vt_api_key is required outside PRs.", "Platform overrides select archive names/target; cargo_package controls root-workspace selection. Pull requests restore the default branch's caches."]
 failures = ["Build context/manifest confusion: inspect resolve-build-context.sh and build-release-binary.sh.", "Missing include_files or archiver: inspect create-release-archive.sh.", "OIDC/signing or scan failures: inspect sign-release-binary.sh and format-virustotal-links.sh."]
