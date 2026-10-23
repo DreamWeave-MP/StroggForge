@@ -6,7 +6,8 @@
 #   runtimes/jess-<System>-<Arch>[.exe]   each release archive's binary, named for its archive
 #   licenses/                             the release's LICENSE-* and README
 #
-# Pipelines run it as a step (`uses: docker://ghcr.io/dreamweave-mp/jess@sha256:...`): checkout and
+# Pipelines run it pinned by digest, as the runner's user (`docker run --user`, as modGlobalBuild packs
+# an application), over a folder the runner checked out: checkout and
 # signing stay on the runner, so it needs no shell, no git, and no package manager.
 
 FROM quay.io/centos/centos:stream9 AS libraries

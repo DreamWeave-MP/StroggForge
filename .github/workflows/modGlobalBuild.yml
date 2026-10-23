@@ -31,6 +31,11 @@ on:
         required: false
         default: false
         description: "The calling workflow staged program archives as github-release-* artifacts in this run. Record them."
+      jess_application:
+        type: string
+        required: false
+        default: ""
+        description: "The name a jpk project's mod.toml gives its application ([package] application), when it has one. A tag packs the repository's jess workspace into dist/application with the jess image first: <name>.jsw and an executable per platform jess is released for, which the template records."
     secrets:
       NEXUS_API_KEY:
         required: false
@@ -40,7 +45,10 @@ permissions:
 
 env:
   # The jess release every site builds with. Moving it moves every site at once.
-  JESS_VERSION: 'v0.1.0'
+  JESS_VERSION: 'v0.2.0'
+  # The jess image an application is packed with: every platform's jess as a runtime. Pinned by
+  # digest; it moves with JESS_VERSION.
+  JESS_IMAGE: 'ghcr.io/dreamweave-mp/jess@sha256:786c7c9eeb054e02612cbbd4861f8a7e05f6f638fac037b00b2a1ccacdbb0c1a'
   # Where a site without a jess.lock takes the template and everything it depends on from, at the
   # version its jess-workspace.toml asks for; the lock CI then commits names each package's publisher.
   DREAMWEAVE_PUBLISHERS: >-
@@ -181,7 +189,7 @@ jobs:
         run: |
           release=$(cat dist/github-release)
           shopt -s nullglob
-          files=(dist/*.zip dist/*.jpk dist/*.sigstore.json)
+          files=(dist/*.zip dist/*.jpk dist/*.jsw dist/*.sigstore.json)
           if gh release view "$release" --repo "$REPOSITORY" >/dev/null 2>&1; then
             gh release delete "$release" --yes --repo "$REPOSITORY"
           fi
@@ -258,6 +266,23 @@ jobs:
           path: dist/binaries/
           merge-multiple: true
 
+      # A Jess application is packed here, the way a program is built by the Rust workflow: the
+      # jess image packs the repository's workspace into dist/application, the .jsw and an
+      # executable for every platform it holds a runtime for, and the release records them. It
+      # runs as the runner's user, so what it writes belongs to the steps after it.
+      - name: Pack the Jess application
+        if: inputs.jess_application != ''
+        env:
+          APPLICATION: ${{ inputs.jess_application }}
+        run: |
+          if [[ ! "$APPLICATION" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
+            echo "::error::jess_application '$APPLICATION' must be a file name: letters, digits, '.', '_' and '-'"
+            exit 1
+          fi
+          mkdir -p dist/application
+          docker run --rm --user "$(id -u):$(id -g)" --volume "$PWD:/work" --workdir /work "$JESS_IMAGE" \
+            workspace pack --output "dist/application/$APPLICATION.jsw" --runtimes /opt/jess/runtimes
+
       - name: Build the release from the tag
         id: build
         env:
@@ -304,7 +329,7 @@ jobs:
         run: |
           release=$(cat dist/github-release)
           shopt -s nullglob
-          files=(dist/*.zip dist/*.jpk dist/*.sigstore.json)
+          files=(dist/*.zip dist/*.jpk dist/*.jsw dist/*.sigstore.json)
           if gh release view "$release" --repo "$REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$release" "${files[@]}" --clobber --repo "$REPOSITORY"
             gh release edit "$release" --notes-file dist/release-notes.md --repo "$REPOSITORY"
