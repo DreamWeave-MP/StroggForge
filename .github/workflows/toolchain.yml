@@ -42,7 +42,7 @@ jobs:
           - name: the EL9 builder
             os: ubuntu-latest
             platform_os: Linux
-            container: ghcr.io/dreamweave-mp/stroggforge-linux-x86_64-el9-builder:v64
+            container: ghcr.io/dreamweave-mp/stroggforge-linux-x86_64-el9-builder:v65
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
     steps:
