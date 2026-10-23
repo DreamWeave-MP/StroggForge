@@ -1,0 +1,95 @@
+name: Toolchain
+
+# Links a C++ program the way a release links l3i, with the clang setup-llvm.sh installs, on each
+# platform whose LLVM comes from somewhere other than the system: check-release-binary.sh must pass
+# it, and it must run with that LLVM moved out of the way. A release binary that needs the
+# toolchain that built it starts on the runner and nowhere else.
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - scripts/shared/setup-llvm.sh
+      - scripts/corprus-crucible/check-release-binary.sh
+      - .github/workflows/toolchain.yml
+  push:
+    branches: main
+    paths:
+      - scripts/shared/setup-llvm.sh
+      - scripts/corprus-crucible/check-release-binary.sh
+      - .github/workflows/toolchain.yml
+
+permissions:
+  contents: read
+
+jobs:
+  link:
+    name: Link on ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS ARM64
+            os: macos-latest
+            platform_os: macOS
+            container: ""
+          - name: macOS X64
+            os: macos-15-intel
+            platform_os: macOS
+            container: ""
+          - name: the EL9 builder
+            os: ubuntu-latest
+            platform_os: Linux
+            container: ghcr.io/dreamweave-mp/stroggforge-linux-x86_64-el9-builder:v62
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install LLVM
+        shell: bash
+        run: bash scripts/shared/setup-llvm.sh "" ""
+
+      # rustc links with the clang driver and names the C++ library itself, so this does too;
+      # iconv is what Rust's standard library links on macOS.
+      - name: Link a C++ program
+        shell: bash
+        env:
+          PLATFORM_OS: ${{ matrix.platform_os }}
+        run: |
+          cat > "$RUNNER_TEMP/linked.cpp" <<'CPP'
+          #include <iostream>
+          #include <stdexcept>
+          #include <string>
+
+          int main() {
+            try {
+              throw std::runtime_error("linked");
+            } catch (const std::exception &error) {
+              std::cout << std::string(error.what()) << '\n';
+            }
+          }
+          CPP
+          clang++ -O2 -std=c++17 -c "$RUNNER_TEMP/linked.cpp" -o "$RUNNER_TEMP/linked.o"
+          if [ "$PLATFORM_OS" = macOS ]; then
+            clang "$RUNNER_TEMP/linked.o" -o "$RUNNER_TEMP/linked" -fuse-ld=lld -lc++ -liconv
+          else
+            clang "$RUNNER_TEMP/linked.o" -o "$RUNNER_TEMP/linked" -fuse-ld=lld -lstdc++
+          fi
+
+      - name: Check it
+        shell: bash
+        env:
+          PLATFORM_OS: ${{ matrix.platform_os }}
+        run: bash scripts/corprus-crucible/check-release-binary.sh "$RUNNER_TEMP/linked" "$PLATFORM_OS"
+
+      - name: Run it without the LLVM that built it
+        shell: bash
+        run: |
+          for installed in "$RUNNER_TEMP"/llvm-* "$RUNNER_TEMP"/micromamba; do
+            if [ -e "$installed" ]; then
+              mv "$installed" "$installed.moved"
+            fi
+          done
+          test "$("$RUNNER_TEMP/linked")" = linked
