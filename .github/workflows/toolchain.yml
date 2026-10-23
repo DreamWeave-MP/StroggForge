@@ -24,6 +24,9 @@ permissions:
 jobs:
   link:
     name: Link on ${{ matrix.name }}
+    # A release commit only moves version pins, this file's builder image among them, and that
+    # image is published by the tag pushed after it: there is nothing new to test, nor yet an image.
+    if: ${{ !startsWith(github.event.head_commit.message, 'RELEASE:') }}
     strategy:
       fail-fast: false
       matrix:
