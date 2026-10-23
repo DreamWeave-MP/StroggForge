@@ -55,6 +55,25 @@ download_release_asset() {
   curl -fSL --retry 3 -o "$dest" "https://github.com/llvm/llvm-project/releases/download/$tag/$asset"
 }
 
+# conda-forge's clang, clang++ and lld of rustc's major into $2, through a standalone micromamba
+# for the conda platform $1 (linux-64, osx-64).
+#
+# Always the nocfg builds. The default ones ship a clang config file that adds the conda prefix's
+# lib folder to every link, as a library path and as an rpath, so a binary links conda's libc++,
+# libstdc++ or libiconv and looks for them in the runner's temporary folder at run time: jess
+# 0.1.0's Intel macOS release loaded @rpath/libc++.1.dylib from /Users/runner/work/_temp/llvm-23
+# and started on no other Mac. Without the config, clang links the SDK's or the system's
+# libraries, as LLVM's own builds do.
+install_conda_llvm() {
+  local platform=$1 prefix=$2
+  local mamba="${RUNNER_TEMP:-/tmp}/micromamba"
+  mkdir -p "$mamba" "$prefix"
+  curl -fsSL --retry 3 "https://micro.mamba.pm/api/micromamba/$platform/latest" | tar -xj -C "$mamba" bin/micromamba
+  "$mamba/bin/micromamba" create --yes --quiet --root-prefix "$mamba/root" --prefix "$prefix" \
+    --channel conda-forge --override-channels \
+    "clang=$llvm_major.*=*nocfg*" "clangxx=$llvm_major.*=*nocfg*" "lld=$llvm_major"
+}
+
 install_linux() {
   if command -v apt-get >/dev/null 2>&1; then
     # apt.llvm.org carries every recent major for Ubuntu LTS releases.
@@ -77,7 +96,8 @@ install_linux() {
     # major trails rustc's (it did when rustc moved to LLVM 23 and the stream was still at 22),
     # conda-forge's clang, clang++ and lld of rustc's major take over, through a standalone
     # micromamba, as Intel macOS does below: the official LLVM tarballs can't run on EL9, and
-    # conda-forge's builds carry their own libstdc++ and need only glibc 2.17.
+    # conda-forge's builds carry their own libstdc++ and need only glibc 2.17. What they build
+    # links the stream's GCC 11 libstdc++, the ABI the glibc 2.34 target promises.
     # clang and lld are AppStream's and bzip2, which micromamba's tarball needs, is BaseOS's, so
     # EPEL's mirrors, which have failed whole builds on metadata timeouts, stay out of it.
     dnf --disablerepo='epel*' install -y clang lld bzip2
@@ -87,13 +107,8 @@ install_linux() {
       return
     fi
     echo "setup-llvm: the stream's clang is LLVM ${stream_major:-unknown}, not $llvm_major; taking conda-forge's"
-    local mamba="${RUNNER_TEMP:-/tmp}/micromamba"
     local prefix="${RUNNER_TEMP:-/tmp}/llvm-$llvm_major"
-    mkdir -p "$mamba" "$prefix"
-    curl -fsSL --retry 3 https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xj -C "$mamba" bin/micromamba
-    "$mamba/bin/micromamba" create --yes --quiet --root-prefix "$mamba/root" --prefix "$prefix" \
-      --channel conda-forge --override-channels \
-      "clang=$llvm_major" "clangxx=$llvm_major" "lld=$llvm_major"
+    install_conda_llvm linux-64 "$prefix"
     add_path "$prefix/bin"
     return
   fi
@@ -133,12 +148,7 @@ install_macos() {
       # LLVM publishes no Intel macOS build and Homebrew no longer bottles current LLVM for Intel,
       # so Intel takes conda-forge's clang, clang++ and lld, through a standalone micromamba,
       # pinned to rustc's LLVM major.
-      local mamba="${RUNNER_TEMP:-/tmp}/micromamba"
-      mkdir -p "$mamba"
-      curl -fsSL --retry 3 https://micro.mamba.pm/api/micromamba/osx-64/latest | tar -xj -C "$mamba" bin/micromamba
-      "$mamba/bin/micromamba" create --yes --quiet --root-prefix "$mamba/root" --prefix "$prefix" \
-        --channel conda-forge --override-channels \
-        "clang=$llvm_major" "clangxx=$llvm_major" "lld=$llvm_major"
+      install_conda_llvm osx-64 "$prefix"
       ;;
   esac
   add_path "$prefix/bin"

@@ -56,7 +56,7 @@ job = "release"
 baseline = "macos-15-intel hosted runner"
 compiler = "conda-forge clang / lld matched to rustc"
 validation = "unknown"
-notes = "Built on its own Intel runner rather than trusting the ARM binary under Rosetta. LLVM publishes no Intel macOS build and Homebrew no longer bottles current LLVM for Intel, so the toolchain comes from conda-forge through a standalone micromamba. Same linker-plugin-lto exception as ARM64."
+notes = "Built on its own Intel runner rather than trusting the ARM binary under Rosetta. LLVM publishes no Intel macOS build and Homebrew no longer bottles current LLVM for Intel, so the toolchain comes from conda-forge through a standalone micromamba, in its nocfg builds: the default ones linked jess 0.1.0 against conda's libc++ through an rpath into the runner's temp folder. Same linker-plugin-lto exception as ARM64."
 
 [[platforms]]
 id = "windows-x64"
