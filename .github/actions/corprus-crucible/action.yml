@@ -15,6 +15,10 @@ inputs:
   release_name:
     description: "Name of the release (tag or development)"
     required: true
+  development_release:
+    description: "The rolling pre-release default-branch pushes refresh: release_name is a development build when it is this."
+    required: false
+    default: development
   nexus_api_key:
     description: "Nexus Mods API key. Provide with nexus_group_ids to upload release archives to Nexus Mods."
     required: false
@@ -215,6 +219,7 @@ runs:
       shell: bash
       env:
         NEXUS_GROUP_IDS: ${{ inputs.nexus_group_ids }}
+        DEVELOPMENT_RELEASE: ${{ inputs.development_release }}
       run: >-
         bash "${{ github.action_path }}/../../../scripts/corprus-crucible/resolve-nexusmods-group-id.sh"
         "${{ inputs.platform_os || runner.os }}"
@@ -239,6 +244,7 @@ runs:
       shell: bash
       env:
         VT_ANALYSIS_BBCODE: ${{ steps.format_vt_links.outputs.vt_analysis_bbcode }}
+        DEVELOPMENT_RELEASE: ${{ inputs.development_release }}
       run: >-
         bash "${{ github.action_path }}/../../../scripts/corprus-crucible/prepare-nexusmods-upload-artifact.sh"
         "${{ inputs.binary_name }}"

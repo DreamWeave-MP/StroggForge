@@ -38,7 +38,7 @@ except KeyError:
 
 arch = runner_arch.lower()
 platform = f"{os_name}-{arch}"
-channel = "dev" if release_name == "development" else "stable"
+channel = "dev" if release_name == os.environ.get("DEVELOPMENT_RELEASE", "development") else "stable"
 key = f"{platform}-{channel}"
 
 try:

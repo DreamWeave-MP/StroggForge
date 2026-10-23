@@ -69,6 +69,11 @@ on:
         required: false
         default: true
         description: "Publish to crates.io on tagged releases; run a dry-run on all other pushes. Requires CARGO_REGISTRY_TOKEN secret."
+      development_release:
+        type: string
+        required: false
+        default: development
+        description: "The rolling pre-release, and its tag, that pushes to the default branch refresh. Change it only when that name can't be used, such as a tag GitHub keeps for an immutable release."
 
       cargo_publish_workspace:
         type: boolean
@@ -286,7 +291,8 @@ jobs:
           cargo_package: ${{ inputs.binary_package }}
           include_files: ${{ inputs.include_files }}
           vt_api_key: ${{ secrets.VT_API_KEY }}
-          release_name: ${{ github.ref_type == 'tag' && github.ref_name || 'development' }}
+          release_name: ${{ github.ref_type == 'tag' && github.ref_name || inputs.development_release }}
+          development_release: ${{ inputs.development_release }}
           nexus_api_key: ${{ secrets.NEXUS_API_KEY }}
           nexus_group_ids: ${{ secrets.NEXUS_GROUP_IDS }}
 
@@ -315,7 +321,8 @@ jobs:
           cargo_package: ${{ inputs.binary_package }}
           include_files: ${{ inputs.include_files }}
           vt_api_key: ${{ secrets.VT_API_KEY }}
-          release_name: ${{ github.ref_type == 'tag' && github.ref_name || 'development' }}
+          release_name: ${{ github.ref_type == 'tag' && github.ref_name || inputs.development_release }}
+          development_release: ${{ inputs.development_release }}
           nexus_api_key: ${{ secrets.NEXUS_API_KEY }}
           nexus_group_ids: ${{ secrets.NEXUS_GROUP_IDS }}
 
@@ -370,7 +377,8 @@ jobs:
           cargo_package: ${{ inputs.binary_package }}
           include_files: ${{ inputs.include_files }}
           vt_api_key: ${{ secrets.VT_API_KEY }}
-          release_name: ${{ github.ref_type == 'tag' && github.ref_name || 'development' }}
+          release_name: ${{ github.ref_type == 'tag' && github.ref_name || inputs.development_release }}
+          development_release: ${{ inputs.development_release }}
           nexus_api_key: ${{ secrets.NEXUS_API_KEY }}
           nexus_group_ids: ${{ secrets.NEXUS_GROUP_IDS }}
           platform_os: Android
@@ -417,7 +425,8 @@ jobs:
           cargo_package: ${{ inputs.binary_package }}
           include_files: ${{ inputs.include_files }}
           vt_api_key: ${{ secrets.VT_API_KEY }}
-          release_name: ${{ github.ref_type == 'tag' && github.ref_name || 'development' }}
+          release_name: ${{ github.ref_type == 'tag' && github.ref_name || inputs.development_release }}
+          development_release: ${{ inputs.development_release }}
           nexus_api_key: ${{ secrets.NEXUS_API_KEY }}
           nexus_group_ids: ${{ secrets.NEXUS_GROUP_IDS }}
           platform_os: Portmaster
@@ -476,7 +485,8 @@ jobs:
         id: release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_NAME: ${{ github.ref_type == 'tag' && github.ref_name || 'development' }}
+          RELEASE_NAME: ${{ github.ref_type == 'tag' && github.ref_name || inputs.development_release }}
+          DEVELOPMENT_RELEASE: ${{ inputs.development_release }}
           WORKFLOW_RUN_ID: ${{ github.run_id }}
           RELEASE_REPOSITORY: ${{ github.repository }}
         run: |
@@ -758,4 +768,4 @@ jobs:
       WEBHOOK_URL: ${{ secrets.DISCORD_CHANNEL_WEBHOOK || secrets.DW_TOOLS_CHANNEL_WEBHOOK }}
     with:
       title: ${{ contains(needs.*.result, 'failure') && format('{0} pipeline failed! 😭', github.event.repository.name) || '' }}
-      description: ${{ contains(needs.*.result, 'failure') && format('[Workflow Results](https://github.com/{0}/actions/runs/{1})', github.repository, github.run_id) || format('[{0}](https://github.com/{1}/releases/tag/{0}) is now available on {2}.', github.ref_type == 'tag' && github.ref_name || 'development', github.repository, ((github.ref_type == 'tag' && needs.crates.result == 'success') && inputs.aur_package_name != '' && 'GitHub, crates.io, and the AUR') || ((github.ref_type == 'tag' && needs.crates.result == 'success') && 'GitHub and crates.io') || (inputs.aur_package_name != '' && 'GitHub and the AUR') || 'GitHub') }}
+      description: ${{ contains(needs.*.result, 'failure') && format('[Workflow Results](https://github.com/{0}/actions/runs/{1})', github.repository, github.run_id) || format('[{0}](https://github.com/{1}/releases/tag/{0}) is now available on {2}.', github.ref_type == 'tag' && github.ref_name || inputs.development_release, github.repository, ((github.ref_type == 'tag' && needs.crates.result == 'success') && inputs.aur_package_name != '' && 'GitHub, crates.io, and the AUR') || ((github.ref_type == 'tag' && needs.crates.result == 'success') && 'GitHub and crates.io') || (inputs.aur_package_name != '' && 'GitHub and the AUR') || 'GitHub') }}

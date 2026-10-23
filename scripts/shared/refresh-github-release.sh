@@ -5,9 +5,11 @@ usage='usage: refresh-github-release.sh <release-name> <workflow-run-id> <github
 release_name=${1:?$usage}
 workflow_run_id=${2:?$usage}
 github_repository=${3:?$usage}
+# The rolling pre-release pushes to the default branch refresh: its tag is deleted and made again.
+development_release=${DEVELOPMENT_RELEASE:-development}
 
 release_args=("$release_name")
-if [[ "$release_name" == development ]]; then
+if [[ "$release_name" == "$development_release" ]]; then
   release_args+=(--prerelease)
 fi
 
@@ -15,7 +17,7 @@ if gh release view "$release_name" --repo "$github_repository" --json body >/dev
   echo "Found existing release, deleting it."
   gh release delete "$release_name" --repo "$github_repository" --yes 2>/dev/null || exit 255
 
-  if [[ "$release_name" == development ]]; then
+  if [[ "$release_name" == "$development_release" ]]; then
     tag_delete_error=$(mktemp)
     if ! gh api -X DELETE "repos/${github_repository}/git/refs/tags/${release_name}" 2>"$tag_delete_error"; then
       # A development release published without its tag answers 422 "Reference does not exist".

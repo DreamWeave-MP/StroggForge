@@ -17,7 +17,7 @@ artifact_dir=".corprus-crucible/nexus-artifacts/${artifact_name}"
 archive_existing_file=false
 github_changelog_url="https://github.com/${github_repository}/releases/download/${release_name}/CHANGELOG.md"
 
-if [ "$release_name" = development ]; then
+if [ "$release_name" = "${DEVELOPMENT_RELEASE:-development}" ]; then
   archive_existing_file=true
 fi
 
