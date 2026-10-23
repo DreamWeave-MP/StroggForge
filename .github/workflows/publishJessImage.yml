@@ -1,0 +1,89 @@
+name: Publish the jess Image
+
+# jess's release calls this after its build job: the image holds the Linux jess and every
+# platform's jess as a packing runtime, taken from the github-release-jess-* archives that build
+# staged in the same run, so nothing is downloaded and then trusted. Pipelines that run jess pin
+# the image by digest and run it as a step.
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        required: true
+        description: "The jess version the calling release publishes, which tags the image."
+    outputs:
+      digest:
+        description: "The pushed image's digest, sha256:..., to pin it by."
+        value: ${{ jobs.publish.outputs.digest }}
+
+permissions:
+  contents: read
+
+env:
+  IMAGE_NAME: ghcr.io/dreamweave-mp/jess
+
+jobs:
+  publish:
+    name: Build and Publish the jess Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      digest: ${{ steps.push.outputs.digest }}
+
+    steps:
+      - name: Checkout StroggForge
+        uses: actions/checkout@v6
+        with:
+          repository: DreamWeave-MP/StroggForge
+          ref: v63
+          path: .stroggforge
+
+      - name: Download the release's archives
+        uses: actions/download-artifact@v8
+        with:
+          pattern: github-release-jess-*
+          path: .jess-image/archives
+          merge-multiple: true
+
+      - name: Lay out the build context
+        run: bash .stroggforge/scripts/jess-image/prepare-context.sh .jess-image/archives .jess-image/context
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate Image Tags
+        id: image-tags
+        env:
+          VERSION: ${{ inputs.version }}
+          SHA: ${{ github.sha }}
+        run: |
+          {
+            echo 'tags<<EOF'
+            echo "$IMAGE_NAME:$VERSION"
+            echo "$IMAGE_NAME:sha-${SHA::12}"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build and Push Image
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .jess-image/context
+          file: .stroggforge/.github/container-images/jess/Dockerfile
+          push: true
+          tags: ${{ steps.image-tags.outputs.tags }}
+
+      - name: Run what was pushed
+        env:
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: |
+          docker run --rm "$IMAGE_NAME@$DIGEST" --version
+          docker run --rm "$IMAGE_NAME@$DIGEST" workspace pack --help > /dev/null
+          echo "Pin it: $IMAGE_NAME@$DIGEST" >> "$GITHUB_STEP_SUMMARY"

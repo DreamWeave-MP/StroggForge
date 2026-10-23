@@ -81,6 +81,15 @@ assumptions = ["llvm: false only for jobs that compile nothing.", "An MSRV check
 failures = ["Stream clang or lld differs from rustc's LLVM: setup-llvm.sh fails loudly; inspect package availability."]
 example = "uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@<tag> with a cache name."
 
+[workflow.publishJessImage]
+purpose = "Publish the jess image: the Linux jess and every platform's jess as a packing runtime, on the libraries it links against and nothing else."
+intended_for = "jess's own release, as a job after its rustGlobalBuild build job; pipelines that run jess pin the result by digest."
+release_behavior = "Takes the github-release-jess-* archives the calling run staged, lays them out with prepare-context.sh, builds FROM scratch with the libraries ldd lists from CentOS Stream 9 (glibc 2.34), pushes ghcr.io/dreamweave-mp/jess tagged with the version and the commit, and runs what it pushed. Nothing is downloaded and then trusted."
+artifacts = ["ghcr.io/dreamweave-mp/jess:<version> and :sha-<commit>", "The pushed digest as an output and in the job summary"]
+assumptions = ["The caller grants packages: write and calls it after the job that staged the archives, in the same run.", "The image is a step image (uses: docker://...@sha256:...): it has no shell, git, node or cosign, so it can't be a container: job, and signing stays on the runner.", "The runtimes are named for their archives under /opt/jess/runtimes (JESS_RUNTIMES): jess-Linux-X64, jess-Windows-X64.exe, jess-macOS-ARM64, ..."]
+failures = ["No jess-Linux-X64.zip among the archives: the build job didn't stage Linux, or the pattern no longer matches its artifact names.", "The image's own jess --version fails while building: the Linux jess needs a library ldd didn't list."]
+example = "In jess's release.yaml: a job with needs: build that uses DreamWeave-MP/StroggForge/.github/workflows/publishJessImage.yml@<tag> with version: the tag."
+
 # Supply-chain stages, ordered by the earliest point each can start; jobs overlap where the
 # workflows' needs graphs allow. The exact order is each workflow's generated job graph.
 # References are <workflow>/<job> or <action>/<step name>;
