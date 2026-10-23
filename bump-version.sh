@@ -25,6 +25,7 @@ FILES=(
   .github/action_templates/lib_template.yaml
   .github/action_templates/mod_template.yaml
   .github/action_templates/daily_quality_template.yaml
+  .github/workflows/toolchain.yml
 )
 
 LINUX_BUILDER_IMAGE="ghcr.io/dreamweave-mp/stroggforge-linux-x86_64-el9-builder"
