@@ -38,7 +38,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v66
+          ref: v67
           path: .stroggforge
 
       - name: Download the release's archives
