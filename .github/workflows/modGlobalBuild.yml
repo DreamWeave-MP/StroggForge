@@ -16,7 +16,8 @@ name: Mod Template
 # the site to a deploy job. Release tags, one job: validate, build the tagged release (a mod's
 # archive, or the archives the Rust workflow staged), record it in mod.lock on the default branch,
 # publish it (mods only), and start a default-branch run of the calling workflow so the site lists
-# it. A mod with Nexus Mods uploads gets one more job per file.
+# it. A mod with Nexus Mods uploads gets one more job per file, and so does each platform of an
+# application whose file group NEXUS_GROUP_IDS names.
 
 on:
   workflow_call:
@@ -38,6 +39,10 @@ on:
         description: "The name a jpk project's mod.toml gives its application ([package] application), when it has one. A tag packs the repository's jess workspace into dist/application with the jess image first: <name>.jsw and an executable per platform jess is released for, which the template records."
     secrets:
       NEXUS_API_KEY:
+        required: false
+      # A Jess application's file groups, one per platform, as the Rust workflow's: a JSON object
+      # keyed like windows-x64-stable. A mod's single file group is its mod.toml's.
+      NEXUS_GROUP_IDS:
         required: false
 
 permissions:
@@ -340,10 +345,15 @@ jobs:
             gh release edit "$release" --draft=false --repo "$REPOSITORY"
           fi
 
+      # A mod's uploads are the template's; an application's are each platform's zip, to the file
+      # group NEXUS_GROUP_IDS names for it, as the Rust workflow uploads a program's.
       - name: Read the Nexus Mods uploads
         id: nexus
         if: steps.build.outputs.recorded == 'true' && !inputs.rust_release
-        run: echo "uploads=$(cat dist/nexus.json)" >> "$GITHUB_OUTPUT"
+        env:
+          APPLICATION: ${{ inputs.jess_application }}
+          NEXUS_GROUP_IDS: ${{ secrets.NEXUS_GROUP_IDS }}
+        run: bash .stroggforge/scripts/mod-template/nexus-uploads.sh
 
       - uses: actions/upload-artifact@v7
         if: steps.nexus.outputs.uploads != '' && steps.nexus.outputs.uploads != '[]'
@@ -391,5 +401,6 @@ jobs:
           version: ${{ matrix.upload.version }}
           display_name: ${{ matrix.upload.name }}
           archive_existing_version: true
-          primary_mod_manager_download: true
+          # A mod is a mod manager's primary download; an application's platform zips are not.
+          primary_mod_manager_download: ${{ matrix.upload.primary != false }}
           update_mod_version: true
