@@ -45,10 +45,10 @@ permissions:
 
 env:
   # The jess release every site builds with. Moving it moves every site at once.
-  JESS_VERSION: 'v0.2.0'
+  JESS_VERSION: 'v0.2.1'
   # The jess image an application is packed with: every platform's jess as a runtime. Pinned by
   # digest; it moves with JESS_VERSION.
-  JESS_IMAGE: 'ghcr.io/dreamweave-mp/jess@sha256:786c7c9eeb054e02612cbbd4861f8a7e05f6f638fac037b00b2a1ccacdbb0c1a'
+  JESS_IMAGE: 'ghcr.io/dreamweave-mp/jess@sha256:1cd24f4fe5718a0b2549bcfebf55a803d7377073e1a54336d484a40c7e70c05e'
   # Where a site without a jess.lock takes the template and everything it depends on from, at the
   # version its jess-workspace.toml asks for; the lock CI then commits names each package's publisher.
   DREAMWEAVE_PUBLISHERS: >-
