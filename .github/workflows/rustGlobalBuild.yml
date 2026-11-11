@@ -234,7 +234,7 @@ jobs:
           - os: macos-latest
             platform_os: macOS
             platform_arch: ARM64
-          - os: macos-15-intel
+          - os: macos-26-intel
             platform_os: macOS
             platform_arch: X64
           - os: ubuntu-22.04
@@ -302,7 +302,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, macos-15-intel, windows-2025-vs2026]
+        os: [macos-latest, macos-26-intel, windows-2025-vs2026]
         app_names: ${{ fromJson(inputs.binary_names) }}
     runs-on: ${{ matrix.os }}
     permissions:

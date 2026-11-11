@@ -36,7 +36,7 @@ jobs:
             platform_os: macOS
             container: ""
           - name: macOS X64
-            os: macos-15-intel
+            os: macos-26-intel
             platform_os: macOS
             container: ""
           - name: the EL9 builder
