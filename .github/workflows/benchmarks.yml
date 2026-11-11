@@ -32,6 +32,7 @@ jobs:
   benchmarks:
     name: Benchmark on ${{ inputs.os }}
     runs-on: ${{ inputs.os }}
+    timeout-minutes: 120
     defaults:
       run:
         shell: bash
@@ -59,7 +60,9 @@ jobs:
           bash .stroggforge/scripts/shared/generate-benchmark-docs.sh .stroggforge/.github/scripts/gen_benchmarks.py
           cat BENCHMARKS.md >> "$GITHUB_STEP_SUMMARY"
 
+      # Kept when the run fails too: benchmark-output.txt is what explains it.
       - uses: actions/upload-artifact@v7
+        if: always()
         with:
           name: benchmarks-${{ inputs.os }}
           path: |

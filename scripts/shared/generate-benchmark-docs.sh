@@ -20,6 +20,12 @@ fi
 
 CARGO_TERM_COLOR=never cargo "${args[@]}" 2>&1 | tee benchmark-output.txt
 
-# Windows runners name their interpreter python, not python3.
-python=$(command -v python3 || command -v python)
-"$python" "$generator"
+# Windows runners name their interpreter python, and may carry a python3 that is only the
+# Microsoft Store's installer alias, so take the first that runs.
+for python in python3 python; do
+  if "$python" --version >/dev/null 2>&1; then
+    exec "$python" "$generator"
+  fi
+done
+echo "error: no Python interpreter found for $generator" >&2
+exit 1
