@@ -153,10 +153,10 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v71
+          ref: v72
           path: .stroggforge
 
-      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v71
+      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v72
         with:
           components: rustfmt
           llvm: ${{ inputs.cargo_publish && github.ref_type != 'tag' }}
@@ -206,7 +206,7 @@ jobs:
           MSRV_INPUT: ${{ inputs.msrv }}
         run: bash .stroggforge/scripts/shared/resolve-msrv.sh "$MSRV_INPUT"
 
-      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v71
+      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v72
         if: inputs.msrv != ''
         with:
           toolchain: ${{ steps.msrv.outputs.toolchain }}
@@ -257,10 +257,10 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v71
+          ref: v72
           path: .stroggforge
 
-      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v71
+      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v72
         with:
           components: clippy
           cache: test
@@ -319,7 +319,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           submodules: true
-      - uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v71
+      - uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v72
         with:
           binary_name: ${{ matrix.app_names }}
           cargo_package: ${{ inputs.binary_package }}
@@ -341,7 +341,7 @@ jobs:
         app_names: ${{ fromJson(inputs.binary_names) }}
     runs-on: ubuntu-latest
     # This builder image is versioned with the StroggForge release tag.
-    container: ghcr.io/dreamweave-mp/stroggforge-linux-x86_64-el9-builder:v71
+    container: ghcr.io/dreamweave-mp/stroggforge-linux-x86_64-el9-builder:v72
     permissions:
       contents: write
       id-token: write
@@ -349,7 +349,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           submodules: true
-      - uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v71
+      - uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v72
         with:
           binary_name: ${{ matrix.app_names }}
           cargo_package: ${{ inputs.binary_package }}
@@ -405,7 +405,7 @@ jobs:
             echo "BINDGEN_EXTRA_CLANG_ARGS=--sysroot=$NDK/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
             echo "PKG_CONFIG_ALLOW_CROSS=1"
           } >> "$GITHUB_ENV"
-      - uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v71
+      - uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v72
         with:
           binary_name: ${{ matrix.app_names }}
           cargo_package: ${{ inputs.binary_package }}
@@ -431,7 +431,7 @@ jobs:
         app_names: ${{ fromJson(inputs.binary_names) }}
     runs-on: ubuntu-latest
     # This builder image is versioned with the StroggForge release tag.
-    container: ghcr.io/dreamweave-mp/stroggforge-portmaster-aarch64-el9-builder:v71
+    container: ghcr.io/dreamweave-mp/stroggforge-portmaster-aarch64-el9-builder:v72
     permissions:
       contents: write
       id-token: write
@@ -453,7 +453,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           submodules: true
-      - uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v71
+      - uses: DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v72
         with:
           binary_name: ${{ matrix.app_names }}
           cargo_package: ${{ inputs.binary_package }}
@@ -489,7 +489,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v71
+          ref: v72
           path: .stroggforge
 
       - name: Download the release archives
@@ -604,7 +604,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v71
+          ref: v72
           path: .stroggforge
 
       - uses: actions/download-artifact@v8.0.1
@@ -645,10 +645,10 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v71
+          ref: v72
           path: .stroggforge
 
-      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v71
+      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v72
         with:
           cache: crates
 
@@ -715,9 +715,9 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: DreamWeave-MP/StroggForge
-          ref: v71
+          ref: v72
           path: .stroggforge
-      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v71
+      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v72
         with:
           cache: docs
       - name: Build the documentation
@@ -741,7 +741,7 @@ jobs:
     if: inputs.generate_benchmarks && github.ref_type == 'tag' && needs.publish.result == 'success'
     permissions:
       contents: write
-    uses: DreamWeave-MP/StroggForge/.github/workflows/benchmarks.yml@v71
+    uses: DreamWeave-MP/StroggForge/.github/workflows/benchmarks.yml@v72
     with:
       release_name: ${{ needs.publish.outputs.release_name }}
 
@@ -756,7 +756,7 @@ jobs:
       contents: write
       id-token: write
       pages: write
-    uses: DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml@v71
+    uses: DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml@v72
     secrets: inherit
     with:
       rust_release: true
@@ -770,7 +770,7 @@ jobs:
       contents: write
       id-token: write
       pages: write
-    uses: DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml@v71
+    uses: DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml@v72
     with:
       rust_release: true
 
@@ -779,7 +779,7 @@ jobs:
   notify:
     needs: [lint, test, release, release-linux, release-android, release-portmaster, publish, nexus, crates, aur, docs, benchmarks, mod-template]
     if: always() && !cancelled() && inputs.generate_discord_notification && github.event_name == 'push'
-    uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v71
+    uses: DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v72
     secrets:
       WEBHOOK_URL: ${{ secrets.DISCORD_CHANNEL_WEBHOOK || secrets.DW_TOOLS_CHANNEL_WEBHOOK }}
     with:
