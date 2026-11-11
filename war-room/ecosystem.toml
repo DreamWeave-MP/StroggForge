@@ -6,6 +6,12 @@ scope = "Every current DreamWeave component that gets engineered, by domain. Thi
 
 # Infrastructure changes that alter what consumers get. Git holds the full history.
 [[updates]]
+date = "2026-11-11"
+title = "The tests stop running the benchmarks, and Intel macOS moves to macos-26-intel"
+detail = "The test jobs ran cargo test with --all-targets, which runs every bench target as a test: a Criterion or harness = false bench does its whole measurement, and the doctests are left out. l3i's Intel macOS test step spent 22 of its 27 minutes benchmarking. The tests now run the default targets, doctests included, built and run as separate steps with a cargo --timings report; Clippy still lints the benches. Benchmarks run only through benchmarks.yml: on tags with generate_benchmarks, or by hand through benchmark_template.yaml. The test jobs build with line-table debug info, and the target caches are partitioned by runner image and Cargo build settings. Measured on l3i pull requests, test step against 2026-11-11 on v55: Intel macOS 26m58s to 5m38s, macOS ARM 10m13s to 2m56s; Windows stays near 8 minutes, its time all compiling."
+commits = ["c12bf7e", "a4320f3", "60cec0e", "ca6e4cd", "8137124"]
+
+[[updates]]
 date = "2026-09-29"
 title = "Self-referential pins move to v54"
 detail = "Templates and internal workflow/action calls reference v54, and the builder images are tagged v54. A consumer pinned to an older tag keeps that tag's behavior, including its toolchain and builder images."
