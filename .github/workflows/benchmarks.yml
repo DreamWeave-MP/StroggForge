@@ -1,0 +1,76 @@
+name: Benchmarks
+
+# Benchmarks run only when something asks for them: the build workflows' `benchmarks` job on a tag
+# with generate_benchmarks, or a consumer's own workflow_dispatch (benchmark_template.yaml). The
+# test jobs never run them: `cargo test` builds no bench target, and Clippy lints their source.
+# Performance numbers from a shared hosted runner are noisy; nothing here gates a pull request.
+on:
+  workflow_call:
+    inputs:
+      os:
+        type: string
+        required: false
+        default: ubuntu-24.04
+        description: "The runner to measure on, such as ubuntu-24.04, macos-latest, macos-26-intel or windows-2025-vs2026."
+      filter:
+        type: string
+        required: false
+        default: ''
+        description: "Passed to every bench target as `cargo bench -- <filter>`: Criterion runs the benchmarks whose ID contains it. Empty runs every benchmark."
+      all_features:
+        type: boolean
+        required: false
+        default: false
+        description: "Benchmark with every feature enabled (cargo bench --all-features), for benches gated behind features."
+      release_name:
+        type: string
+        required: false
+        default: ''
+        description: "Upload BENCHMARKS.md to this GitHub release; the caller grants contents: write. Empty keeps the results in the run: its summary and an artifact."
+
+jobs:
+  benchmarks:
+    name: Benchmark on ${{ inputs.os }}
+    runs-on: ${{ inputs.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: true
+
+      - uses: actions/checkout@v6
+        with:
+          repository: DreamWeave-MP/StroggForge
+          ref: v70
+          path: .stroggforge
+
+      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v70
+        with:
+          cache: benchmarks
+
+      - name: Run the benchmarks
+        env:
+          BENCH_FILTER: ${{ inputs.filter }}
+          BENCH_ALL_FEATURES: ${{ inputs.all_features }}
+        run: |
+          rm -rf target/criterion benchmark-output.txt BENCHMARKS.md
+          bash .stroggforge/scripts/shared/generate-benchmark-docs.sh .stroggforge/.github/scripts/gen_benchmarks.py
+          cat BENCHMARKS.md >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: benchmarks-${{ inputs.os }}
+          path: |
+            BENCHMARKS.md
+            benchmark-output.txt
+          retention-days: 30
+
+      - name: Upload BENCHMARKS.md to the release
+        if: inputs.release_name != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_NAME: ${{ inputs.release_name }}
+          REPOSITORY: ${{ github.repository }}
+        run: gh release upload "$RELEASE_NAME" BENCHMARKS.md --clobber --repo "$REPOSITORY"

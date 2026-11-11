@@ -21,10 +21,12 @@ FILES=(
   .github/workflows/createRelease.yml
   .github/workflows/dependent.yml
   .github/workflows/modGlobalBuild.yml
+  .github/workflows/benchmarks.yml
   .github/action_templates/rust_template.yaml
   .github/action_templates/lib_template.yaml
   .github/action_templates/mod_template.yaml
   .github/action_templates/daily_quality_template.yaml
+  .github/action_templates/benchmark_template.yaml
   .github/workflows/toolchain.yml
   .github/workflows/publishJessImage.yml
 )

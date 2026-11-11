@@ -27,7 +27,7 @@ Inputs:
 1. `cargo_publish_workspace`: Optional, default `false`. With `cargo_publish`, publishes every publishable workspace member instead of one crate per binary name. See [Workspace publishing](#workspace-publishing).
 1. `msrv`: Optional, default empty. Minimum supported Rust version, e.g. `'1.88'`, or `auto` to use the highest `rust-version` any workspace member declares. When set, the `lint` job runs `cargo check --workspace --all-features --all-targets` on that toolchain, and publishing waits for it like every other check. Without a `Cargo.lock`, dependencies resolve to versions that still support that Rust version (`CARGO_RESOLVER_INCOMPATIBLE_RUST_VERSIONS=fallback`). Empty skips the check.
 1. `generate_changelog`: Optional, default `true`. Generates `CHANGELOG.md` from git history and uploads it to the release.
-1. `generate_benchmarks`: Optional, default `false`. Runs `cargo bench`, generates `BENCHMARKS.md` from Criterion output when available, otherwise preserves the raw benchmark log, and uploads it to the release.
+1. `generate_benchmarks`: Optional, default `false`. On tags, runs `cargo bench` through `benchmarks.yml`, generates `BENCHMARKS.md` from Criterion output when available, otherwise preserves the raw benchmark log, and uploads it to the release. For benchmarks on demand, install `.github/action_templates/benchmark_template.yaml`.
 1. `generate_discord_notification`: Optional, default `true`. Set `false` to skip the Discord notification, e.g. when another workflow in the same run already sends one.
 1. `enable_android`: Optional, default `false`. Builds Android ARM64 ELF release artifacts using the Android NDK at API level 23. This does not produce an APK.
 1. `enable_portmaster`: Optional, default `false`. Builds Portmaster ARM64 release artifacts for `aarch64-unknown-linux-gnu` cross-compiled with clang and lld in the EL9 Portmaster builder against an EL9 AArch64 sysroot, for the same glibc 2.34 compatibility as `release-linux`.
@@ -219,7 +219,7 @@ python3 /path/to/StroggForge/.github/scripts/gen_benchmarks.py
 
 ## [./scripts/shared/generate-benchmark-docs.sh](./scripts/shared/generate-benchmark-docs.sh)
 
-Shared shell script used by both application and library benchmark jobs. Runs `cargo bench`, preserves the raw log in `benchmark-output.txt`, then runs the Python benchmark documentation generator to create `BENCHMARKS.md`.
+Shared shell script used by `benchmarks.yml`. Runs `cargo bench` (with `--all-features` when `BENCH_ALL_FEATURES=true`, and `-- "$BENCH_FILTER"` when a filter is set), preserves the raw log in `benchmark-output.txt`, then runs the Python benchmark documentation generator to create `BENCHMARKS.md`.
 
 ## [./scripts/shared/setup-llvm.sh](./scripts/shared/setup-llvm.sh)
 

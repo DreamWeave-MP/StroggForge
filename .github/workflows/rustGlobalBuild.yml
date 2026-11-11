@@ -726,35 +726,17 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v5.0.0
 
-  # Tagged releases only: cargo bench, summarized as BENCHMARKS.md on the release.
+  # Tagged releases only: cargo bench, summarized as BENCHMARKS.md on the release. The test jobs
+  # never run benchmarks; benchmarks.yml also runs them on demand (benchmark_template.yaml).
   benchmarks:
     name: Benchmark the release
     needs: publish
     if: inputs.generate_benchmarks && github.ref_type == 'tag' && needs.publish.result == 'success'
-    runs-on: ubuntu-24.04
     permissions:
       contents: write
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          submodules: true
-      - uses: actions/checkout@v6
-        with:
-          repository: DreamWeave-MP/StroggForge
-          ref: v70
-          path: .stroggforge
-      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v70
-        with:
-          cache: benchmarks
-      - name: Run the benchmarks and upload BENCHMARKS.md
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_NAME: ${{ needs.publish.outputs.release_name }}
-          REPOSITORY: ${{ github.repository }}
-        run: |
-          rm -rf target/criterion benchmark-output.txt BENCHMARKS.md
-          bash .stroggforge/scripts/shared/generate-benchmark-docs.sh .stroggforge/.github/scripts/gen_benchmarks.py
-          gh release upload "$RELEASE_NAME" BENCHMARKS.md --clobber --repo "$REPOSITORY"
+    uses: DreamWeave-MP/StroggForge/.github/workflows/benchmarks.yml@v70
+    with:
+      release_name: ${{ needs.publish.outputs.release_name }}
 
   # The DreamWeave Mod Template stage: record the published archives in mod.lock, then build and
   # deploy the site. It waits for the crates.io publish too, whether that ran or not: a repository
