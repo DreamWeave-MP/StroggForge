@@ -190,13 +190,15 @@ jobs:
       # above lints the benches with --all-targets. Building and running are separate steps so
       # their times are separate, and the build's --timings report is kept as an artifact.
       - name: Build the tests
+        id: build_tests
         run: cargo test --workspace --all-features --no-run --timings
 
       - name: Run the tests
         run: cargo test --workspace --all-features -- --show-output
 
+      # Only after this run's build: the cached target directory holds an older report.
       - uses: actions/upload-artifact@v7
-        if: always()
+        if: always() && steps.build_tests.outcome != 'skipped'
         with:
           name: cargo-timings-${{ matrix.os }}
           path: target/cargo-timings/cargo-timing.html
