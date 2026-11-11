@@ -162,6 +162,11 @@ jobs:
       matrix:
         os: [macos-latest, macos-26-intel, ubuntu-22.04, windows-2025-vs2026]
     runs-on: ${{ matrix.os }}
+    # File and line tables only: backtraces still name the line, and on l3i the test build is 14%
+    # faster and its cached target directory 20% smaller than with full debug info. A
+    # [profile.test] debug setting in the repository still wins.
+    env:
+      CARGO_PROFILE_DEV_DEBUG: line-tables-only
     steps:
       - uses: actions/checkout@v6
         with:
