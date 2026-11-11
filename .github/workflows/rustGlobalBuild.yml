@@ -274,8 +274,25 @@ jobs:
           '${{ inputs.binary_names }}' '${{ inputs.binary_package }}'
           '${{ matrix.platform_os }}' '${{ matrix.platform_arch }}'
 
-      - name: Test
-        run: cargo test --workspace --all-targets --all-features -- --show-output
+      # Not --all-targets: that adds the bench targets, and a Criterion or harness = false bench
+      # run as a test runs its whole measurement (l3i spent 22 of 27 minutes on Intel macOS
+      # benchmarking), and it leaves out the doctests. The default targets are the library, the
+      # binaries, the integration tests, the examples (built, not run) and the doctests; Clippy
+      # above lints the benches with --all-targets. Building and running are separate steps so
+      # their times are separate, and the build's --timings report is kept as an artifact.
+      - name: Build the tests
+        run: cargo test --workspace --all-features --no-run --timings
+
+      - name: Run the tests
+        run: cargo test --workspace --all-features -- --show-output
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: cargo-timings-${{ matrix.platform_os }}-${{ matrix.platform_arch }}
+          path: target/cargo-timings/cargo-timing.html
+          if-no-files-found: ignore
+          retention-days: 14
 
   # The release builds start with the tests rather than after them: a release takes as long as the
   # slowest platform, not the slowest test plus the slowest build. Nothing is published unless
