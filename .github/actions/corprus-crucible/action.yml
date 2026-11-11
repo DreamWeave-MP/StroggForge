@@ -78,6 +78,12 @@ runs:
       shell: bash
       run: bash "${{ github.action_path }}/../../../scripts/shared/setup-llvm.sh" "" ""
 
+    # After setup-llvm.sh, which can set CARGO_BUILD_TARGET for the rest of the job.
+    - name: Name the target cache's partition
+      id: partition
+      shell: bash
+      run: bash "${{ github.action_path }}/../../../scripts/shared/cache-partition.sh"
+
     - name: Setup Rust Target
       if: inputs.rust_target != ''
       shell: bash
@@ -115,10 +121,10 @@ runs:
       with:
         path: |
           ${{ steps.context.outputs.target_dir }}
-        key: ${{ inputs.platform_os || runner.os }}-${{ inputs.platform_arch || runner.arch }}-release-target-${{ inputs.binary_name }}-${{ inputs.rust_target || 'native' }}-${{ steps.rust_toolchain.outputs.cachekey }}-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
+        key: ${{ inputs.platform_os || runner.os }}-${{ inputs.platform_arch || runner.arch }}-${{ steps.partition.outputs.partition }}-release-target-${{ inputs.binary_name }}-${{ inputs.rust_target || 'native' }}-${{ steps.rust_toolchain.outputs.cachekey }}-${{ (hashFiles('**/Cargo.lock') || hashFiles('**/Cargo.toml')) }}
         restore-keys: |
-          ${{ inputs.platform_os || runner.os }}-${{ inputs.platform_arch || runner.arch }}-release-target-${{ inputs.binary_name }}-${{ inputs.rust_target || 'native' }}-${{ steps.rust_toolchain.outputs.cachekey }}-
-          ${{ inputs.platform_os || runner.os }}-${{ inputs.platform_arch || runner.arch }}-release-target-${{ inputs.binary_name }}-${{ inputs.rust_target || 'native' }}-
+          ${{ inputs.platform_os || runner.os }}-${{ inputs.platform_arch || runner.arch }}-${{ steps.partition.outputs.partition }}-release-target-${{ inputs.binary_name }}-${{ inputs.rust_target || 'native' }}-${{ steps.rust_toolchain.outputs.cachekey }}-
+          ${{ inputs.platform_os || runner.os }}-${{ inputs.platform_arch || runner.arch }}-${{ steps.partition.outputs.partition }}-release-target-${{ inputs.binary_name }}-${{ inputs.rust_target || 'native' }}-
 
     - name: Lint the build as released
       if: inputs.lint == 'true'

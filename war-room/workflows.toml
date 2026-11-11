@@ -84,7 +84,7 @@ example = "Use rust-setup in a compiling job. For platform exceptions see [toolc
 [workflow.rust-setup]
 purpose = "Start a compiling job: the Rust toolchain, clang and lld matching its LLVM, and the Cargo registry and target caches."
 intended_for = "Every compiling job in rustGlobalBuild and libGlobalBuild."
-release_behavior = "Toolchain and cache setup only. The target cache is named per job (lint, test, msrv, crates, docs, benchmarks) and keyed by runner, toolchain and lockfile."
+release_behavior = "Toolchain and cache setup only. The target cache is named per job (lint, test, msrv, crates, docs, benchmarks) and keyed by runner OS and architecture, a partition (the runner image, such as macos26, and a checksum of the CARGO_PROFILE_/CARGO_BUILD_/CARGO_TARGET_ settings and RUSTFLAGS from cache-partition.sh), toolchain and lockfile; Corprus Crucible partitions its release cache the same way."
 artifacts = ["Compiler, linker and cache state for later Cargo commands"]
 assumptions = ["llvm: false only for jobs that compile nothing.", "An MSRV check passes its toolchain, which installs the LLVM that toolchain uses."]
 failures = ["Stream clang or lld differs from rustc's LLVM: setup-llvm.sh fails loudly; inspect package availability."]
