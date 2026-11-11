@@ -77,6 +77,10 @@ install_conda_llvm() {
 install_linux() {
   if command -v apt-get >/dev/null 2>&1; then
     # apt.llvm.org carries every recent major for Ubuntu LTS releases.
+    # llvm.sh runs apt itself, so its downloads retry through apt's configuration: one mirror's
+    # DNS failing for a minute failed every Ubuntu job of an l3i run on 2026-11-11. Two retries,
+    # not more: each repeats every 20-second DNS timeout, so an outage that lasts stretches the job.
+    echo 'Acquire::Retries "2";' | sudo tee /etc/apt/apt.conf.d/80-stroggforge-retries >/dev/null
     local script
     script=$(mktemp)
     curl -fsSL https://apt.llvm.org/llvm.sh -o "$script"

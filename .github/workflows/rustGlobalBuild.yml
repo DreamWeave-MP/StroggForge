@@ -234,7 +234,7 @@ jobs:
           - os: macos-latest
             platform_os: macOS
             platform_arch: ARM64
-          - os: macos-15-intel
+          - os: macos-26-intel
             platform_os: macOS
             platform_arch: X64
           - os: ubuntu-22.04
@@ -244,6 +244,11 @@ jobs:
             platform_os: Windows
             platform_arch: X64
     runs-on: ${{ matrix.os }}
+    # File and line tables only: backtraces still name the line, and on l3i the test build is 14%
+    # faster and its cached target directory 20% smaller than with full debug info. A
+    # [profile.test] debug setting in the repository still wins.
+    env:
+      CARGO_PROFILE_DEV_DEBUG: line-tables-only
     steps:
       - uses: actions/checkout@v6
         with:
@@ -274,8 +279,27 @@ jobs:
           '${{ inputs.binary_names }}' '${{ inputs.binary_package }}'
           '${{ matrix.platform_os }}' '${{ matrix.platform_arch }}'
 
-      - name: Test
-        run: cargo test --workspace --all-targets --all-features -- --show-output
+      # Not --all-targets: that adds the bench targets, and a Criterion or harness = false bench
+      # run as a test runs its whole measurement (l3i spent 22 of 27 minutes on Intel macOS
+      # benchmarking), and it leaves out the doctests. The default targets are the library, the
+      # binaries, the integration tests, the examples (built, not run) and the doctests; Clippy
+      # above lints the benches with --all-targets. Building and running are separate steps so
+      # their times are separate, and the build's --timings report is kept as an artifact.
+      - name: Build the tests
+        id: build_tests
+        run: cargo test --workspace --all-features --no-run --timings
+
+      - name: Run the tests
+        run: cargo test --workspace --all-features -- --show-output
+
+      # Only after this run's build: the cached target directory holds an older report.
+      - uses: actions/upload-artifact@v7
+        if: always() && steps.build_tests.outcome != 'skipped'
+        with:
+          name: cargo-timings-${{ matrix.platform_os }}-${{ matrix.platform_arch }}
+          path: target/cargo-timings/cargo-timing.html
+          if-no-files-found: ignore
+          retention-days: 14
 
   # The release builds start with the tests rather than after them: a release takes as long as the
   # slowest platform, not the slowest test plus the slowest build. Nothing is published unless
@@ -285,7 +309,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, macos-15-intel, windows-2025-vs2026]
+        os: [macos-latest, macos-26-intel, windows-2025-vs2026]
         app_names: ${{ fromJson(inputs.binary_names) }}
     runs-on: ${{ matrix.os }}
     permissions:
@@ -709,35 +733,17 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v5.0.0
 
-  # Tagged releases only: cargo bench, summarized as BENCHMARKS.md on the release.
+  # Tagged releases only: cargo bench, summarized as BENCHMARKS.md on the release. The test jobs
+  # never run benchmarks; benchmarks.yml also runs them on demand (benchmark_template.yaml).
   benchmarks:
     name: Benchmark the release
     needs: publish
     if: inputs.generate_benchmarks && github.ref_type == 'tag' && needs.publish.result == 'success'
-    runs-on: ubuntu-24.04
     permissions:
       contents: write
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          submodules: true
-      - uses: actions/checkout@v6
-        with:
-          repository: DreamWeave-MP/StroggForge
-          ref: v70
-          path: .stroggforge
-      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v70
-        with:
-          cache: benchmarks
-      - name: Run the benchmarks and upload BENCHMARKS.md
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_NAME: ${{ needs.publish.outputs.release_name }}
-          REPOSITORY: ${{ github.repository }}
-        run: |
-          rm -rf target/criterion benchmark-output.txt BENCHMARKS.md
-          bash .stroggforge/scripts/shared/generate-benchmark-docs.sh .stroggforge/.github/scripts/gen_benchmarks.py
-          gh release upload "$RELEASE_NAME" BENCHMARKS.md --clobber --repo "$REPOSITORY"
+    uses: DreamWeave-MP/StroggForge/.github/workflows/benchmarks.yml@v70
+    with:
+      release_name: ${{ needs.publish.outputs.release_name }}
 
   # The DreamWeave Mod Template stage: record the published archives in mod.lock, then build and
   # deploy the site. It waits for the crates.io publish too, whether that ran or not: a repository

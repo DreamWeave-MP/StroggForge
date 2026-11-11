@@ -48,6 +48,13 @@ runs:
       shell: bash
       run: bash "${{ github.action_path }}/../../../scripts/shared/setup-llvm.sh" "${{ inputs.toolchain }}" ""
 
+    # After setup-llvm.sh, which can set CARGO_BUILD_TARGET for the rest of the job.
+    - name: Name the target cache's partition
+      id: partition
+      if: inputs.cache != ''
+      shell: bash
+      run: bash "${{ github.action_path }}/../../../scripts/shared/cache-partition.sh"
+
     # The downloaded crates, not their unpacked sources, which Cargo unpacks again faster than a
     # cache restores their many small files. Pull requests restore the default branch's caches but
     # save nothing, since GitHub scopes what they save to the pull request.
@@ -80,17 +87,17 @@ runs:
       uses: actions/cache@v5.0.5
       with:
         path: ${{ inputs.target-dir }}
-        key: ${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache }}-target-${{ steps.rust.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+        key: ${{ runner.os }}-${{ runner.arch }}-${{ steps.partition.outputs.partition }}-${{ inputs.cache }}-target-${{ steps.rust.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
         restore-keys: |
-          ${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache }}-target-${{ steps.rust.outputs.cachekey }}-
-          ${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache }}-target-
+          ${{ runner.os }}-${{ runner.arch }}-${{ steps.partition.outputs.partition }}-${{ inputs.cache }}-target-${{ steps.rust.outputs.cachekey }}-
+          ${{ runner.os }}-${{ runner.arch }}-${{ steps.partition.outputs.partition }}-${{ inputs.cache }}-target-
 
     - name: Restore the ${{ inputs.cache }} target directory
       if: inputs.cache != '' && github.event_name == 'pull_request'
       uses: actions/cache/restore@v5.0.5
       with:
         path: ${{ inputs.target-dir }}
-        key: ${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache }}-target-${{ steps.rust.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+        key: ${{ runner.os }}-${{ runner.arch }}-${{ steps.partition.outputs.partition }}-${{ inputs.cache }}-target-${{ steps.rust.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
         restore-keys: |
-          ${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache }}-target-${{ steps.rust.outputs.cachekey }}-
-          ${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache }}-target-
+          ${{ runner.os }}-${{ runner.arch }}-${{ steps.partition.outputs.partition }}-${{ inputs.cache }}-target-${{ steps.rust.outputs.cachekey }}-
+          ${{ runner.os }}-${{ runner.arch }}-${{ steps.partition.outputs.partition }}-${{ inputs.cache }}-target-

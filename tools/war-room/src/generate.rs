@@ -949,6 +949,11 @@ fn workflow_pages(site: &Site, root: &Path, model: &Model) -> Result<()> {
             "Scheduled fmt/Clippy/RustSec checks with no release secrets. It calls `setup-llvm` directly because Clippy compiles.",
             "daily_quality_template.yaml",
         ),
+        (
+            "Benchmark template",
+            "Runs `cargo bench` by hand from the Actions tab, on the runner and with the filter it is given, and keeps `BENCHMARKS.md` in the run's summary and artifacts. No pull request waits for it.",
+            "benchmark_template.yaml",
+        ),
     ] {
         let source = fs::read_to_string(root.join(".github/action_templates").join(template))?;
         writeln!(
