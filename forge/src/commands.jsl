@@ -1,0 +1,53 @@
+--!strict
+-- The forge's commands as typed requests and results: no argv, no printing, no exit statuses.
+-- The CLI entries under cli/ turn these into a command line; a test or another tool calls them
+-- directly.
+local check = require './check'
+local diagnostics = require './diagnostics'
+local inspect = require './inspect'
+local model = require './model'
+local workflows = require './workflows'
+
+export type Request = { root: string }
+
+export type InspectResult = { ok: boolean, text: string?, report: diagnostics.Report }
+
+export type CheckResult = {
+  ok: boolean,
+  report: diagnostics.Report,
+  projects: number,
+  plans: number,
+  workflows: number,
+}
+
+--- The workflow contracts under `request.root`, as `stroggforge.inspect/1`.
+local function inspectCommand(request: Request): InspectResult
+  local report = diagnostics.new()
+  local found = workflows.load(report, request.root)
+  if diagnostics.hasErrors(report) then return { ok = false, text = nil, report = report } end
+
+  return { ok = true, text = inspect.render(found), report = report }
+end
+
+--- Validates the war room under `request.root` against the workflows beside it. The structural
+--- rules run only on a model whose files all parsed as their records: a rule over a field that
+--- failed to parse would report noise.
+local function checkCommand(request: Request): CheckResult
+  local report = diagnostics.new()
+  local loaded = model.load(report, request.root)
+  local found = workflows.load(report, request.root)
+  if loaded and not diagnostics.hasErrors(report) then check.validate(report, loaded, found) end
+
+  return {
+    ok = not diagnostics.hasErrors(report),
+    report = report,
+    projects = if loaded then #loaded.ecosystem.projects else 0,
+    plans = if loaded then #loaded.plans else 0,
+    workflows = #found,
+  }
+end
+
+return table.freeze {
+  inspect = inspectCommand,
+  check = checkCommand,
+}

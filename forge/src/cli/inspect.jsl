@@ -1,0 +1,21 @@
+--!strict
+-- `forge-inspect [root]`: the workflow and action contracts as stroggforge.inspect/1 JSON Lines on
+-- stdout, and nothing else there, so the output can be diffed as it is.
+local commands = require '../commands'
+local common = require './common'
+local diagnostics = require '../diagnostics'
+local process = require '@dream/process'
+
+local request, problem = common.arguments({ ... })
+if not request then return common.usage('forge-inspect', problem :: string) end
+
+local result = commands.inspect { root = request.root }
+if not result.ok then
+  common.stderr(diagnostics.text(result.report))
+
+  return common.status(result.report)
+end
+
+process.write('stdout', result.text :: string)
+
+return diagnostics.Status.ok

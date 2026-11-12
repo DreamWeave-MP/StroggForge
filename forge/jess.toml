@@ -1,0 +1,45 @@
+manifest_version = 1
+
+[package]
+id = "org.dreamweave.forge"
+version = "0.1.0"
+jess_api = "1"
+include = ["src", "tests"]
+tests = ["tests/run.jsl"]
+
+[modules]
+"@dreamweave/forge/diagnostics" = "src/diagnostics.jsl"
+"@dreamweave/forge/schema" = "src/schema.jsl"
+"@dreamweave/forge/model" = "src/model.jsl"
+"@dreamweave/forge/workflows" = "src/workflows.jsl"
+"@dreamweave/forge/inspect" = "src/inspect.jsl"
+"@dreamweave/forge/check" = "src/check.jsl"
+"@dreamweave/forge/commands" = "src/commands.jsl"
+
+[[layer]]
+id = "dreamweave.forge"
+exports = [
+  "@dreamweave/forge/diagnostics",
+  "@dreamweave/forge/schema",
+  "@dreamweave/forge/model",
+  "@dreamweave/forge/workflows",
+  "@dreamweave/forge/inspect",
+  "@dreamweave/forge/check",
+  "@dreamweave/forge/commands",
+]
+
+# Both commands read a checkout and write only to stdout and stderr; neither reaches the network
+# or the environment.
+# The root is the first argument, or the working folder.
+
+[targets.inspect]
+kind = "command"
+command = "forge-inspect"
+entry = "src/cli/inspect.jsl"
+capabilities = ["filesystem.read", "process.stdio"]
+
+[targets.check]
+kind = "command"
+command = "forge-check"
+entry = "src/cli/check.jsl"
+capabilities = ["filesystem.read", "process.stdio"]

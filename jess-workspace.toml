@@ -1,0 +1,7 @@
+# StroggForge as a jess workspace: its one member is the forge, org.dreamweave.forge, the JSL
+# application vNext moves the war room and the release helpers into (docs/vnext/FOR-102-rfc.md).
+# The Rust war room stays the root Cargo workspace until FOR-202 retires it.
+manifest_version = 1
+
+[workspace]
+members = ["forge"]

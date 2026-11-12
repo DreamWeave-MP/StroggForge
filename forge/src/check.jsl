@@ -1,0 +1,379 @@
+--!strict
+-- Structural invariants of the war room, and nothing editorial: unique IDs, references that
+-- resolve, plan states that agree with their requirements, no cycles. The rules are the Rust war
+-- room's `validate.rs`, one for one; the difference is that this reports every violation, where the
+-- Rust stopped at the first.
+--
+-- One deliberate difference: a date is four digits, two and two. Rust's u32 parse also took a
+-- leading `+` (`2026-+9-28`); the forge refuses it.
+local diagnostics = require './diagnostics'
+local model = require './model'
+local workflows = require './workflows'
+
+type Report = diagnostics.Report
+
+local Days = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
+
+--- Whether `value` is a calendar date written YYYY-MM-DD.
+local function isDate(value: string): boolean
+  local yearText, monthText, dayText = string.match(value, '^(%d%d%d%d)%-(%d%d)%-(%d%d)$')
+  if not yearText then return false end
+
+  local year = tonumber(yearText) :: number
+  local month = tonumber(monthText) :: number
+  local day = tonumber(dayText) :: number
+  if month < 1 or month > 12 then return false end
+
+  local leap = year % 4 == 0 and (year % 100 ~= 0 or year % 400 == 0)
+  local last = if month == 2 and leap then 29 else Days[month]
+
+  return day >= 1 and day <= last
+end
+
+local function date(report: Report, path: string, value: string, where: string)
+  if isDate(value) then return end
+
+  diagnostics.add(report, 'FORGE-E021', path, `invalid date "{value}"; expected YYYY-MM-DD`, where)
+end
+
+--- Reports invalid and duplicate IDs among `ids`, each `{ id, path, where }`.
+local function unique(report: Report, what: string, ids: { { string } })
+  local seen: { [string]: boolean } = {}
+  for _, entry in ids do
+    local id, path, where = entry[1], entry[2], entry[3]
+    if id == '' or string.find(id, '[^a-z0-9%-]') then
+      diagnostics.add(
+        report,
+        'FORGE-E022',
+        path,
+        `invalid {what} ID "{id}"; use lowercase letters, digits and hyphens`,
+        where
+      )
+    elseif seen[id] then
+      diagnostics.add(report, 'FORGE-E023', path, `duplicate {what} ID {id}`, where)
+    end
+    seen[id] = true
+  end
+end
+
+--- Reports a cycle among `edges`, each `{ from, to }`, the way validate.rs found them: drop every
+--- edge into a node nothing leaves until no edge is dropped.
+local function acyclic(report: Report, path: string, what: string, edges: { { string } })
+  local remaining = table.clone(edges)
+  while #remaining > 0 do
+    local origins: { [string]: boolean } = {}
+    for _, edge in remaining do
+      origins[edge[1]] = true
+    end
+
+    local kept = {}
+    for _, edge in remaining do
+      if origins[edge[2]] then table.insert(kept, edge) end
+    end
+
+    if #kept == #remaining then
+      local named = {}
+      for _, edge in kept do
+        table.insert(named, `{edge[1]} -> {edge[2]}`)
+      end
+      diagnostics.add(report, 'FORGE-E035', path, `{what} cycle among {table.concat(named, ', ')}`)
+
+      return
+    end
+
+    remaining = kept
+  end
+end
+
+type Index = {
+  projects: { [string]: model.Project },
+  platforms: { [string]: boolean },
+  plans: { [string]: model.Plan },
+}
+
+local function index(loaded: model.Model): Index
+  local projects, platforms, plans = {}, {}, {}
+  for _, project in loaded.ecosystem.projects do
+    projects[project.id] = project
+  end
+
+  for _, platform in loaded.toolchains.platforms do
+    platforms[platform.id] = true
+  end
+
+  for _, plan in loaded.plans do
+    plans[plan.id] = plan
+  end
+
+  return { projects = projects, platforms = platforms, plans = plans }
+end
+
+local function identities(report: Report, loaded: model.Model)
+  local files = model.Files
+  local projects = {}
+  for position, project in loaded.ecosystem.projects do
+    table.insert(projects, { project.id, files.ecosystem, `projects[{position}].id` })
+  end
+
+  for position, retired in loaded.ecosystem.retired do
+    table.insert(projects, { retired.id, files.ecosystem, `retired[{position}].id` })
+  end
+  unique(report, 'project/retired', projects)
+
+  local plans = {}
+  for position, plan in loaded.plans do
+    table.insert(plans, { plan.id, files.plans, `plans[{position}].id` })
+  end
+  unique(report, 'plan', plans)
+
+  local platforms = {}
+  for position, platform in loaded.toolchains.platforms do
+    table.insert(platforms, { platform.id, files.toolchains, `platforms[{position}].id` })
+  end
+  unique(report, 'platform', platforms)
+
+  local stages = {}
+  for position, stage in loaded.operations.stage do
+    table.insert(stages, { stage.id, files.workflows, `stage[{position}].id` })
+  end
+  unique(report, 'stage', stages)
+end
+
+local function projectCalls(report: Report, loaded: model.Model, found: { workflows.Workflow })
+  for position, project in loaded.ecosystem.projects do
+    for _, called in project.stroggforge do
+      local workflow = workflows.find(found, called)
+      if not (workflow and workflow.callable) then
+        diagnostics.add(
+          report,
+          'FORGE-E030',
+          model.Files.ecosystem,
+          `project {project.id}: {called} is not a reusable StroggForge workflow`,
+          `projects[{position}].stroggforge`
+        )
+      end
+    end
+  end
+end
+
+local function relationships(report: Report, loaded: model.Model, known: Index)
+  local path = model.Files.ecosystem
+  local seen: { [string]: boolean } = {}
+  local successors = {}
+  for position, relationship in loaded.ecosystem.relationships do
+    local from, to, where = relationship.from, relationship.to, `relationships[{position}]`
+    for _, id in { from, to } do
+      if not known.projects[id] then
+        diagnostics.add(report, 'FORGE-E031', path, `relationship: unknown project {id}`, where)
+      end
+    end
+
+    if from == to then
+      diagnostics.add(report, 'FORGE-E032', path, `relationship {from} -> {to} points at itself`, where)
+    end
+
+    local key = `{from}\0{to}\0{relationship.kind}`
+    if seen[key] then
+      diagnostics.add(report, 'FORGE-E033', path, `duplicate relationship {from} -> {to}`, where)
+    end
+    seen[key] = true
+
+    if relationship.kind == 'successor' then
+      local project = known.projects[from]
+      if project and not model.historical(project.lifecycle) then
+        diagnostics.add(
+          report,
+          'FORGE-E034',
+          path,
+          `{from} has a successor but is not superseded or archived`,
+          where
+        )
+      end
+      table.insert(successors, { from, to })
+    end
+  end
+
+  acyclic(report, path, 'successor', successors)
+end
+
+local function plans(report: Report, loaded: model.Model, known: Index)
+  local path = model.Files.plans
+  local edges = {}
+  for position, plan in loaded.plans do
+    local where = `plans[{position}]`
+    local context = `plan {plan.id}`
+    date(report, path, plan.reviewed, `{where}.reviewed`)
+    if plan.target_date then date(report, path, plan.target_date, `{where}.target_date`) end
+
+    for _, project in plan.projects do
+      if not known.projects[project] then
+        diagnostics.add(report, 'FORGE-E031', path, `{context}: unknown project {project}`, where)
+      end
+    end
+
+    for _, platform in plan.platforms do
+      if not known.platforms[platform] then
+        diagnostics.add(report, 'FORGE-E044', path, `{context}: unknown platform {platform}`, where)
+      end
+    end
+
+    local requirements = {}
+    local blockedRequirement, unfinished = false, false
+    for index, requirement in plan.requirements do
+      table.insert(requirements, { requirement.id, path, `{where}.requirements[{index}].id` })
+      blockedRequirement = blockedRequirement or requirement.state == 'blocked'
+      unfinished = unfinished or requirement.state ~= 'done'
+    end
+    unique(report, 'requirement', requirements)
+
+    local claimsDone = plan.state == 'ready' or model.finished(plan.state)
+    local blockedPrerequisite = false
+    for _, dependency in plan.depends_on do
+      table.insert(edges, { plan.id, dependency })
+      local prerequisite = known.plans[dependency]
+      if not prerequisite then
+        diagnostics.add(report, 'FORGE-E040', path, `{context}: unknown prerequisite {dependency}`, where)
+        continue
+      end
+
+      blockedPrerequisite = blockedPrerequisite or prerequisite.state == 'blocked'
+      if claimsDone and not model.finished(prerequisite.state) then
+        diagnostics.add(
+          report,
+          'FORGE-E041',
+          path,
+          `{context} is {plan.state} but prerequisite {dependency} is not finished`,
+          where
+        )
+      end
+    end
+
+    if (blockedRequirement or blockedPrerequisite) ~= (plan.state == 'blocked') then
+      diagnostics.add(
+        report,
+        'FORGE-E042',
+        path,
+        `{context}: a plan is blocked exactly when a requirement or prerequisite is blocked`,
+        where
+      )
+    end
+
+    if claimsDone and unfinished then
+      diagnostics.add(report, 'FORGE-E043', path, `{context} is {plan.state} with unfinished requirements`, where)
+    end
+  end
+
+  acyclic(report, path, 'plan prerequisite', edges)
+end
+
+local function references(report: Report, loaded: model.Model, known: Index, found: { workflows.Workflow })
+  local files = model.Files
+  for position, update in loaded.ecosystem.updates do
+    local where = `updates[{position}]`
+    date(report, files.ecosystem, update.date, `{where}.date`)
+    if update.plan and not known.plans[update.plan] then
+      diagnostics.add(
+        report,
+        'FORGE-E045',
+        files.ecosystem,
+        `update "{update.title}": unknown plan {update.plan}`,
+        where
+      )
+    end
+  end
+
+  for position, retired in loaded.ecosystem.retired do
+    local successor = retired.successor
+    local where = `retired[{position}].successor`
+    if successor and successor.project and not known.projects[successor.project] then
+      diagnostics.add(
+        report,
+        'FORGE-E031',
+        files.ecosystem,
+        `retired {retired.id}: unknown project {successor.project}`,
+        where
+      )
+    elseif successor and successor.platform and not known.platforms[successor.platform] then
+      diagnostics.add(
+        report,
+        'FORGE-E044',
+        files.ecosystem,
+        `retired {retired.id}: unknown platform {successor.platform}`,
+        where
+      )
+    end
+  end
+
+  for position, platform in loaded.toolchains.platforms do
+    local workflow = workflows.find(found, platform.workflow)
+    if not (workflow and workflow.jobs[platform.job]) then
+      diagnostics.add(
+        report,
+        'FORGE-E053',
+        files.toolchains,
+        `platform {platform.id}: no job {platform.workflow}/{platform.job}`,
+        `platforms[{position}]`
+      )
+    end
+  end
+
+  local notes = {}
+  for id in loaded.operations.workflow do
+    table.insert(notes, id)
+  end
+  table.sort(notes)
+  for _, id in notes do
+    if not workflows.find(found, id) then
+      diagnostics.add(
+        report,
+        'FORGE-E054',
+        files.workflows,
+        `notes for unknown workflow {id}`,
+        `workflow.{id}`
+      )
+    end
+  end
+
+  for position, stage in loaded.operations.stage do
+    for _, reference in stage.jobs do
+      local resolved, problem = workflows.resolve(found, reference)
+      if not resolved then
+        diagnostics.add(
+          report,
+          'FORGE-E055',
+          files.workflows,
+          `stage {stage.id}: {problem}`,
+          `stage[{position}].jobs`
+        )
+      end
+    end
+  end
+end
+
+--- Every structural rule over a loaded model and the workflows found beside it.
+local function validate(report: Report, loaded: model.Model, found: { workflows.Workflow })
+  local ecosystem = loaded.ecosystem
+  if ecosystem.schema ~= 1 then
+    diagnostics.add(
+      report,
+      'FORGE-E020',
+      model.Files.ecosystem,
+      `unsupported schema {ecosystem.schema}`,
+      'schema'
+    )
+  end
+  date(report, model.Files.ecosystem, ecosystem.reviewed, 'reviewed')
+  date(report, model.Files.toolchains, loaded.toolchains.reviewed, 'reviewed')
+
+  local known = index(loaded)
+  identities(report, loaded)
+  projectCalls(report, loaded, found)
+  relationships(report, loaded, known)
+  plans(report, loaded, known)
+  references(report, loaded, known, found)
+end
+
+return table.freeze {
+  isDate = isDate,
+  validate = validate,
+}

@@ -1,0 +1,278 @@
+--!strict
+-- The war room's reviewed intent: war-room/ecosystem.toml, plans.toml, toolchains.toml and
+-- workflows.toml, read as closed records. The field sets and closed sets here are the Rust war
+-- room's `model.rs` and `workflows.rs`, field for field; a change to one is a change to both until
+-- FOR-202 retires the Rust.
+local diagnostics = require './diagnostics'
+local schema = require './schema'
+
+export type Update = { date: string, title: string, detail: string, commits: { string }, plan: string? }
+
+export type Project = {
+  id: string,
+  name: string,
+  kind: string,
+  domain: string,
+  summary: string,
+  repository: string?,
+  languages: { string },
+  lifecycle: string,
+  maturity: string,
+  owners: { string },
+  docs: { string },
+  packages: { string },
+  distribution: { string },
+  stroggforge: { string },
+  approach: string,
+  contribution_areas: { string },
+}
+
+export type Relationship = { from: string, to: string, kind: string, label: string }
+
+export type Retired = {
+  id: string,
+  name: string,
+  kind: string,
+  summary: string,
+  location: string,
+  successor: { project: string?, platform: string? }?,
+  reason: string,
+}
+
+export type Ecosystem = {
+  schema: number,
+  reviewed: string,
+  scope: string,
+  updates: { Update },
+  projects: { Project },
+  relationships: { Relationship },
+  retired: { Retired },
+}
+
+export type Requirement = {
+  id: string,
+  kind: string,
+  label: string,
+  state: string,
+  detail: string,
+  evidence: { string },
+}
+
+export type Plan = {
+  id: string,
+  kind: string,
+  name: string,
+  projects: { string },
+  version: string?,
+  state: string,
+  reviewed: string,
+  target_date: string?,
+  depends_on: { string },
+  platforms: { string },
+  distribution: { string },
+  notes: string,
+  links: { string },
+  requirements: { Requirement },
+}
+
+export type Platform = {
+  id: string,
+  name: string,
+  target: string,
+  workflow: string,
+  job: string,
+  baseline: string,
+  compiler: string,
+  validation: string,
+  notes: string,
+}
+
+export type Toolchains = {
+  reviewed: string,
+  rust_policy: string,
+  llvm_policy: string,
+  reference: string,
+  platforms: { Platform },
+}
+
+export type Stage = { id: string, name: string, kind: string, summary: string, jobs: { string } }
+
+export type Operations = { workflow: { [string]: { [string]: unknown } }, stage: { Stage } }
+
+export type Model = {
+  ecosystem: Ecosystem,
+  plans: { Plan },
+  toolchains: Toolchains,
+  operations: Operations,
+}
+
+local Distribution = { 'crates-io', 'github-releases', 'github-pages', 'aur', 'source' }
+
+local function text(name: string): schema.Field return { name = name, kind = 'string' } end
+local function texts(name: string): schema.Field return { name = name, kind = 'strings' } end
+local function optional(name: string): schema.Field return { name = name, kind = 'string', optional = true } end
+
+local function closed(name: string, values: { string }): schema.Field
+  return { name = name, kind = 'enum', values = values }
+end
+
+local function records(name: string, record: schema.Spec): schema.Field
+  return { name = name, kind = 'records', record = record }
+end
+
+local UpdateSpec: schema.Spec = { text 'date', text 'title', text 'detail', texts 'commits', optional 'plan' }
+
+local ProjectSpec: schema.Spec = {
+  text 'id',
+  text 'name',
+  closed('kind', { 'foundation', 'application', 'developer-tool', 'runtime', 'infrastructure', 'documentation', 'content' }),
+  closed('domain', { 'rust', 'openmw-lua', 'web' }),
+  text 'summary',
+  optional 'repository',
+  texts 'languages',
+  closed('lifecycle', { 'active', 'experimental', 'maintenance', 'superseded', 'archived' }),
+  closed('maturity', { 'evolving', 'established', 'historical' }),
+  texts 'owners',
+  texts 'docs',
+  texts 'packages',
+  { name = 'distribution', kind = 'enums', values = Distribution },
+  texts 'stroggforge',
+  closed('approach', { 'introductory', 'intermediate', 'specialist' }),
+  texts 'contribution_areas',
+}
+
+local RelationshipSpec: schema.Spec = {
+  text 'from',
+  text 'to',
+  closed('kind', { 'rust', 'documentation', 'contains', 'successor' }),
+  text 'label',
+}
+
+local RetiredSpec: schema.Spec = {
+  text 'id',
+  text 'name',
+  closed('kind', { 'build-environment', 'site' }),
+  text 'summary',
+  text 'location',
+  { name = 'successor', kind = 'variant', values = { 'project', 'platform' }, optional = true },
+  text 'reason',
+}
+
+local EcosystemSpec: schema.Spec = {
+  { name = 'schema', kind = 'integer' },
+  text 'reviewed',
+  text 'scope',
+  records('updates', UpdateSpec),
+  records('projects', ProjectSpec),
+  records('relationships', RelationshipSpec),
+  records('retired', RetiredSpec),
+}
+
+local RequirementSpec: schema.Spec = {
+  text 'id',
+  closed('kind', { 'task', 'ci', 'documentation', 'artifact', 'platform' }),
+  text 'label',
+  closed('state', { 'todo', 'active', 'blocked', 'done' }),
+  text 'detail',
+  texts 'evidence',
+}
+
+local PlanSpec: schema.Spec = {
+  text 'id',
+  closed('kind', { 'release', 'campaign' }),
+  text 'name',
+  texts 'projects',
+  optional 'version',
+  closed('state', { 'unknown', 'preparing', 'active', 'blocked', 'ready', 'released', 'done' }),
+  text 'reviewed',
+  optional 'target_date',
+  texts 'depends_on',
+  texts 'platforms',
+  { name = 'distribution', kind = 'enums', values = Distribution },
+  text 'notes',
+  texts 'links',
+  records('requirements', RequirementSpec),
+}
+
+local PlatformSpec: schema.Spec = {
+  text 'id',
+  text 'name',
+  text 'target',
+  text 'workflow',
+  text 'job',
+  text 'baseline',
+  text 'compiler',
+  closed('validation', { 'unknown', 'blocked', 'ready' }),
+  text 'notes',
+}
+
+local ToolchainsSpec: schema.Spec = {
+  text 'reviewed',
+  text 'rust_policy',
+  text 'llvm_policy',
+  text 'reference',
+  records('platforms', PlatformSpec),
+}
+
+local NoteSpec: schema.Spec = {
+  text 'purpose',
+  text 'intended_for',
+  text 'release_behavior',
+  texts 'artifacts',
+  texts 'assumptions',
+  texts 'failures',
+  text 'example',
+}
+
+local StageSpec: schema.Spec = {
+  text 'id',
+  text 'name',
+  closed('kind', { 'source', 'tool', 'boundary', 'component', 'service' }),
+  text 'summary',
+  texts 'jobs',
+}
+
+local OperationsSpec: schema.Spec = {
+  { name = 'workflow', kind = 'map', record = NoteSpec },
+  records('stage', StageSpec),
+}
+
+local Files = table.freeze {
+  ecosystem = 'war-room/ecosystem.toml',
+  plans = 'war-room/plans.toml',
+  toolchains = 'war-room/toolchains.toml',
+  workflows = 'war-room/workflows.toml',
+}
+
+--- Reads the four files under `root`. Returns the model only when every file read, parsed and
+--- matched its records; otherwise nil, with the reasons in `report`.
+local function load(report: diagnostics.Report, root: string): Model?
+  local before = #report
+  local ecosystem = schema.load(report, root, Files.ecosystem, EcosystemSpec)
+  local plans = schema.load(report, root, Files.plans, { records('plans', PlanSpec) })
+  local toolchains = schema.load(report, root, Files.toolchains, ToolchainsSpec)
+  local operations = schema.load(report, root, Files.workflows, OperationsSpec)
+  if #report > before or not (ecosystem and plans and toolchains and operations) then return nil end
+
+  return {
+    ecosystem = (ecosystem :: unknown) :: Ecosystem,
+    plans = (plans.plans :: unknown) :: { Plan },
+    toolchains = (toolchains :: unknown) :: Toolchains,
+    operations = (operations :: unknown) :: Operations,
+  }
+end
+
+--- Whether a lifecycle is history rather than current work.
+local function historical(lifecycle: string): boolean
+  return lifecycle == 'superseded' or lifecycle == 'archived'
+end
+
+--- Whether a plan state is finished.
+local function finished(state: string): boolean return state == 'released' or state == 'done' end
+
+return table.freeze {
+  Files = Files,
+  load = load,
+  historical = historical,
+  finished = finished,
+}
