@@ -1,5 +1,6 @@
 mod generate;
 mod graphs;
+mod inspect;
 mod model;
 mod validate;
 mod workflows;
@@ -16,7 +17,12 @@ fn main() -> Result<()> {
     match command.as_deref() {
         Some("check") => {}
         Some("build") => generate::build(&root, &model)?,
-        _ => bail!("usage: cargo run -p stroggforge-war-room -- <check|build>"),
+        // The contracts on stdout and nothing else, so the output can be diffed as it is.
+        Some("inspect") => {
+            print!("{}", inspect::inspect(&root, &model.workflows)?);
+            return Ok(());
+        }
+        _ => bail!("usage: cargo run -p stroggforge-war-room -- <check|build|inspect>"),
     }
     println!(
         "Validated {} projects, {} plans and {} workflows.",
