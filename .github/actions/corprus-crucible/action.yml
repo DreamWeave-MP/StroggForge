@@ -226,23 +226,34 @@ runs:
       env:
         NEXUS_GROUP_IDS: ${{ inputs.nexus_group_ids }}
         DEVELOPMENT_RELEASE: ${{ inputs.development_release }}
+        # The release name is a tag name on tags, which may hold shell syntax: it reaches the script
+        # only as data, through the environment.
+        PLATFORM_OS: ${{ inputs.platform_os || runner.os }}
+        PLATFORM_ARCH: ${{ inputs.platform_arch || runner.arch }}
+        RELEASE_NAME: ${{ inputs.release_name }}
       run: >-
         bash "${{ github.action_path }}/../../../scripts/corprus-crucible/resolve-nexusmods-group-id.sh"
-        "${{ inputs.platform_os || runner.os }}"
-        "${{ inputs.platform_arch || runner.arch }}"
-        "${{ inputs.release_name }}"
+        "$PLATFORM_OS"
+        "$PLATFORM_ARCH"
+        "$RELEASE_NAME"
 
     - name: Prepare Nexus Mods Archive
       if: github.event_name != 'pull_request' && inputs.nexus_api_key != '' && steps.nexus_group.outputs.group_id != ''
       id: nexus_archive
       shell: bash
+      env:
+        BINARY_NAME: ${{ inputs.binary_name }}
+        PLATFORM_OS: ${{ inputs.platform_os || runner.os }}
+        PLATFORM_ARCH: ${{ inputs.platform_arch || runner.arch }}
+        NEXUS_PLATFORM: ${{ steps.nexus_group.outputs.nexus_platform }}
+        RELEASE_NAME: ${{ inputs.release_name }}
       run: >-
         bash "${{ github.action_path }}/../../../scripts/corprus-crucible/prepare-nexusmods-archive.sh"
-        "${{ inputs.binary_name }}"
-        "${{ inputs.platform_os || runner.os }}"
-        "${{ inputs.platform_arch || runner.arch }}"
-        "${{ steps.nexus_group.outputs.nexus_platform }}"
-        "${{ inputs.release_name }}"
+        "$BINARY_NAME"
+        "$PLATFORM_OS"
+        "$PLATFORM_ARCH"
+        "$NEXUS_PLATFORM"
+        "$RELEASE_NAME"
 
     - name: Prepare Nexus Mods Upload Artifact
       if: github.event_name != 'pull_request' && inputs.nexus_api_key != '' && steps.nexus_group.outputs.group_id != ''
@@ -251,16 +262,25 @@ runs:
       env:
         VT_ANALYSIS_BBCODE: ${{ steps.format_vt_links.outputs.vt_analysis_bbcode }}
         DEVELOPMENT_RELEASE: ${{ inputs.development_release }}
+        BINARY_NAME: ${{ inputs.binary_name }}
+        PLATFORM_OS: ${{ inputs.platform_os || runner.os }}
+        PLATFORM_ARCH: ${{ inputs.platform_arch || runner.arch }}
+        NEXUS_GROUP_ID: ${{ steps.nexus_group.outputs.group_id }}
+        # The archive and its stem are named from the release name, so they carry the tag name too.
+        NEXUS_ARCHIVE: ${{ steps.nexus_archive.outputs.nexus_archive }}
+        NEXUS_FILE_STEM: ${{ steps.nexus_archive.outputs.nexus_file_stem }}
+        RELEASE_NAME: ${{ inputs.release_name }}
+        REPOSITORY: ${{ github.repository }}
       run: >-
         bash "${{ github.action_path }}/../../../scripts/corprus-crucible/prepare-nexusmods-upload-artifact.sh"
-        "${{ inputs.binary_name }}"
-        "${{ inputs.platform_os || runner.os }}"
-        "${{ inputs.platform_arch || runner.arch }}"
-        "${{ steps.nexus_group.outputs.group_id }}"
-        "${{ steps.nexus_archive.outputs.nexus_archive }}"
-        "${{ steps.nexus_archive.outputs.nexus_file_stem }}"
-        "${{ inputs.release_name }}"
-        "${{ github.repository }}"
+        "$BINARY_NAME"
+        "$PLATFORM_OS"
+        "$PLATFORM_ARCH"
+        "$NEXUS_GROUP_ID"
+        "$NEXUS_ARCHIVE"
+        "$NEXUS_FILE_STEM"
+        "$RELEASE_NAME"
+        "$REPOSITORY"
 
     - name: Upload Nexus Mods Upload Artifact
       if: github.event_name != 'pull_request' && inputs.nexus_api_key != '' && steps.nexus_group.outputs.group_id != ''
