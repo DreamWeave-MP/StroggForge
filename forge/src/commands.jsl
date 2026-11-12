@@ -26,7 +26,10 @@ local function inspectCommand(request: Request): InspectResult
   local found = workflows.load(report, request.root)
   if diagnostics.hasErrors(report) then return { ok = false, text = nil, report = report } end
 
-  return { ok = true, text = inspect.render(found), report = report }
+  local text = inspect.render(found, report)
+  if diagnostics.hasErrors(report) then return { ok = false, text = nil, report = report } end
+
+  return { ok = true, text = text, report = report }
 end
 
 --- Validates the war room under `request.root` against the workflows beside it. The structural

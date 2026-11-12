@@ -55,6 +55,8 @@ local Codes = table.freeze({
   ['FORGE-E053'] = 'a platform names a job its workflow does not have',
   ['FORGE-E054'] = 'notes for a workflow that does not exist',
   ['FORGE-E055'] = 'a stage reference that does not resolve',
+  ['FORGE-E056'] = 'a workflow or action not shaped as GitHub Actions reads it',
+  ['FORGE-E057'] = 'a workflow value inspect cannot write as JSON exactly',
 } :: { [string]: string })
 
 --- A new, empty report.

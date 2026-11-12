@@ -33,9 +33,8 @@ local function paths(report: diagnostics.Report, root: string): { string }
     for _, name in names do
       local extension = fs.extension(name)
       local path = `{WorkflowFolder}/{name}`
-      if (extension == 'yml' or extension == 'yaml') and fs.isFile(fs.join(root, path)) then
-        table.insert(found, path)
-      end
+      -- Every .yml and .yaml, files or not: a folder named build.yml fails to read, as it did in the Rust.
+      if extension == 'yml' or extension == 'yaml' then table.insert(found, path) end
     end
   end
 
@@ -54,33 +53,68 @@ local function paths(report: diagnostics.Report, root: string): { string }
   return found
 end
 
+-- @jess/yaml gives Lua tables, which can't say whether an empty one was `{}` or `[]`, nor whether
+-- `{1: a}` was a mapping or the sequence `[a]`. These read a table by its keys: string keys make a
+-- mapping, dense integer keys a sequence, and an empty table is either. That is as close to
+-- serde's mapping/sequence distinction as Lua tables allow, and the corpus records where it stops.
+local function isMapping(value: unknown): boolean
+  if type(value) ~= 'table' then return false end
+
+  for key in value :: { [unknown]: unknown } do
+    if type(key) ~= 'string' then return false end
+  end
+
+  return true
+end
+
+local function isSequence(value: unknown): boolean
+  if type(value) ~= 'table' then return false end
+
+  local count = 0
+  for key in value :: { [unknown]: unknown } do
+    if type(key) ~= 'number' then return false end
+    count += 1
+  end
+
+  return count == #(value :: { unknown })
+end
+
+local function absent(value: unknown): boolean return value == nil or value == jess.null end
+
 local function mapping(value: unknown): { [string]: unknown }?
-  if type(value) ~= 'table' then return nil end
+  if not isMapping(value) then return nil end
 
   return value :: { [string]: unknown }
 end
 
-local function list(value: unknown): { unknown }?
-  if type(value) ~= 'table' then return nil end
-
-  return value :: { unknown }
-end
-
 --- The job names `needs` lists, or nil when it isn't a name or a list of names.
 local function needed(value: unknown): { string }?
-  if value == nil or value == jess.null then return {} end
+  if absent(value) then return {} end
   if type(value) == 'string' then return { value } end
-
-  local names = list(value)
-  if not names or #names == 0 and next(names) ~= nil then return nil end
+  if not isSequence(value) then return nil end
 
   local out = {}
-  for _, name in names :: { unknown } do
+  for _, name in value :: { unknown } do
     if type(name) ~= 'string' then return nil end
     table.insert(out, name)
   end
 
   return out
+end
+
+--- The keys of `value`, sorted, so whatever walks them reports in the same order every run.
+local function sortedKeys(value: { [string]: unknown }): { string }
+  local keys = {}
+  for key in value do
+    table.insert(keys, key)
+  end
+  table.sort(keys)
+
+  return keys
+end
+
+local function shape(report: diagnostics.Report, path: string, where: string, expected: string)
+  diagnostics.add(report, 'FORGE-E056', path, `{where} must be {expected}`, where)
 end
 
 local function read(report: diagnostics.Report, root: string, path: string): Workflow?
@@ -114,35 +148,58 @@ local function read(report: diagnostics.Report, root: string, path: string): Wor
     return nil
   end
 
-  -- `on: { workflow_call: }` makes a reusable workflow even with nothing under it.
+  -- `on: { workflow_call: }` makes a reusable workflow even with nothing under it. The Rust war room
+  -- asked this of actions too, and so does the forge.
   local on = mapping(document.on)
-  local callable = not action and on ~= nil and on.workflow_call ~= nil
+  local callable = on ~= nil and on.workflow_call ~= nil
+
+  -- The contract is the action itself, or a workflow's workflow_call.
+  local contract = if action then document else mapping(on and on.workflow_call)
+  for _, key in { 'inputs', 'secrets', 'outputs' } do
+    local value = contract and contract[key]
+    if not absent(value) and not isMapping(value) then shape(report, path, key, 'a mapping') end
+  end
 
   local jobs: { [string]: Job } = {}
+  if not absent(document.jobs) and not isMapping(document.jobs) then
+    shape(report, path, 'jobs', 'a mapping of job names')
+  end
+
   local documents = mapping(document.jobs) or {}
-  for job, value in documents do
-    local fields = mapping(value) or {}
+  local names = sortedKeys(documents)
+  for _, job in names do
+    local value = documents[job]
+    if not absent(value) and not isMapping(value) then shape(report, path, `jobs.{job}`, 'a mapping') end
+
+    local fields: { [string]: unknown } = mapping(value) or {}
+    if not absent(fields.steps) and not isSequence(fields.steps) then
+      shape(report, path, `jobs.{job}.steps`, 'a list')
+    end
+
     local needs = needed(fields.needs)
     if not needs then
       diagnostics.add(report, 'FORGE-E052', path, 'needs is a job name or a list of them', `jobs.{job}`)
-      needs = {}
     end
-    jobs[job] = { needs = needs :: { string }, document = fields }
+    jobs[job] = { needs = needs or {}, document = fields }
   end
 
-  for job, entry in jobs do
-    for _, dependency in entry.needs do
+  for _, job in names do
+    for _, dependency in jobs[job].needs do
       if not jobs[dependency] then
         diagnostics.add(report, 'FORGE-E051', path, `{id}/{job}: missing needed job {dependency}`, `jobs.{job}.needs`)
       end
     end
   end
 
+  -- An action's steps, when runs.steps is a list; anything else leaves it none, as in the Rust.
   local steps: { { [string]: unknown } } = {}
   local runs = mapping(document.runs)
-  for _, step in (runs and list(runs.steps)) or {} do
-    local fields: { [string]: unknown } = mapping(step) or {}
-    table.insert(steps, fields)
+  local listed = runs and runs.steps
+  if isSequence(listed) then
+    for _, step in listed :: { unknown } do
+      local fields: { [string]: unknown } = mapping(step) or {}
+      table.insert(steps, fields)
+    end
   end
 
   return {

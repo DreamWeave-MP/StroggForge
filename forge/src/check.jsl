@@ -4,8 +4,9 @@
 -- room's `validate.rs`, one for one; the difference is that this reports every violation, where the
 -- Rust stopped at the first.
 --
--- One deliberate difference: a date is four digits, two and two. Rust's u32 parse also took a
--- leading `+` (`2026-+9-28`); the forge refuses it.
+-- One deliberate difference: a date is exactly four digits, a hyphen, two, a hyphen, two. Rust
+-- checked the length and parsed each part as a u32, so it also took `2026-+9-28` and `2024-2-029`;
+-- the forge refuses both.
 local diagnostics = require './diagnostics'
 local model = require './model'
 local workflows = require './workflows'
