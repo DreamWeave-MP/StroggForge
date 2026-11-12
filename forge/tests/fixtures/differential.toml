@@ -1,0 +1,15 @@
+# Trees tests/differential.jsl finds the forge and the Rust war room disagreeing on, where the forge
+# is meant to. `id` is `<set>:<tree>`, as the differential prints it. Anything not here is a
+# disagreement to fix.
+
+[[explained]]
+id = "mutation:.github/actions/setup/action.yml:bom"
+reason = "YAML 1.2 (5.2) allows a byte order mark at the start of a stream; serde_yaml_ng's libyaml reads it as a second document and refuses the file."
+
+[[explained]]
+id = "mutation:.github/workflows/build.yml:bom"
+reason = "YAML 1.2 (5.2) allows a byte order mark at the start of a stream; serde_yaml_ng's libyaml reads it as a second document and refuses the file."
+
+[[explained]]
+id = "mutation:.github/workflows/notify.yaml:bom"
+reason = "YAML 1.2 (5.2) allows a byte order mark at the start of a stream; serde_yaml_ng's libyaml reads it as a second document and refuses the file."
