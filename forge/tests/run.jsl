@@ -118,6 +118,28 @@ suite.describe('inspect', function()
     expect(written).toContain '"env":{"INF":null,"KEYS":{"1.5":"a","true":"b","x":"c"},"NAN":null}'
   end)
 
+  suite.it('reads events and steps as the Rust did when keys are not strings', function()
+    local root = withEnv('keyed', '  E: 1\n')
+    local notify = fs.join(root, '.github/workflows/notify.yaml')
+    support.write(notify, (string.gsub(support.read(notify), 'on: %[push, workflow_dispatch%]', 'on: {1: push, workflow_dispatch: ~}')))
+    local action = fs.join(root, '.github/actions/setup/action.yml')
+    support.write(action, (string.gsub(support.read(action), '  steps:\n.*$', '  steps:\n    a: {name: one}\n')))
+    local written = inspected(root)
+    expect(written).toContain '"events":["workflow_dispatch"]'
+    expect(written).toContain '"steps":[],"using":"composite"'
+  end)
+
+  -- Where a Lua table forgets what the YAML said, the forge writes what it has, and inspect.jsl's
+  -- header lists the cases. Pinned, so a change on either side is a decision, not an accident. The
+  -- Rust wrote 1.0, "010", {"1":"a"} and {"!foo":"bar"}.
+  suite.it('writes what the decoded table holds where serde kept more', function()
+    local written = inspected(withEnv('forgotten', '  FLOAT: 1.0\n  OCTAL: 010\n  KEYED: {1: a}\n  TAGGED: !foo bar\n'))
+    expect(written).toContain '"FLOAT":1,'
+    expect(written).toContain '"KEYED":["a"],'
+    expect(written).toContain '"OCTAL":10,'
+    expect(written).toContain '"TAGGED":{"tag":"!foo","value":"bar"}'
+  end)
+
   suite.it('reports what JSON cannot hold exactly instead of crashing', function()
     for _, entry in { { 'huge', '  BIG: 9007199254740993\n' }, { 'complex', '  ? [a, b]\n  : c\n' } } do
       local result = commands.inspect { root = withEnv(entry[1], entry[2]) }

@@ -8,6 +8,10 @@
       "message": "Error: stage compile Caused by: \"setup/Install the toolchain\": setup has no step named \"Install the toolchain\"",
       "ok": false
     },
+    "action-steps-keyed-by-integer": {
+      "message": "Error: stage compile Caused by: \"setup/Install the toolchain\": setup has no step named \"Install the toolchain\"",
+      "ok": false
+    },
     "active-with-a-blocker": {
       "message": "Error: plan rollout: a plan is blocked exactly when a requirement or prerequisite is blocked",
       "ok": false
@@ -28,6 +32,10 @@
       "message": "Error: parse <root>/war-room/ecosystem.toml Caused by: TOML parse error at line 3, column 12 | 3 | reviewed = 2026-11-12 | ^^^^^^^^^^ invalid type: map, expected a string",
       "ok": false
     },
+    "document-with-an-integer-key": {
+      "message": "",
+      "ok": true
+    },
     "done-with-work-left": {
       "message": "Error: plan rollout is Done with unfinished requirements",
       "ok": false
@@ -44,8 +52,28 @@
       "message": "Error: plan rollout Caused by: duplicate requirement ID proof",
       "ok": false
     },
+    "empty-list-for-a-job": {
+      "message": "Error: invalid type: sequence, expected struct Job",
+      "ok": false
+    },
+    "empty-list-for-action-outputs": {
+      "message": "Error: workflow contract must be a mapping Caused by: invalid type: sequence, expected a map",
+      "ok": false
+    },
+    "empty-list-for-jobs": {
+      "message": "Error: invalid type: sequence, expected a map",
+      "ok": false
+    },
+    "empty-list-for-secrets": {
+      "message": "Error: workflow contract must be a mapping Caused by: invalid type: sequence, expected a map",
+      "ok": false
+    },
     "empty-mapping-for-needs": {
       "message": "Error: unsupported job needs value: Mapping {}",
+      "ok": false
+    },
+    "empty-mapping-for-steps": {
+      "message": "Error: invalid type: map, expected a sequence",
       "ok": false
     },
     "empty-needs": {
@@ -144,6 +172,10 @@
       "message": "",
       "ok": true
     },
+    "on-with-an-integer-key": {
+      "message": "",
+      "ok": true
+    },
     "plan-on-an-unknown-platform": {
       "message": "Error: plan rollout: unknown platform amiga",
       "ok": false
@@ -176,6 +208,10 @@
       "message": "",
       "ok": true
     },
+    "runs-with-an-integer-key": {
+      "message": "",
+      "ok": true
+    },
     "signed-date": {
       "message": "",
       "ok": true
@@ -197,6 +233,10 @@
       "ok": false
     },
     "steps-as-a-mapping": {
+      "message": "Error: invalid type: map, expected a sequence",
+      "ok": false
+    },
+    "steps-keyed-by-integer": {
       "message": "Error: invalid type: map, expected a sequence",
       "ok": false
     },
@@ -269,6 +309,6 @@
       "ok": false
     }
   },
-  "corpus_sha256": "78619ac2e14255f2d60d367f77bdc56a83b2986f105c010d22ed873ca2b2ed6f",
+  "corpus_sha256": "d35d6e6458572a855981b4750e15c305678bc8632fa23fc029258e0ef32fc15e",
   "oracle": "stroggforge-war-room check"
 }
