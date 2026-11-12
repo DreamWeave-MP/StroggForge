@@ -10,7 +10,9 @@ runs, and stays the reference until FOR-202 replaces it.
 
 ## Commands
 
-From the checkout's root, with jess 0.3.0 or newer on `PATH`:
+From the checkout's root, with a jess whose `@jess/yaml` has `decodeWithLayout` on `PATH`
+([jess#30](https://github.com/DreamWeave-MP/jess/pull/30); no released jess has it yet, and on
+one that doesn't the forge stops with that message, exit 1):
 
 ```sh
 jess workspace run --trusted forge-check                  # validate war-room/ against .github/
@@ -44,22 +46,20 @@ prerequisites, and no cycles. It reports every violation, where the Rust stopped
 It also holds the workflow YAML to the shapes serde made the Rust insist on: `jobs` a mapping of
 named jobs, each job a mapping, `steps` a list, `needs` a name or a list of names, and an
 `inputs`, `secrets` or `outputs` contract a mapping (`FORGE-E056`). A folder named like a workflow
-is an unreadable workflow, as it was.
+is an unreadable workflow, as it was. `@jess/yaml`'s layout says whether the file wrote a mapping
+or a sequence, so `jobs: []`, `steps: {}` and `needs: {1: test}` are refused as serde refused them,
+and a tag is read through everywhere serde read through it, and nowhere else (`needs`).
 
-Where it decides differently, `tests/fixtures/cases.toml` says so with a `divergence`:
+Where it decides differently, `tests/fixtures/cases.toml` says so with a `divergence`. One is left:
+a date is exactly `YYYY-MM-DD` in digits. Rust checked the length and parsed each part as an
+integer, so it also took `2026-+1-03` and `2024-2-029`.
 
-- A date is exactly `YYYY-MM-DD` in digits. Rust checked the length and parsed each part as an
-  integer, so it also took `2026-+1-03` and `2024-2-029`.
-- In workflow YAML, an empty `{}` where a list belongs or `[]` where a mapping does (`jobs: []`,
-  `steps: {}`, `secrets: []`, `needs: {}`), and a mapping keyed 1 to n where a list belongs
-  (`needs: {1: test}`), pass. @jess/yaml decodes them to the same Lua tables as their opposites
-  and keeps no layout to say which the file wrote; nine `[[accept]]` divergences pin them. TOML
-  keeps that distinction in its layout, so the war-room files have no such hole.
-
-`inspect` writes what the decoded table holds where serde kept more: `1.0` as `1`, `010` as `10`,
-`{1: a}` as `["a"]`, a tag as `{"tag", "value"}`. An integer past 2^53 or a key that is a collection
-is `FORGE-E057` rather than output. `src/inspect.jsl` lists them and the suite pins each one. Unlike
-the Rust, `inspect` reads only `.github`, so it works on a repository with no war room.
+`inspect` writes JSON as serde_json wrote it: floats as floats (`1.0`, `1e+300`), integers past 2^53
+exactly, a tag `!t` as `{"!t": value}`. Two differences remain, both pinned by the suite: `010` is
+the integer 10, as YAML 1.2 reads it, where serde_yaml read a string; and a key written `1.0` is
+`"1"`, which the layout can't record. A key that is null or a collection is `FORGE-E057`, where
+the Rust stopped with an error. Unlike the Rust, `inspect` reads only `.github`, so it works on a
+repository with no war room.
 
 ## Layout
 
@@ -94,6 +94,5 @@ cargo build --locked -p stroggforge-war-room
 jess run --trusted forge/tests/oracle.jsl target/debug/stroggforge-war-room
 ```
 
-jess 0.3.0's YAML loader drops the last line break of a block scalar that ends a document. The
-suite tolerates exactly that difference on the one golden line it affects, and expects byte
-equality on a jess without the defect.
+The golden comparison is byte for byte: any jess with `decodeWithLayout` also has the block-scalar
+chomping fix (jess#28) that jess 0.3.0 lacks.
