@@ -1,0 +1,11 @@
+name: Bad
+on:
+  pull_request:
+permissions:
+  contents: write
+  id-token: write
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - run: cargo test

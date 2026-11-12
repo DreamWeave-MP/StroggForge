@@ -1,0 +1,12 @@
+name: Bad
+on: push
+permissions: {}
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      # Any repository can call the public reusable workflow and sign under this exact identity.
+      - run: >-
+          cosign verify-blob jess --bundle jess.bundle
+          --certificate-identity https://github.com/DreamWeave-MP/StroggForge/.github/workflows/rustGlobalBuild.yml@refs/tags/v72
+          --certificate-oidc-issuer https://token.actions.githubusercontent.com

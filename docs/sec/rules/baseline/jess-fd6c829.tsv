@@ -1,0 +1,22 @@
+SR-01	.github/workflows/docs.yaml	jobs.build.steps[1]	actions/checkout@v6
+SR-01	.github/workflows/docs.yaml	jobs.build.steps[2]	dtolnay/rust-toolchain@stable
+SR-01	.github/workflows/docs.yaml	jobs.build.steps[3]	Swatinem/rust-cache@v2
+SR-01	.github/workflows/docs.yaml	jobs.build.steps[12]	actions/upload-pages-artifact@v5.0.0
+SR-01	.github/workflows/docs.yaml	jobs.deploy.steps[1]	actions/deploy-pages@v5.0.0
+SR-02	.github/workflows/release.yaml	jobs.build	DreamWeave-MP/StroggForge/.github/workflows/rustGlobalBuild.yml@v70
+SR-02	.github/workflows/release.yaml	jobs.image	DreamWeave-MP/StroggForge/.github/workflows/publishJessImage.yml@v70
+SR-06	.github/workflows/release.yaml	jobs.build	runs build or dependency code under its own grant
+SR-12	.github/workflows/release.yaml	jobs.build	runs pull-request code under its own grant
+# SR-01 T-ACT 5: a third-party action or reusable workflow is pinned to a full commit SHA
+# SR-02 T-TAG 2: an own-organization reference names a commit, not a movable tag or branch (advisory: decision 5)
+# SR-03 T-INJ 0: no value a PR or issue author chooses is spliced into a script
+# SR-11 T-INJ 0: no ref name, input, matrix, env, var or step output is spliced into a script (pass it through env)
+# SR-04 T-CRED 0: a workflow declares its permissions, and never write-all
+# SR-05 T-PR 0: no trigger runs with secrets on fork content (pull_request_target, workflow_run, issue_comment)
+# SR-06 T-BUILD 1: a job that can sign, write the repository or push packages runs no dependency code
+# SR-12 T-PR 1: code from a pull request never runs in a job that can sign or write (a same-repository PR gets the full grant)
+# SR-07 T-BOOT 0: nothing downloaded is piped to an interpreter, and a downloaded file is verified (sha256sum -c, cosign verify) before use
+# SR-08 T-ACT 0: no secret reaches a third-party action not pinned by SHA, directly or through env or an input
+# SR-09 T-CRED 0: a checkout in a job that can write does not leave its token in .git/config (persist-credentials: false)
+# SR-10 T-SIG 0: a signature check pins the exact signer workflow, the issuer and the source repository
+# SR-13 T-IMG 0: a container or docker:// image is pinned by digest

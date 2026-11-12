@@ -1,0 +1,292 @@
+SR-02	.github/action_templates/benchmark_template.yaml	jobs.benchmarks	DreamWeave-MP/StroggForge/.github/workflows/benchmarks.yml@v72
+SR-01	.github/action_templates/daily_quality_template.yaml	jobs.audit.steps[1]	actions/checkout@v6
+SR-01	.github/action_templates/daily_quality_template.yaml	jobs.audit.steps[2]	dtolnay/rust-toolchain@stable
+SR-01	.github/action_templates/daily_quality_template.yaml	jobs.audit.steps[3]	taiki-e/install-action@cargo-audit
+SR-01	.github/action_templates/daily_quality_template.yaml	jobs.clippy.steps[1]	actions/checkout@v6
+SR-01	.github/action_templates/daily_quality_template.yaml	jobs.clippy.steps[2]	dtolnay/rust-toolchain@stable
+SR-01	.github/action_templates/daily_quality_template.yaml	jobs.fmt.steps[1]	actions/checkout@v6
+SR-01	.github/action_templates/daily_quality_template.yaml	jobs.fmt.steps[2]	dtolnay/rust-toolchain@stable
+SR-02	.github/action_templates/daily_quality_template.yaml	jobs.clippy.steps[3]	DreamWeave-MP/StroggForge/.github/actions/setup-llvm@v72
+SR-02	.github/action_templates/lib_template.yaml	jobs.build	DreamWeave-MP/StroggForge/.github/workflows/libGlobalBuild.yml@v72
+SR-06	.github/action_templates/lib_template.yaml	jobs.build	runs build or dependency code under its own grant
+SR-12	.github/action_templates/lib_template.yaml	jobs.build	runs pull-request code under its own grant
+SR-02	.github/action_templates/mod_template.yaml	jobs.site	DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml@v72
+SR-06	.github/action_templates/mod_template.yaml	jobs.site	runs build or dependency code under its own grant
+SR-12	.github/action_templates/mod_template.yaml	jobs.site	runs pull-request code under its own grant
+SR-02	.github/action_templates/rust_template.yaml	jobs.build	DreamWeave-MP/StroggForge/.github/workflows/rustGlobalBuild.yml@v72
+SR-06	.github/action_templates/rust_template.yaml	jobs.build	runs build or dependency code under its own grant
+SR-12	.github/action_templates/rust_template.yaml	jobs.build	runs pull-request code under its own grant
+SR-01	.github/actions/corprus-crucible/action.yml	runs.steps[4]	dtolnay/rust-toolchain@stable
+SR-01	.github/actions/corprus-crucible/action.yml	runs.steps[8]	actions/cache@v5.0.5
+SR-01	.github/actions/corprus-crucible/action.yml	runs.steps[9]	actions/cache/restore@v5.0.5
+SR-01	.github/actions/corprus-crucible/action.yml	runs.steps[10]	actions/cache/restore@v5.0.5
+SR-01	.github/actions/corprus-crucible/action.yml	runs.steps[14]	actions/cache/save@v5.0.5
+SR-01	.github/actions/corprus-crucible/action.yml	runs.steps[18]	crazy-max/ghaction-virustotal@v5
+SR-01	.github/actions/corprus-crucible/action.yml	runs.steps[24]	actions/upload-artifact@v7.0.1
+SR-01	.github/actions/corprus-crucible/action.yml	runs.steps[26]	actions/upload-artifact@v7.0.1
+SR-01	.github/actions/corprus-crucible/action.yml	runs.steps[27]	actions/upload-artifact@v7.0.1
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[1]	${{ inputs.vt_api_key }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[2]	${{ inputs.platform_os || runner.os }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[3]	${{ inputs.binary_name }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[3]	${{ inputs.cargo_package }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[7]	${{ inputs.rust_target }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[11]	${{ inputs.binary_name }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[11]	${{ inputs.cargo_package }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[11]	${{ inputs.platform_os || runner.os }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[11]	${{ inputs.platform_arch || runner.arch }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[11]	${{ inputs.rust_target }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[11]	${{ steps.context.outputs.target_dir }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[12]	${{ inputs.binary_name }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[12]	${{ steps.os_check.outputs.suffix }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[12]	${{ steps.context.outputs.build_dir }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[12]	${{ steps.context.outputs.target_dir }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[12]	${{ steps.context.outputs.dist_dir }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[12]	${{ inputs.rust_target }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[12]	${{ inputs.platform_os || runner.os }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[12]	${{ inputs.platform_arch || runner.arch }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[12]	${{ inputs.cargo_package }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[13]	${{ steps.build_release.outputs.release_binary }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[13]	${{ inputs.platform_os || runner.os }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[16]	${{ steps.build_release.outputs.release_binary }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[16]	${{ steps.context.outputs.dist_dir }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[16]	${{ inputs.binary_name }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[16]	${{ inputs.platform_os || runner.os }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[16]	${{ inputs.platform_arch || runner.arch }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[17]	${{ inputs.binary_name }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[17]	${{ inputs.platform_os || runner.os }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[17]	${{ inputs.platform_arch || runner.arch }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[17]	${{ steps.build_release.outputs.binary_name }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[17]	${{ steps.context.outputs.build_dir }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[17]	${{ steps.context.outputs.dist_dir }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[17]	${{ inputs.include_files }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[19]	${{ inputs.binary_name }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[19]	${{ inputs.platform_os || runner.os }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[19]	${{ inputs.platform_arch || runner.arch }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[19]	${{ steps.vt_scan.outputs.analysis }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[20]	${{ inputs.nexus_api_key }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[25]	${{ inputs.binary_name }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[25]	${{ inputs.platform_os || runner.os }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[25]	${{ inputs.platform_arch || runner.arch }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[25]	${{ inputs.binary_name }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[25]	${{ inputs.platform_os || runner.os }}
+SR-11	.github/actions/corprus-crucible/action.yml	runs.steps[25]	${{ inputs.platform_arch || runner.arch }}
+SR-08	.github/actions/corprus-crucible/action.yml	runs.steps[18]	crazy-max/ghaction-virustotal@v5 with.vt_api_key
+SR-07	.github/actions/jess-setup/action.yml	runs.steps[1]	download not verified in the step
+SR-01	.github/actions/rust-setup/action.yml	runs.steps[1]	dtolnay/rust-toolchain@master
+SR-01	.github/actions/rust-setup/action.yml	runs.steps[4]	actions/cache@v5.0.5
+SR-01	.github/actions/rust-setup/action.yml	runs.steps[5]	actions/cache/restore@v5.0.5
+SR-01	.github/actions/rust-setup/action.yml	runs.steps[6]	actions/cache@v5.0.5
+SR-01	.github/actions/rust-setup/action.yml	runs.steps[7]	actions/cache/restore@v5.0.5
+SR-11	.github/actions/rust-setup/action.yml	runs.steps[2]	${{ inputs.toolchain }}
+SR-11	.github/actions/setup-llvm/action.yml	runs.steps[1]	${{ inputs.toolchain }}
+SR-11	.github/actions/setup-llvm/action.yml	runs.steps[1]	${{ inputs.llvm_version }}
+SR-01	.github/workflows/benchmarks.yml	jobs.benchmarks.steps[1]	actions/checkout@v6
+SR-01	.github/workflows/benchmarks.yml	jobs.benchmarks.steps[2]	actions/checkout@v6
+SR-01	.github/workflows/benchmarks.yml	jobs.benchmarks.steps[5]	actions/upload-artifact@v7
+SR-02	.github/workflows/benchmarks.yml	jobs.benchmarks.steps[3]	DreamWeave-MP/StroggForge/.github/actions/rust-setup@v72
+SR-04	.github/workflows/benchmarks.yml	permissions	absent at the top and on benchmarks: the caller's grant applies
+SR-09	.github/workflows/benchmarks.yml	jobs.benchmarks.steps[1]	actions/checkout@v6
+SR-09	.github/workflows/benchmarks.yml	jobs.benchmarks.steps[2]	actions/checkout@v6
+SR-01	.github/workflows/createRelease.yml	jobs.ensure-fresh-release.steps[1]	actions/checkout@v6
+SR-01	.github/workflows/createRelease.yml	jobs.ensure-fresh-release.steps[2]	actions/checkout@v6
+SR-04	.github/workflows/createRelease.yml	permissions	absent at the top and on ensure-fresh-release: the caller's grant applies
+SR-09	.github/workflows/createRelease.yml	jobs.ensure-fresh-release.steps[1]	actions/checkout@v6
+SR-09	.github/workflows/createRelease.yml	jobs.ensure-fresh-release.steps[2]	actions/checkout@v6
+SR-01	.github/workflows/dependent.yml	jobs.notify-dependents.steps[1]	actions/checkout@v6
+SR-11	.github/workflows/dependent.yml	jobs.notify-dependents.steps[2]	${{ inputs.dependent_repo_names }}
+SR-11	.github/workflows/dependent.yml	jobs.notify-dependents.steps[2]	${{ inputs.aur_package_name }}
+SR-04	.github/workflows/dependent.yml	permissions	absent at the top and on notify-dependents: the caller's grant applies
+SR-09	.github/workflows/dependent.yml	jobs.notify-dependents.steps[1]	actions/checkout@v6
+SR-01	.github/workflows/discord.yml	jobs.discord-notify.steps[4]	tsickert/discord-webhook@v7.0.0
+SR-04	.github/workflows/discord.yml	permissions	absent at the top and on discord-notify: the caller's grant applies
+SR-08	.github/workflows/discord.yml	jobs.discord-notify.steps[4]	tsickert/discord-webhook@v7.0.0 with.webhook-url
+SR-01	.github/workflows/libGlobalBuild.yml	jobs.crates.steps[1]	actions/checkout@v6
+SR-01	.github/workflows/libGlobalBuild.yml	jobs.crates.steps[2]	actions/checkout@v6
+SR-01	.github/workflows/libGlobalBuild.yml	jobs.docs.steps[1]	actions/checkout@v6
+SR-01	.github/workflows/libGlobalBuild.yml	jobs.docs.steps[2]	actions/checkout@v6
+SR-01	.github/workflows/libGlobalBuild.yml	jobs.docs.steps[5]	actions/configure-pages@v6.0.0
+SR-01	.github/workflows/libGlobalBuild.yml	jobs.docs.steps[6]	actions/upload-pages-artifact@v5.0.0
+SR-01	.github/workflows/libGlobalBuild.yml	jobs.docs.steps[7]	actions/deploy-pages@v5.0.0
+SR-01	.github/workflows/libGlobalBuild.yml	jobs.lint.steps[1]	actions/checkout@v6
+SR-01	.github/workflows/libGlobalBuild.yml	jobs.lint.steps[2]	actions/checkout@v6
+SR-01	.github/workflows/libGlobalBuild.yml	jobs.lint.steps[6]	taiki-e/install-action@cargo-audit
+SR-01	.github/workflows/libGlobalBuild.yml	jobs.publish.steps[1]	actions/checkout@v6
+SR-01	.github/workflows/libGlobalBuild.yml	jobs.publish.steps[2]	actions/checkout@v6
+SR-01	.github/workflows/libGlobalBuild.yml	jobs.test.steps[1]	actions/checkout@v6
+SR-01	.github/workflows/libGlobalBuild.yml	jobs.test.steps[7]	actions/upload-artifact@v7
+SR-02	.github/workflows/libGlobalBuild.yml	jobs.crates.steps[3]	DreamWeave-MP/StroggForge/.github/actions/rust-setup@v72
+SR-02	.github/workflows/libGlobalBuild.yml	jobs.docs.steps[3]	DreamWeave-MP/StroggForge/.github/actions/rust-setup@v72
+SR-02	.github/workflows/libGlobalBuild.yml	jobs.lint.steps[3]	DreamWeave-MP/StroggForge/.github/actions/rust-setup@v72
+SR-02	.github/workflows/libGlobalBuild.yml	jobs.lint.steps[10]	DreamWeave-MP/StroggForge/.github/actions/rust-setup@v72
+SR-02	.github/workflows/libGlobalBuild.yml	jobs.test.steps[2]	DreamWeave-MP/StroggForge/.github/actions/rust-setup@v72
+SR-02	.github/workflows/libGlobalBuild.yml	jobs.benchmarks	DreamWeave-MP/StroggForge/.github/workflows/benchmarks.yml@v72
+SR-02	.github/workflows/libGlobalBuild.yml	jobs.mod-template	DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml@v72
+SR-02	.github/workflows/libGlobalBuild.yml	jobs.notify	DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v72
+SR-02	.github/workflows/libGlobalBuild.yml	jobs.site-check	DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml@v72
+SR-11	.github/workflows/libGlobalBuild.yml	jobs.docs.steps[4]	${{ inputs.crate_names }}
+SR-04	.github/workflows/libGlobalBuild.yml	permissions	absent at the top and on crates, lint, notify, test: the caller's grant applies
+SR-06	.github/workflows/libGlobalBuild.yml	jobs.crates.steps[4]	runs build or dependency code under the caller's grant, which this file doesn't limit
+SR-06	.github/workflows/libGlobalBuild.yml	jobs.docs.steps[4]	runs build or dependency code under its own grant
+SR-06	.github/workflows/libGlobalBuild.yml	jobs.lint.steps[8]	runs build or dependency code under the caller's grant, which this file doesn't limit
+SR-06	.github/workflows/libGlobalBuild.yml	jobs.mod-template	runs build or dependency code under its own grant
+SR-06	.github/workflows/libGlobalBuild.yml	jobs.site-check	runs build or dependency code under its own grant
+SR-06	.github/workflows/libGlobalBuild.yml	jobs.test.steps[3]	runs build or dependency code under the caller's grant, which this file doesn't limit
+SR-12	.github/workflows/libGlobalBuild.yml	jobs.lint	runs pull-request code under the caller's grant, which this file doesn't limit
+SR-12	.github/workflows/libGlobalBuild.yml	jobs.site-check	runs pull-request code under its own grant
+SR-12	.github/workflows/libGlobalBuild.yml	jobs.test	runs pull-request code under the caller's grant, which this file doesn't limit
+SR-09	.github/workflows/libGlobalBuild.yml	jobs.crates.steps[1]	actions/checkout@v6
+SR-09	.github/workflows/libGlobalBuild.yml	jobs.crates.steps[2]	actions/checkout@v6
+SR-09	.github/workflows/libGlobalBuild.yml	jobs.docs.steps[1]	actions/checkout@v6
+SR-09	.github/workflows/libGlobalBuild.yml	jobs.docs.steps[2]	actions/checkout@v6
+SR-09	.github/workflows/libGlobalBuild.yml	jobs.lint.steps[1]	actions/checkout@v6
+SR-09	.github/workflows/libGlobalBuild.yml	jobs.lint.steps[2]	actions/checkout@v6
+SR-09	.github/workflows/libGlobalBuild.yml	jobs.publish.steps[1]	actions/checkout@v6
+SR-09	.github/workflows/libGlobalBuild.yml	jobs.publish.steps[2]	actions/checkout@v6
+SR-09	.github/workflows/libGlobalBuild.yml	jobs.test.steps[1]	actions/checkout@v6
+SR-01	.github/workflows/modGlobalBuild.yml	jobs.deploy.steps[1]	actions/deploy-pages@v5
+SR-01	.github/workflows/modGlobalBuild.yml	jobs.nexus-upload.steps[1]	actions/download-artifact@v8
+SR-01	.github/workflows/modGlobalBuild.yml	jobs.nexus-upload.steps[2]	Nexus-Mods/upload-action@main
+SR-01	.github/workflows/modGlobalBuild.yml	jobs.release.steps[1]	actions/checkout@v7
+SR-01	.github/workflows/modGlobalBuild.yml	jobs.release.steps[2]	actions/checkout@v7
+SR-01	.github/workflows/modGlobalBuild.yml	jobs.release.steps[6]	actions/download-artifact@v8
+SR-01	.github/workflows/modGlobalBuild.yml	jobs.release.steps[10]	sigstore/cosign-installer@v3
+SR-01	.github/workflows/modGlobalBuild.yml	jobs.release.steps[15]	actions/upload-artifact@v7
+SR-01	.github/workflows/modGlobalBuild.yml	jobs.site.steps[1]	actions/checkout@v7
+SR-01	.github/workflows/modGlobalBuild.yml	jobs.site.steps[2]	actions/checkout@v7
+SR-01	.github/workflows/modGlobalBuild.yml	jobs.site.steps[8]	actions/configure-pages@v6
+SR-01	.github/workflows/modGlobalBuild.yml	jobs.site.steps[10]	actions/download-artifact@v8
+SR-01	.github/workflows/modGlobalBuild.yml	jobs.site.steps[13]	sigstore/cosign-installer@v3
+SR-02	.github/workflows/modGlobalBuild.yml	jobs.release.steps[3]	DreamWeave-MP/StroggForge/.github/actions/jess-setup@v72
+SR-02	.github/workflows/modGlobalBuild.yml	jobs.site.steps[3]	DreamWeave-MP/StroggForge/.github/actions/jess-setup@v72
+SR-06	.github/workflows/modGlobalBuild.yml	jobs.release.steps[5]	runs build or dependency code under its own grant
+SR-06	.github/workflows/modGlobalBuild.yml	jobs.site.steps[6]	runs build or dependency code under its own grant
+SR-12	.github/workflows/modGlobalBuild.yml	jobs.site	runs pull-request code under its own grant
+SR-08	.github/workflows/modGlobalBuild.yml	jobs.nexus-upload.steps[2]	Nexus-Mods/upload-action@main with.api_key
+SR-09	.github/workflows/modGlobalBuild.yml	jobs.release.steps[1]	actions/checkout@v7
+SR-09	.github/workflows/modGlobalBuild.yml	jobs.release.steps[2]	actions/checkout@v7
+SR-09	.github/workflows/modGlobalBuild.yml	jobs.site.steps[1]	actions/checkout@v7
+SR-09	.github/workflows/modGlobalBuild.yml	jobs.site.steps[2]	actions/checkout@v7
+SR-01	.github/workflows/publish-linux-x86_64-el9-builder.yml	jobs.publish.steps[1]	actions/checkout@v6
+SR-01	.github/workflows/publish-linux-x86_64-el9-builder.yml	jobs.publish.steps[2]	docker/login-action@v3
+SR-01	.github/workflows/publish-linux-x86_64-el9-builder.yml	jobs.publish.steps[4]	docker/build-push-action@v6
+SR-08	.github/workflows/publish-linux-x86_64-el9-builder.yml	jobs.publish.steps[2]	docker/login-action@v3 with.password
+SR-09	.github/workflows/publish-linux-x86_64-el9-builder.yml	jobs.publish.steps[1]	actions/checkout@v6
+SR-01	.github/workflows/publish-portmaster-aarch64-el9-builder.yml	jobs.publish.steps[1]	actions/checkout@v6
+SR-01	.github/workflows/publish-portmaster-aarch64-el9-builder.yml	jobs.publish.steps[2]	docker/login-action@v3
+SR-01	.github/workflows/publish-portmaster-aarch64-el9-builder.yml	jobs.publish.steps[4]	docker/build-push-action@v6
+SR-08	.github/workflows/publish-portmaster-aarch64-el9-builder.yml	jobs.publish.steps[2]	docker/login-action@v3 with.password
+SR-09	.github/workflows/publish-portmaster-aarch64-el9-builder.yml	jobs.publish.steps[1]	actions/checkout@v6
+SR-01	.github/workflows/publishJessImage.yml	jobs.publish.steps[1]	actions/checkout@v6
+SR-01	.github/workflows/publishJessImage.yml	jobs.publish.steps[2]	actions/download-artifact@v8
+SR-01	.github/workflows/publishJessImage.yml	jobs.publish.steps[4]	docker/login-action@v3
+SR-01	.github/workflows/publishJessImage.yml	jobs.publish.steps[6]	docker/build-push-action@v6
+SR-08	.github/workflows/publishJessImage.yml	jobs.publish.steps[4]	docker/login-action@v3 with.password
+SR-09	.github/workflows/publishJessImage.yml	jobs.publish.steps[1]	actions/checkout@v6
+SR-01	.github/workflows/rustGlobalBuild.yml	jobs.aur.steps[1]	actions/checkout@v6
+SR-01	.github/workflows/rustGlobalBuild.yml	jobs.aur.steps[2]	varrcan/aur-publish-action@v1
+SR-01	.github/workflows/rustGlobalBuild.yml	jobs.crates.steps[1]	actions/checkout@v6
+SR-01	.github/workflows/rustGlobalBuild.yml	jobs.crates.steps[2]	actions/checkout@v6
+SR-01	.github/workflows/rustGlobalBuild.yml	jobs.docs.steps[1]	actions/checkout@v6
+SR-01	.github/workflows/rustGlobalBuild.yml	jobs.docs.steps[2]	actions/checkout@v6
+SR-01	.github/workflows/rustGlobalBuild.yml	jobs.docs.steps[5]	actions/configure-pages@v6.0.0
+SR-01	.github/workflows/rustGlobalBuild.yml	jobs.docs.steps[6]	actions/upload-pages-artifact@v5.0.0
+SR-01	.github/workflows/rustGlobalBuild.yml	jobs.docs.steps[7]	actions/deploy-pages@v5.0.0
+SR-01	.github/workflows/rustGlobalBuild.yml	jobs.lint.steps[1]	actions/checkout@v6
+SR-01	.github/workflows/rustGlobalBuild.yml	jobs.lint.steps[2]	actions/checkout@v6
+SR-01	.github/workflows/rustGlobalBuild.yml	jobs.lint.steps[6]	taiki-e/install-action@cargo-audit
+SR-01	.github/workflows/rustGlobalBuild.yml	jobs.nexus.steps[1]	actions/checkout@v6
+SR-01	.github/workflows/rustGlobalBuild.yml	jobs.nexus.steps[2]	actions/download-artifact@v8.0.1
+SR-01	.github/workflows/rustGlobalBuild.yml	jobs.nexus.steps[4]	Nexus-Mods/upload-action@v1.0.0-beta.5
+SR-01	.github/workflows/rustGlobalBuild.yml	jobs.publish.steps[1]	actions/checkout@v6
+SR-01	.github/workflows/rustGlobalBuild.yml	jobs.publish.steps[2]	actions/checkout@v6
+SR-01	.github/workflows/rustGlobalBuild.yml	jobs.publish.steps[3]	actions/download-artifact@v8.0.1
+SR-01	.github/workflows/rustGlobalBuild.yml	jobs.publish.steps[5]	actions/upload-artifact@v7.0.1
+SR-01	.github/workflows/rustGlobalBuild.yml	jobs.publish.steps[10]	actions/download-artifact@v8.0.1
+SR-01	.github/workflows/rustGlobalBuild.yml	jobs.release.steps[1]	actions/checkout@v6
+SR-01	.github/workflows/rustGlobalBuild.yml	jobs.release-android.steps[2]	actions/checkout@v6
+SR-01	.github/workflows/rustGlobalBuild.yml	jobs.release-android.steps[3]	nttld/setup-ndk@v1
+SR-01	.github/workflows/rustGlobalBuild.yml	jobs.release-linux.steps[1]	actions/checkout@v6
+SR-01	.github/workflows/rustGlobalBuild.yml	jobs.release-portmaster.steps[1]	actions/checkout@v6
+SR-01	.github/workflows/rustGlobalBuild.yml	jobs.test.steps[1]	actions/checkout@v6
+SR-01	.github/workflows/rustGlobalBuild.yml	jobs.test.steps[2]	actions/checkout@v6
+SR-01	.github/workflows/rustGlobalBuild.yml	jobs.test.steps[9]	actions/upload-artifact@v7
+SR-02	.github/workflows/rustGlobalBuild.yml	jobs.crates.steps[3]	DreamWeave-MP/StroggForge/.github/actions/rust-setup@v72
+SR-02	.github/workflows/rustGlobalBuild.yml	jobs.docs.steps[3]	DreamWeave-MP/StroggForge/.github/actions/rust-setup@v72
+SR-02	.github/workflows/rustGlobalBuild.yml	jobs.lint.steps[3]	DreamWeave-MP/StroggForge/.github/actions/rust-setup@v72
+SR-02	.github/workflows/rustGlobalBuild.yml	jobs.lint.steps[10]	DreamWeave-MP/StroggForge/.github/actions/rust-setup@v72
+SR-02	.github/workflows/rustGlobalBuild.yml	jobs.release.steps[2]	DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v72
+SR-02	.github/workflows/rustGlobalBuild.yml	jobs.release-android.steps[5]	DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v72
+SR-02	.github/workflows/rustGlobalBuild.yml	jobs.release-linux.steps[2]	DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v72
+SR-02	.github/workflows/rustGlobalBuild.yml	jobs.release-portmaster.steps[2]	DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v72
+SR-02	.github/workflows/rustGlobalBuild.yml	jobs.test.steps[3]	DreamWeave-MP/StroggForge/.github/actions/rust-setup@v72
+SR-02	.github/workflows/rustGlobalBuild.yml	jobs.benchmarks	DreamWeave-MP/StroggForge/.github/workflows/benchmarks.yml@v72
+SR-02	.github/workflows/rustGlobalBuild.yml	jobs.mod-template	DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml@v72
+SR-02	.github/workflows/rustGlobalBuild.yml	jobs.notify	DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v72
+SR-02	.github/workflows/rustGlobalBuild.yml	jobs.site-check	DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml@v72
+SR-11	.github/workflows/rustGlobalBuild.yml	jobs.docs.steps[4]	${{ inputs.binary_names }}
+SR-11	.github/workflows/rustGlobalBuild.yml	jobs.nexus.steps[3]	${{ matrix.upload }}
+SR-11	.github/workflows/rustGlobalBuild.yml	jobs.test.steps[6]	${{ inputs.binary_names }}
+SR-11	.github/workflows/rustGlobalBuild.yml	jobs.test.steps[6]	${{ inputs.binary_package }}
+SR-11	.github/workflows/rustGlobalBuild.yml	jobs.test.steps[6]	${{ matrix.platform_os }}
+SR-11	.github/workflows/rustGlobalBuild.yml	jobs.test.steps[6]	${{ matrix.platform_arch }}
+SR-04	.github/workflows/rustGlobalBuild.yml	permissions	absent at the top and on aur, crates, lint, nexus, notify, test: the caller's grant applies
+SR-06	.github/workflows/rustGlobalBuild.yml	jobs.crates.steps[4]	runs build or dependency code under the caller's grant, which this file doesn't limit
+SR-06	.github/workflows/rustGlobalBuild.yml	jobs.docs.steps[4]	runs build or dependency code under its own grant
+SR-06	.github/workflows/rustGlobalBuild.yml	jobs.lint.steps[8]	runs build or dependency code under the caller's grant, which this file doesn't limit
+SR-06	.github/workflows/rustGlobalBuild.yml	jobs.mod-template	runs build or dependency code under its own grant
+SR-06	.github/workflows/rustGlobalBuild.yml	jobs.release.steps[2]	runs build or dependency code under its own grant
+SR-06	.github/workflows/rustGlobalBuild.yml	jobs.release-android.steps[5]	runs build or dependency code under its own grant
+SR-06	.github/workflows/rustGlobalBuild.yml	jobs.release-linux.steps[2]	runs build or dependency code under its own grant
+SR-06	.github/workflows/rustGlobalBuild.yml	jobs.release-portmaster.steps[2]	runs build or dependency code under its own grant
+SR-06	.github/workflows/rustGlobalBuild.yml	jobs.site-check	runs build or dependency code under its own grant
+SR-06	.github/workflows/rustGlobalBuild.yml	jobs.test.steps[5]	runs build or dependency code under the caller's grant, which this file doesn't limit
+SR-12	.github/workflows/rustGlobalBuild.yml	jobs.lint	runs pull-request code under the caller's grant, which this file doesn't limit
+SR-12	.github/workflows/rustGlobalBuild.yml	jobs.release	runs pull-request code under its own grant
+SR-12	.github/workflows/rustGlobalBuild.yml	jobs.release-android	runs pull-request code under its own grant
+SR-12	.github/workflows/rustGlobalBuild.yml	jobs.release-linux	runs pull-request code under its own grant
+SR-12	.github/workflows/rustGlobalBuild.yml	jobs.release-portmaster	runs pull-request code under its own grant
+SR-12	.github/workflows/rustGlobalBuild.yml	jobs.site-check	runs pull-request code under its own grant
+SR-12	.github/workflows/rustGlobalBuild.yml	jobs.test	runs pull-request code under the caller's grant, which this file doesn't limit
+SR-08	.github/workflows/rustGlobalBuild.yml	jobs.aur.steps[2]	varrcan/aur-publish-action@v1 with.ssh_private_key
+SR-08	.github/workflows/rustGlobalBuild.yml	jobs.nexus.steps[4]	Nexus-Mods/upload-action@v1.0.0-beta.5 with.api_key
+SR-09	.github/workflows/rustGlobalBuild.yml	jobs.aur.steps[1]	actions/checkout@v6
+SR-09	.github/workflows/rustGlobalBuild.yml	jobs.crates.steps[1]	actions/checkout@v6
+SR-09	.github/workflows/rustGlobalBuild.yml	jobs.crates.steps[2]	actions/checkout@v6
+SR-09	.github/workflows/rustGlobalBuild.yml	jobs.docs.steps[1]	actions/checkout@v6
+SR-09	.github/workflows/rustGlobalBuild.yml	jobs.docs.steps[2]	actions/checkout@v6
+SR-09	.github/workflows/rustGlobalBuild.yml	jobs.lint.steps[1]	actions/checkout@v6
+SR-09	.github/workflows/rustGlobalBuild.yml	jobs.lint.steps[2]	actions/checkout@v6
+SR-09	.github/workflows/rustGlobalBuild.yml	jobs.nexus.steps[1]	actions/checkout@v6
+SR-09	.github/workflows/rustGlobalBuild.yml	jobs.publish.steps[1]	actions/checkout@v6
+SR-09	.github/workflows/rustGlobalBuild.yml	jobs.publish.steps[2]	actions/checkout@v6
+SR-09	.github/workflows/rustGlobalBuild.yml	jobs.release.steps[1]	actions/checkout@v6
+SR-09	.github/workflows/rustGlobalBuild.yml	jobs.release-android.steps[2]	actions/checkout@v6
+SR-09	.github/workflows/rustGlobalBuild.yml	jobs.release-linux.steps[1]	actions/checkout@v6
+SR-09	.github/workflows/rustGlobalBuild.yml	jobs.release-portmaster.steps[1]	actions/checkout@v6
+SR-09	.github/workflows/rustGlobalBuild.yml	jobs.test.steps[1]	actions/checkout@v6
+SR-09	.github/workflows/rustGlobalBuild.yml	jobs.test.steps[2]	actions/checkout@v6
+SR-13	.github/workflows/rustGlobalBuild.yml	jobs.release-linux.container	ghcr.io/dreamweave-mp/stroggforge-linux-x86_64-el9-builder:v72
+SR-13	.github/workflows/rustGlobalBuild.yml	jobs.release-portmaster.container	ghcr.io/dreamweave-mp/stroggforge-portmaster-aarch64-el9-builder:v72
+SR-01	.github/workflows/toolchain.yml	jobs.link.steps[1]	actions/checkout@v6
+SR-01	.github/workflows/toolchain.yml	jobs.link.steps[2]	dtolnay/rust-toolchain@stable
+SR-01	.github/workflows/war-room.yml	jobs.deploy.steps[1]	actions/deploy-pages@v5.0.0
+SR-01	.github/workflows/war-room.yml	jobs.validate.steps[1]	actions/checkout@v6
+SR-01	.github/workflows/war-room.yml	jobs.validate.steps[2]	dtolnay/rust-toolchain@stable
+SR-01	.github/workflows/war-room.yml	jobs.validate.steps[3]	actions/setup-node@v6
+SR-01	.github/workflows/war-room.yml	jobs.validate.steps[4]	taiki-e/install-action@v2
+SR-01	.github/workflows/war-room.yml	jobs.validate.steps[12]	actions/upload-pages-artifact@v5.0.0
+SR-07	.github/workflows/war-room.yml	jobs.validate.steps[6]	download piped to an interpreter or unpacker
+SR-07	scripts/shared/setup-llvm.sh	line 71	download piped to an interpreter or unpacker
+# SR-01 T-ACT 101: a third-party action or reusable workflow is pinned to a full commit SHA
+# SR-02 T-TAG 30: an own-organization reference names a commit, not a movable tag or branch (advisory: decision 5)
+# SR-03 T-INJ 0: no value a PR or issue author chooses is spliced into a script
+# SR-11 T-INJ 57: no ref name, input, matrix, env, var or step output is spliced into a script (pass it through env)
+# SR-04 T-CRED 6: a workflow declares its permissions, and never write-all
+# SR-05 T-PR 0: no trigger runs with secrets on fork content (pull_request_target, workflow_run, issue_comment)
+# SR-06 T-BUILD 21: a job that can sign, write the repository or push packages runs no dependency code
+# SR-12 T-PR 14: code from a pull request never runs in a job that can sign or write (a same-repository PR gets the full grant)
+# SR-07 T-BOOT 3: nothing downloaded is piped to an interpreter, and a downloaded file is verified (sha256sum -c, cosign verify) before use
+# SR-08 T-ACT 8: no secret reaches a third-party action not pinned by SHA, directly or through env or an input
+# SR-09 T-CRED 37: a checkout in a job that can write does not leave its token in .git/config (persist-credentials: false)
+# SR-10 T-SIG 0: a signature check pins the exact signer workflow, the issuer and the source repository
+# SR-13 T-IMG 2: a container or docker:// image is pinned by digest

@@ -1,0 +1,9 @@
+name: Bad
+on: push
+permissions: {}
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    container: ghcr.io/dreamweave-mp/stroggforge-linux-x86_64-el9-builder:v72
+    steps:
+      - uses: docker://alpine:3

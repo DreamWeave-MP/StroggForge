@@ -1,0 +1,19 @@
+name: Good
+on:
+  pull_request:
+  push:
+    tags: ['*']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - run: cargo test
+  release:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
+    steps:
+      - run: cargo build --release

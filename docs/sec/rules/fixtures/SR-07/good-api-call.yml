@@ -1,0 +1,11 @@
+name: Good
+on: push
+permissions: {}
+jobs:
+  notify:
+    runs-on: ubuntu-24.04
+    steps:
+      - env:
+          WEBHOOK: ${{ secrets.WEBHOOK }}
+        run: |
+          curl -X POST -H 'Content-Type: application/json' --data '{"content":"done"}' "$WEBHOOK"

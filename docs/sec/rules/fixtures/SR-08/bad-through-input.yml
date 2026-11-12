@@ -1,0 +1,7 @@
+name: Bad
+runs:
+  using: composite
+  steps:
+    - uses: crazy-max/ghaction-virustotal@v5
+      with:
+        vt_api_key: ${{ inputs.vt_api_key }}

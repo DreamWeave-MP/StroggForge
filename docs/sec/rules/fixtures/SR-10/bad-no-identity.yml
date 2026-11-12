@@ -1,0 +1,11 @@
+name: Bad
+on: push
+permissions: {}
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - run: >-
+          cosign verify-blob jess --bundle jess.bundle
+          --certificate-oidc-issuer https://token.actions.githubusercontent.com
+          --certificate-github-workflow-repository DreamWeave-MP/jess

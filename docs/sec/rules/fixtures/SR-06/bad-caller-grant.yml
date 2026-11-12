@@ -1,0 +1,8 @@
+name: Bad
+on:
+  workflow_call:
+jobs:
+  site:
+    runs-on: ubuntu-24.04
+    steps:
+      - run: jess workspace run --trusted build-site

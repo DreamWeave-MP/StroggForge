@@ -1,0 +1,10 @@
+name: Good
+on: push
+permissions: {}
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+      - uses: ./.github/actions/local
+      - uses: DreamWeave-MP/StroggForge/.github/actions/rust-setup@v72

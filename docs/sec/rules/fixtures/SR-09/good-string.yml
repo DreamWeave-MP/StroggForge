@@ -1,0 +1,12 @@
+name: Good
+on: push
+permissions: {}
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: 'false'

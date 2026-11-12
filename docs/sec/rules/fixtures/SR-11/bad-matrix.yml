@@ -1,0 +1,11 @@
+name: Bad
+on: push
+permissions: {}
+jobs:
+  upload:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        upload: [a, b]
+    steps:
+      - run: bash read-upload.sh "${{ matrix.upload }}"

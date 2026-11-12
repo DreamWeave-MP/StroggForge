@@ -1,0 +1,10 @@
+name: Bad
+on: push
+permissions:
+  contents: write
+  id-token: write
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - run: cargo test --workspace

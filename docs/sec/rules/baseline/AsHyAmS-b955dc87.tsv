@@ -1,0 +1,33 @@
+SR-01	.github/workflows/check.yml	jobs.rust.steps[1]	actions/checkout@v7
+SR-01	.github/workflows/check.yml	jobs.rust.steps[2]	dtolnay/rust-toolchain@stable
+SR-01	.github/workflows/check.yml	jobs.rust.steps[3]	Swatinem/rust-cache@v2
+SR-01	.github/workflows/check.yml	jobs.site.steps[1]	actions/checkout@v7
+SR-01	.github/workflows/check.yml	jobs.site.steps[2]	dtolnay/rust-toolchain@stable
+SR-01	.github/workflows/check.yml	jobs.site.steps[3]	Swatinem/rust-cache@v2
+SR-01	.github/workflows/check.yml	jobs.site.steps[4]	taiki-e/install-action@v2
+SR-01	.github/workflows/check.yml	jobs.sources.steps[1]	actions/checkout@v7
+SR-01	.github/workflows/check.yml	jobs.sources.steps[3]	dtolnay/rust-toolchain@stable
+SR-01	.github/workflows/check.yml	jobs.sources.steps[4]	Swatinem/rust-cache@v2
+SR-07	.github/workflows/check.yml	jobs.rust.steps[7]	download piped to an interpreter or unpacker
+SR-01	.github/workflows/network.yml	jobs.deploy.steps[1]	actions/deploy-pages@v5
+SR-01	.github/workflows/network.yml	jobs.refresh.steps[1]	actions/checkout@v7
+SR-01	.github/workflows/network.yml	jobs.refresh.steps[2]	dtolnay/rust-toolchain@stable
+SR-01	.github/workflows/network.yml	jobs.refresh.steps[3]	Swatinem/rust-cache@v2
+SR-01	.github/workflows/network.yml	jobs.refresh.steps[4]	taiki-e/install-action@v2
+SR-01	.github/workflows/network.yml	jobs.refresh.steps[5]	actions/configure-pages@v6
+SR-01	.github/workflows/network.yml	jobs.refresh.steps[14]	actions/upload-pages-artifact@v5.0.0
+SR-06	.github/workflows/network.yml	jobs.refresh.steps[7]	runs build or dependency code under its own grant
+SR-09	.github/workflows/network.yml	jobs.refresh.steps[1]	actions/checkout@v7
+# SR-01 T-ACT 17: a third-party action or reusable workflow is pinned to a full commit SHA
+# SR-02 T-TAG 0: an own-organization reference names a commit, not a movable tag or branch (advisory: decision 5)
+# SR-03 T-INJ 0: no value a PR or issue author chooses is spliced into a script
+# SR-11 T-INJ 0: no ref name, input, matrix, env, var or step output is spliced into a script (pass it through env)
+# SR-04 T-CRED 0: a workflow declares its permissions, and never write-all
+# SR-05 T-PR 0: no trigger runs with secrets on fork content (pull_request_target, workflow_run, issue_comment)
+# SR-06 T-BUILD 1: a job that can sign, write the repository or push packages runs no dependency code
+# SR-12 T-PR 0: code from a pull request never runs in a job that can sign or write (a same-repository PR gets the full grant)
+# SR-07 T-BOOT 1: nothing downloaded is piped to an interpreter, and a downloaded file is verified (sha256sum -c, cosign verify) before use
+# SR-08 T-ACT 0: no secret reaches a third-party action not pinned by SHA, directly or through env or an input
+# SR-09 T-CRED 1: a checkout in a job that can write does not leave its token in .git/config (persist-credentials: false)
+# SR-10 T-SIG 0: a signature check pins the exact signer workflow, the issuer and the source repository
+# SR-13 T-IMG 0: a container or docker:// image is pinned by digest

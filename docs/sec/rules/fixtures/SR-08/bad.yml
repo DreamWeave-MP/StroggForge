@@ -1,0 +1,10 @@
+name: Bad
+on: push
+permissions: {}
+jobs:
+  notify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: someone/notify-action@v2
+        with:
+          token: ${{ secrets.DW_BOT_PAT }}

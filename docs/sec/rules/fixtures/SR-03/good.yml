@@ -1,0 +1,10 @@
+name: Good
+on: pull_request
+permissions: {}
+jobs:
+  greet:
+    runs-on: ubuntu-24.04
+    steps:
+      - env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: echo "Building $TITLE on ${{ runner.os }}"
