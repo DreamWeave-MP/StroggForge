@@ -23,9 +23,12 @@ call that has to be recorded as an exception.
   is stacked on FOR-102 (#65) and FOR-101 (#64), all current with `main` at `72c3050`. FOR-101 and
   the FOR-102 RFC were ratified by the maintainer on 2026-11-12; none of the four is merged.
 - **jess:** the forge needs `@jess/yaml`'s `decodeWithLayout`, added in
-  [jess#30](https://github.com/DreamWeave-MP/jess/pull/30) (merged as `33d0d62`). The commands below
-  ran on the branch build `af28987` (no-LTO, `tools/dev/no-lto.sh`), whose YAML code is the merged
-  code. The profile is from the `dev` release built from `main` (see Profile).
+  [jess#30](https://github.com/DreamWeave-MP/jess/pull/30), merged as `33d0d62`. Every command
+  below ran on jess's `dev` release built from `main` at `1a4be2f`. That is `jess-Linux-X64.zip`,
+  SHA-256 `9a0877f1…69ff`; the binary inside is `6ab640e2…c57b`. Its Sigstore bundle verified with
+  `cosign verify-blob`: signed by `StroggForge/.github/workflows/rustGlobalBuild.yml@refs/tags/v70`
+  for `DreamWeave-MP/jess` at `1a4be2f`, `refs/heads/main`, on a GitHub-hosted runner. The same
+  gates passed earlier on the branch build `af28987`.
 - **Hypothesis:** the forge can replace the Rust validator without changing any verdict, any first
   finding or any exit class, apart from divergences each recorded with a reason. Where a divergence
   comes from a jess defect, the defect gets fixed in jess, not worked around.
@@ -60,7 +63,7 @@ Nothing under `.github`, `scripts`, `site` or `war-room` changed:
 
 ## Strict
 
-From the checkout's root; `J` is the jess branch build above.
+From the checkout's root at `2ec5e9d`; `J` is the `dev` jess above.
 
 | Command | Result |
 | --- | --- |
@@ -69,7 +72,7 @@ From the checkout's root; `J` is the jess branch build above.
 | `cargo fmt --all --check`; `cargo clippy --locked --workspace --all-targets --all-features -- -W clippy::pedantic -D warnings`; `cargo test --locked --workspace --all-features` | clean; clean; 14 passed |
 | `actionlint` | clean |
 | `target/debug/stroggforge-war-room inspect .` vs `docs/vnext/golden/workflow-contracts.jsonl`, and `forge-inspect` vs the same | both byte-identical: 70 lines, 16 workflows and actions, 53 executable files |
-| `$J run --trusted forge/tests/differential.jsl target/debug/stroggforge-war-room $J` | exit 0; table below |
+| `$J run --trusted forge/tests/differential.jsl target/debug/stroggforge-war-room $J` | exit 0 in 37 s; table below |
 | jess on a release without `decodeWithLayout` | `the forge needs a jess whose @jess/yaml has decodeWithLayout`, exit 1 |
 
 The differential, every tree built from `forge/tests/fixtures/repo`:
@@ -135,8 +138,23 @@ deterministic: two runs are byte-identical, and the Rust regenerates the committ
 
 ## Profile
 
-Pending: measured on the `dev` release's Linux build of jess `main`, as jess's rules require a
-verified build for any number. See the next section once recorded.
+Linux x86-64, this workstation, the `dev` jess above (an LTO release build) and the Rust war room
+built `--release`. Five runs each, wall time from fastest to slowest, peak RSS:
+
+| | Wall | Peak RSS |
+| --- | --- | --- |
+| `forge-check` (`jess workspace run`) | 0.11-0.12 s | ~30 MB |
+| `forge-inspect` | 0.12-0.15 s | ~31 MB |
+| `jess package test forge` (246 cases, source and packed) | 0.82-0.85 s | ~39 MB |
+| Rust `check`, release | under 0.01 s | ~4 MB |
+| Rust `inspect`, release | 0.01 s | ~4 MB |
+| Rust release rebuild after touching `main.rs` (toolchain already installed) | 4.5 s | |
+
+The forge is about ten times slower per run, and the difference is all jess's startup. What CI
+would trade is the toolchain, not the run. `war-room.yml` installs Rust (`dtolnay/rust-toolchain`,
+then a crate build: about a minute cold). The forge needs one 13 MB download, `jess-Linux-X64.zip`
+(13,058,301 bytes). That saving is an estimate until a CI job measures it, and it can't be measured
+before SEC-201's authenticated bootstrap exists. It is not claimed here.
 
 ## Retirement
 
