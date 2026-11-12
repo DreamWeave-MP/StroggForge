@@ -50,9 +50,16 @@ Where it decides differently, `tests/fixtures/cases.toml` says so with a `diverg
 
 - A date is exactly `YYYY-MM-DD` in digits. Rust checked the length and parsed each part as an
   integer, so it also took `2026-+1-03` and `2024-2-029`.
-- `needs: {}` and `needs: {1: test}` pass. @jess/yaml decodes them to the same Lua tables as `[]`
-  and `[test]`, and nothing records which the file said. TOML keeps that distinction in its
-  layout, so the war-room files have no such hole.
+- In workflow YAML, an empty `{}` where a list belongs or `[]` where a mapping does (`jobs: []`,
+  `steps: {}`, `secrets: []`, `needs: {}`), and a mapping keyed 1 to n where a list belongs
+  (`needs: {1: test}`), pass. @jess/yaml decodes them to the same Lua tables as their opposites
+  and keeps no layout to say which the file wrote; nine `[[accept]]` divergences pin them. TOML
+  keeps that distinction in its layout, so the war-room files have no such hole.
+
+`inspect` writes what the decoded table holds where serde kept more: `1.0` as `1`, `010` as `10`,
+`{1: a}` as `["a"]`, a tag as `{"tag", "value"}`. An integer past 2^53 or a key that is a collection
+is `FORGE-E057` rather than output. `src/inspect.jsl` lists them and the suite pins each one. Unlike
+the Rust, `inspect` reads only `.github`, so it works on a repository with no war room.
 
 ## Layout
 
