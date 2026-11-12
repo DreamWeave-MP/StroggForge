@@ -34,7 +34,8 @@ local function raw(value: unknown): unknown
 end
 
 local function steps(value: unknown): { unknown }
-  if type(value) ~= 'table' then return {} end
+  -- Only a sequence: the Rust wrote steps given as a mapping as none, and so does check.
+  if not workflows.isSequence(value) then return {} end
 
   local out = {}
   for _, step in value :: { unknown } do
@@ -55,11 +56,14 @@ local function events(on: unknown): { string }
   local names = {}
   if type(on) == 'string' then
     table.insert(names, on)
-  elseif type(on) == 'table' then
-    local spelled = on :: { [unknown]: unknown }
-    for key, value in spelled do
-      local name = if type(key) == 'number' then value else key
+  elseif workflows.isSequence(on) then
+    for _, name in on :: { unknown } do
       if type(name) == 'string' then table.insert(names, name) end
+    end
+  elseif type(on) == 'table' then
+    -- A mapping's string keys; the Rust skipped any other key.
+    for key in on :: { [unknown]: unknown } do
+      if type(key) == 'string' then table.insert(names, key) end
     end
   end
   table.sort(names)
@@ -75,6 +79,15 @@ end
 
 local function unrepresentable(report: diagnostics.Report, path: string, where: string, what: string)
   diagnostics.add(report, 'FORGE-E057', path, `{what} has no exact JSON`, if where == '' then nil else where)
+end
+
+-- What a value JSON can't hold exactly is, for the report. /yaml decodes an integer past 2^53
+-- as an integer rather than a number, and the table writer has no exact form for one.
+local function describe(value: unknown): string
+  if typeof(value) == 'integer' then return 'an integer past 2^53' end
+  if type(value) == 'table' then return 'a collection' end
+
+  return `a value of type {typeof(value)}`
 end
 
 local function scalarKey(key: unknown): string?
@@ -101,7 +114,7 @@ function canonical(value: unknown, report: diagnostics.Report, path: string, whe
   end
 
   if type(value) ~= 'table' then
-    unrepresentable(report, path, where, `a {typeof(value)}`)
+    unrepresentable(report, path, where, describe(value))
     return jess.null
   end
 
@@ -123,7 +136,7 @@ function canonical(value: unknown, report: diagnostics.Report, path: string, whe
   for key, element in source do
     local name = scalarKey(key)
     if not name then
-      unrepresentable(report, path, where, 'a mapping key that is not a scalar')
+      unrepresentable(report, path, where, `a mapping key that is {describe(key)}`)
       return jess.null
     end
 
