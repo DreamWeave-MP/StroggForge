@@ -140,11 +140,31 @@ local function identities(report: Report, loaded: model.Model)
   unique(report, 'stage', stages)
 end
 
+-- Two files can share an id (`build.yml` and `build.yaml`, or a workflow and an action), and the
+-- Rust accepted a reference when any of them answered it.
+
+--- Whether any workflow or action with `id` is reusable.
+local function anyCallable(found: { workflows.Workflow }, id: string): boolean
+  for _, workflow in found do
+    if workflow.id == id and workflow.callable then return true end
+  end
+
+  return false
+end
+
+--- Whether any workflow or action with `id` has the job `job`.
+local function anyWithJob(found: { workflows.Workflow }, id: string, job: string): boolean
+  for _, workflow in found do
+    if workflow.id == id and workflow.jobs[job] then return true end
+  end
+
+  return false
+end
+
 local function projectCalls(report: Report, loaded: model.Model, found: { workflows.Workflow })
   for position, project in loaded.ecosystem.projects do
     for _, called in project.stroggforge do
-      local workflow = workflows.find(found, called)
-      if not (workflow and workflow.callable) then
+      if not anyCallable(found, called) then
         diagnostics.add(
           report,
           'FORGE-E030',
@@ -306,8 +326,7 @@ local function references(report: Report, loaded: model.Model, known: Index, fou
   end
 
   for position, platform in loaded.toolchains.platforms do
-    local workflow = workflows.find(found, platform.workflow)
-    if not (workflow and workflow.jobs[platform.job]) then
+    if not anyWithJob(found, platform.workflow, platform.job) then
       diagnostics.add(
         report,
         'FORGE-E053',

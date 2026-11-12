@@ -57,7 +57,11 @@ local function paths(report: diagnostics.Report, root: string): { string }
     end
   end
 
-  table.sort(found)
+  -- As Rust sorted the PathBufs: component by component, so `a/action.yml` comes before
+  -- `a-b/action.yml` although `-` sorts before `/` as a byte.
+  table.sort(found, function(left: string, right: string): boolean
+    return (string.gsub(left, '/', '\0')) < (string.gsub(right, '/', '\0'))
+  end)
 
   return found
 end
@@ -151,6 +155,98 @@ local function sortedKeys(value: { [string]: unknown }): { string }
   return keys
 end
 
+-- serde_yaml_ng's limits, which the Rust met before it read a key: 128 nested collections, counted
+-- through aliases, and alias jumps over the whole expanded document of at most 100 per parser
+-- event. @jess/yaml keeps an alias as the anchored table itself, never a copy, so the forge counts
+-- both without expanding anything: an alias is any occurrence of a table after its first in
+-- document order, and each table's jumps and depth are worked out once. A scalar alias decodes to a
+-- plain value and can't be told apart, so it counts as one event and no jump; that only moves the
+-- threshold, by at most one jump per scalar alias.
+local MaxDepth = 128
+local JumpsPerEvent = 100
+
+type Budget = { events: number, jumps: number, depth: number }
+
+local function budget(layout: Layout, root: unknown): Budget
+  -- The tables in document order, each child edge marked as an alias or not.
+  local seen: { [unknown]: boolean } = {}
+  local edges: { [unknown]: { { child: unknown, alias: boolean } } } = {}
+  local events = 4
+
+  local function children(value: unknown): { unknown }
+    local out = {}
+    local nodeKind = kind(layout, value)
+    if nodeKind == 'tagged' then return { (value :: { value: unknown }).value } end
+
+    if nodeKind == 'sequence' then
+      for _, element in value :: { unknown } do
+        table.insert(out, element)
+      end
+    elseif nodeKind == 'mapping' then
+      for _, key in layout[value].keys :: { unknown } do
+        table.insert(out, key)
+        table.insert(out, (value :: { [unknown]: unknown })[key])
+      end
+    end
+
+    return out
+  end
+
+  local function visit(value: unknown)
+    if type(value) ~= 'table' then
+      events += 1
+      return
+    end
+
+    local tagged = kind(layout, value) == 'tagged'
+    if not tagged then
+      seen[value] = true
+      events += 2
+    end
+
+    local list = {}
+    for _, child in children(value) do
+      local alias = type(child) == 'table' and seen[child] == true and kind(layout, child) ~= 'tagged'
+      table.insert(list, { child = child, alias = alias })
+      if alias then
+        events += 1
+      else
+        visit(child)
+      end
+    end
+    edges[value] = list
+  end
+  visit(root)
+
+  -- Jumps and depth over the expansion, once per table; a table met again while it's still being
+  -- worked out is an alias to its own ancestor, which expands forever.
+  local jumps: { [unknown]: number }, depths: { [unknown]: number } = {}, {}
+  local active: { [unknown]: boolean } = {}
+  local function measure(value: unknown): (number, number)
+    if type(value) ~= 'table' then return 0, 0 end
+    if jumps[value] then return jumps[value], depths[value] end
+    if active[value] then return math.huge, math.huge end
+
+    active[value] = true
+    local total, deepest = 0, 0
+    for _, edge in edges[value] or {} do
+      local childJumps, childDepth = measure(edge.child)
+      total += childJumps + (if edge.alias then 1 else 0)
+      deepest = math.max(deepest, childDepth)
+    end
+    active[value] = nil
+
+    local own = if kind(layout, value) == 'tagged' then 0 else 1
+    jumps[value], depths[value] = total, deepest + own
+
+    return total, deepest + own
+  end
+
+  local total, deepest = measure(root)
+
+  return { events = events, jumps = total, depth = deepest }
+end
+
 local function shape(report: diagnostics.Report, path: string, where: string, expected: string)
   diagnostics.add(report, 'FORGE-E056', path, `{where} must be {expected}`, where)
 end
@@ -170,6 +266,17 @@ local function read(report: diagnostics.Report, root: string, path: string): Wor
   end
 
   local layoutOf = layout :: Layout
+  local cost = budget(layoutOf, decoded)
+  if cost.depth > MaxDepth then
+    diagnostics.add(report, 'FORGE-E002', path, `recursion limit exceeded: {cost.depth} nested collections, past {MaxDepth}`)
+    return nil
+  end
+
+  if cost.jumps > cost.events * JumpsPerEvent then
+    diagnostics.add(report, 'FORGE-E002', path, `repetition limit exceeded: aliases expand {cost.jumps} times, past {cost.events * JumpsPerEvent}`)
+    return nil
+  end
+
   if type(untag(layoutOf, decoded)) ~= 'table' then
     diagnostics.add(report, 'FORGE-E002', path, 'a workflow is a mapping')
     return nil
