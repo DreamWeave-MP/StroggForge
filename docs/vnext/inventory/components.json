@@ -737,8 +737,8 @@
       "reads": [
         "github.ref, ref_name, run_id, repository"
       ],
-      "review_note": "AGENTS.md keeps it for external callers and the consumer audit found one (unlisted-3 @v6). Retirement needs FOR-104 notice, not an inventory label.",
-      "reviewed_owner": "yaml-entrypoint (deprecate, do not retire yet)",
+      "review_note": "No current caller: the only one found was a repository the maintainer deprecated (2026-11-12). AGENTS.md still keeps it for external callers, so it goes through FOR-104 rather than disappearing.",
+      "reviewed_owner": "retire, after FOR-104 notice",
       "secrets": [],
       "secrets_used": [
         "GITHUB_TOKEN"
@@ -803,8 +803,8 @@
         "inputs",
         "github.event.repository.name"
       ],
-      "review_note": "Same external caller as createRelease (unlisted-3 @v6).",
-      "reviewed_owner": "yaml-entrypoint (deprecate, do not retire yet)",
+      "review_note": "Same as createRelease: its only caller was the deprecated repository.",
+      "reviewed_owner": "retire, after FOR-104 notice",
       "secrets": [
         {
           "name": "DW_BOT_PAT",
