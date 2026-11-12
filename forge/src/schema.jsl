@@ -32,7 +32,7 @@ export type Context = {
   layout: toml.Layout,
 }
 
-type Entry = { floats: { [unknown]: boolean }?, datetimes: { [unknown]: boolean }? }
+type Entry = { keys: { string }?, floats: { [unknown]: boolean }?, datetimes: { [unknown]: boolean }? }
 
 local function entry(context: Context, value: unknown): Entry
   local found = (context.layout :: any)[value]
@@ -40,27 +40,25 @@ local function entry(context: Context, value: unknown): Entry
   return (found or {}) :: Entry
 end
 
---- Whether `value` is a table whose keys are exactly 1 to n (an empty table is both).
-local function isList(value: unknown): boolean
-  if type(value) ~= 'table' then return false end
-
-  local count = 0
-  for key in value :: { [unknown]: unknown } do
-    if type(key) ~= 'number' then return false end
-    count += 1
-  end
-
-  return count == #(value :: { unknown })
+-- Whether the decoder read `value` as an array, or as a table. A Lua table can't say which an empty
+-- one was; the layout can: a TOML table's entry lists its keys, an array's doesn't.
+local function isList(context: Context, value: unknown): boolean
+  return type(value) == 'table' and (context.layout :: any)[value] ~= nil and entry(context, value).keys == nil
 end
 
-local function isTable(value: unknown): boolean
-  if type(value) ~= 'table' then return false end
+local function isTable(context: Context, value: unknown): boolean
+  return type(value) == 'table' and entry(context, value).keys ~= nil
+end
 
-  for key in value :: { [unknown]: unknown } do
-    if type(key) ~= 'string' then return false end
+--- The keys of a decoded table, sorted, so a report lists its findings in the same order every run.
+local function sortedKeys(value: { [string]: unknown }): { string }
+  local keys = {}
+  for key in value do
+    table.insert(keys, key)
   end
+  table.sort(keys)
 
-  return true
+  return keys
 end
 
 local function oneOf(values: { string }, value: unknown): boolean
@@ -90,7 +88,7 @@ end
 
 local decode: (unknown, Spec, Context, string) -> Record?
 
-local function field(context: Context, owner: unknown, field: Field, value: unknown, where: string): unknown
+local function decodeField(context: Context, owner: unknown, field: Field, value: unknown, where: string): unknown
   local kind = field.kind
   if kind == 'string' then
     if not isString(context, owner, field.name, value) then wrongType(context, where, 'a string') end
@@ -122,13 +120,15 @@ local function field(context: Context, owner: unknown, field: Field, value: unkn
   if kind == 'variant' then
     -- An externally tagged enum: `{ project = "x" }`, one key from the closed set.
     local values = field.values :: { string }
-    if not isTable(value) then
+    if not isTable(context, value) then
       wrongType(context, where, `a table with one of {table.concat(values, ', ')}`)
       return value
     end
 
+    local variant = value :: { [string]: unknown }
     local keys = 0
-    for key, inner in value :: { [string]: unknown } do
+    for _, key in sortedKeys(variant) do
+      local inner = variant[key]
       keys += 1
       if not oneOf(values, key) then
         outside(context, where, key, values)
@@ -143,20 +143,21 @@ local function field(context: Context, owner: unknown, field: Field, value: unkn
   end
 
   if kind == 'map' then
-    if not isTable(value) then
+    if not isTable(context, value) then
       wrongType(context, where, 'a table')
       return value
     end
 
     local record = field.record :: Spec
-    for key, inner in value :: { [string]: unknown } do
-      decode(inner, record, context, `{where}.{key}`)
+    local entries = value :: { [string]: unknown }
+    for _, key in sortedKeys(entries) do
+      decode(entries[key], record, context, `{where}.{key}`)
     end
 
     return value
   end
 
-  if not isList(value) then
+  if not isList(context, value) then
     wrongType(context, where, 'an array')
     return value
   end
@@ -184,7 +185,7 @@ end
 --- Checks `value` against `spec`, reporting every problem found. Returns the record when it is a
 --- table at all; its fields are trustworthy only when the report gained no errors.
 function decode(value: unknown, spec: Spec, context: Context, where: string): Record?
-  if not isTable(value) then
+  if not isTable(context, value) then
     wrongType(context, where, 'a table')
     return nil
   end
@@ -200,17 +201,14 @@ function decode(value: unknown, spec: Spec, context: Context, where: string): Re
         diagnostics.add(context.report, 'FORGE-E011', context.path, `missing field {entry.name}`, at)
       end
     else
-      field(context, record, entry, found, at)
+      decodeField(context, record, entry, found, at)
     end
   end
 
   -- Sorted, so the same file reports the same unknown fields in the same order every run.
-  local unknown: { string } = {}
-  for key in record do
-    if not known[key] then table.insert(unknown, key) end
-  end
-  table.sort(unknown)
-  for _, key in unknown do
+  for _, key in sortedKeys(record) do
+    if known[key] then continue end
+
     local at = if where == '' then key else `{where}.{key}`
     diagnostics.add(context.report, 'FORGE-E010', context.path, `unknown field {key}`, at)
   end
@@ -241,5 +239,4 @@ end
 return table.freeze {
   decode = decode,
   load = load,
-  isList = isList,
 }
