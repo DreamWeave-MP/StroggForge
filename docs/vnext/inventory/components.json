@@ -1,0 +1,3594 @@
+{
+  "components": [
+    {
+      "callers": [
+        ".github/action_templates/rust_template.yaml",
+        "consumer repos",
+        "bump-version.sh (edits pins)"
+      ],
+      "id": ".github/workflows/rustGlobalBuild.yml",
+      "inputs": [
+        {
+          "default": null,
+          "name": "binary_names",
+          "required": true,
+          "type": "string"
+        },
+        {
+          "default": "",
+          "name": "binary_package",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "default": "README.md,LICENSE",
+          "name": "include_files",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "default": "",
+          "name": "aur_package_name",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "default": "",
+          "name": "dependent_repo_names",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "default": "magicaldave",
+          "name": "git_username",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "default": "corleycomputerrepair@protonmail.ch",
+          "name": "git_email",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "default": true,
+          "name": "publish_docs",
+          "required": false,
+          "type": "boolean"
+        },
+        {
+          "default": true,
+          "name": "cargo_publish",
+          "required": false,
+          "type": "boolean"
+        },
+        {
+          "default": "development",
+          "name": "development_release",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "default": false,
+          "name": "cargo_publish_workspace",
+          "required": false,
+          "type": "boolean"
+        },
+        {
+          "default": "",
+          "name": "msrv",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "default": true,
+          "name": "generate_changelog",
+          "required": false,
+          "type": "boolean"
+        },
+        {
+          "default": false,
+          "name": "generate_benchmarks",
+          "required": false,
+          "type": "boolean"
+        },
+        {
+          "default": true,
+          "name": "generate_discord_notification",
+          "required": false,
+          "type": "boolean"
+        },
+        {
+          "default": false,
+          "name": "enable_android",
+          "required": false,
+          "type": "boolean"
+        },
+        {
+          "default": false,
+          "name": "enable_portmaster",
+          "required": false,
+          "type": "boolean"
+        },
+        {
+          "default": false,
+          "name": "gpu_tests",
+          "required": false,
+          "type": "boolean"
+        },
+        {
+          "default": "",
+          "name": "muxapp_dir",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "default": false,
+          "name": "mod_template",
+          "required": false,
+          "type": "boolean"
+        }
+      ],
+      "kind": "reusable-workflow",
+      "mutable_refs": [
+        "actions/checkout@v6",
+        "taiki-e/install-action@cargo-audit",
+        "actions/upload-artifact@v7",
+        "actions/upload-artifact@v7.0.1",
+        "actions/download-artifact@v8.0.1",
+        "nttld/setup-ndk@v1",
+        "Nexus-Mods/upload-action@v1.0.0-beta.5",
+        "varrcan/aur-publish-action@v1",
+        "actions/configure-pages@v6.0.0",
+        "actions/upload-pages-artifact@v5.0.0",
+        "actions/deploy-pages@v5.0.0",
+        "ghcr.io/dreamweave-mp/stroggforge-*-builder:v72 (image tag)"
+      ],
+      "native_tools": [
+        "cargo",
+        "rustup",
+        "jq",
+        "gh",
+        "python3",
+        "apt-get",
+        "bash",
+        "cosign (via action)",
+        "7z (via action)"
+      ],
+      "network": [
+        "github.com/api.github.com",
+        "crates.io/index.crates.io",
+        "static.rust-lang.org (rustup)",
+        "apt.llvm.org / github.com llvm releases / micro.mamba.pm / conda.anaconda.org (via setup-llvm)",
+        "ghcr.io (builder images)",
+        "virustotal.com (via action)",
+        "api.nexusmods.com (via action)",
+        "aur.archlinux.org (ssh)",
+        "discord.com",
+        "archive.ubuntu.com (mesa-vulkan-drivers, p7zip-full)",
+        "Sigstore Fulcio/Rekor (cosign)"
+      ],
+      "notes": [
+        "Expression splicing into run: text contrary to AGENTS.md rule: rustGlobalBuild.yml:277-280 (inputs.binary_names, inputs.binary_package), :546-551 (step outputs, github.repository), :617 (matrix.upload), :727 (inputs.binary_names).",
+        "aur job (line 680-695) runs on every push event including default-branch development pushes, not only tags.",
+        "NEXUS_API_KEY and NEXUS_GROUP_IDS are secrets of this workflow but absent from AGENTS.md's secret contract list.",
+        "test jobs check StroggForge out to path .stroggforge, the same directory feature-args.sh reads the consumer's .stroggforge/cargo-build-args.sh hook from (see feature-args.sh)."
+      ],
+      "observable_behavior": "Binary-repo pipeline: lint (fmt, cargo audit, crates.io dry-run, MSRV) and per-desktop test jobs (clippy all-features, clippy-release, cargo test) run in parallel with release builds (macOS ARM64/X64, Windows via runner; Linux in EL9 builder container; optional Android/PortMaster) through corprus-crucible. On non-PR runs `publish` recreates the GitHub release (tag name or development_release), uploads zips/muxapps, appends VirusTotal links, uploads CHANGELOG.md, opens dependent-repo issues on tags; then fan-out to Nexus Mods upload per artifact, crates.io publish (tags), AUR push (every push), rustdoc Pages (main), benchmarks (tags), modGlobalBuild (mod_template), Discord notify.",
+      "outputs": [],
+      "owner_justification": "Event/runner/permission/environment graph and secret plumbing must stay in GitHub YAML; the inline bash (crate dry-run loop, VT body collection, nexus listing, crates publish loop) should move to jsl:forge-release / jsl:forge-check.",
+      "permissions": {
+        "benchmarks": {
+          "contents": "write"
+        },
+        "docs": {
+          "contents": "read",
+          "id-token": "write",
+          "pages": "write"
+        },
+        "lint/test/nexus/crates/aur/notify": "inherited from caller",
+        "mod-template/site-check": {
+          "actions": "write",
+          "contents": "write",
+          "id-token": "write",
+          "pages": "write"
+        },
+        "publish": {
+          "contents": "write"
+        },
+        "release/release-linux/release-android/release-portmaster": {
+          "contents": "write",
+          "id-token": "write"
+        }
+      },
+      "privileged": true,
+      "proposed_owner": "yaml-entrypoint",
+      "reads": [
+        "consumer repo checkout (submodules)",
+        "Cargo.toml/Cargo.lock",
+        "inputs.*",
+        "github.ref_type/ref_name/run_id/repository",
+        "artifacts github-release-*, nexus-*"
+      ],
+      "secrets": [
+        {
+          "name": "VT_API_KEY",
+          "required": false
+        },
+        {
+          "name": "NEXUS_API_KEY",
+          "required": false
+        },
+        {
+          "name": "NEXUS_GROUP_IDS",
+          "required": false
+        },
+        {
+          "name": "CARGO_REGISTRY_TOKEN",
+          "required": false
+        },
+        {
+          "name": "AUR_SSH_PRIVATE_KEY",
+          "required": false
+        },
+        {
+          "name": "DW_BOT_PAT",
+          "required": false
+        },
+        {
+          "name": "DISCORD_CHANNEL_WEBHOOK",
+          "required": false
+        },
+        {
+          "name": "DW_TOOLS_CHANNEL_WEBHOOK",
+          "required": false
+        }
+      ],
+      "secrets_used": [
+        "GITHUB_TOKEN",
+        "VT_API_KEY",
+        "NEXUS_API_KEY",
+        "NEXUS_GROUP_IDS",
+        "CARGO_REGISTRY_TOKEN",
+        "AUR_SSH_PRIVATE_KEY",
+        "DW_BOT_PAT",
+        "DISCORD_CHANNEL_WEBHOOK",
+        "DW_TOOLS_CHANNEL_WEBHOOK"
+      ],
+      "stroggforge_refs": [
+        {
+          "purpose": "helper scripts under .stroggforge/scripts and .stroggforge/.github/scripts",
+          "ref": "actions/checkout repository DreamWeave-MP/StroggForge ref: v72 (jobs lint,test,publish,nexus,crates,docs)"
+        },
+        {
+          "purpose": "toolchain+LLVM+cache",
+          "ref": "DreamWeave-MP/StroggForge/.github/actions/rust-setup@v72"
+        },
+        {
+          "purpose": "release build/sign/scan/package",
+          "ref": "DreamWeave-MP/StroggForge/.github/actions/corprus-crucible@v72"
+        },
+        {
+          "purpose": "Linux release container",
+          "ref": "ghcr.io/dreamweave-mp/stroggforge-linux-x86_64-el9-builder:v72"
+        },
+        {
+          "purpose": "PortMaster cross container",
+          "ref": "ghcr.io/dreamweave-mp/stroggforge-portmaster-aarch64-el9-builder:v72"
+        },
+        {
+          "purpose": "tag benchmarks",
+          "ref": "DreamWeave-MP/StroggForge/.github/workflows/benchmarks.yml@v72"
+        },
+        {
+          "purpose": "mod-template and site-check stages",
+          "ref": "DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml@v72"
+        },
+        {
+          "purpose": "notify",
+          "ref": "DreamWeave-MP/StroggForge/.github/workflows/discord.yml@v72"
+        }
+      ],
+      "trigger": [
+        "workflow_call"
+      ],
+      "writes": [
+        "GitHub Release (delete+recreate; development tag deleted) + assets *.zip, *.muxapp, CHANGELOG.md, release body (VT links)",
+        "artifacts: cargo-timings-<os>-<arch>, github-release-muxapp",
+        "GITHUB_OUTPUT: release_name, body_path, uploads (job outputs release_name, nexus)",
+        "GITHUB_ENV (Android NDK vars)",
+        "crates.io (crates job)",
+        "AUR (aur job)",
+        "GitHub Pages (docs job)",
+        "issues in dependent repos (DW_BOT_PAT)",
+        "Nexus Mods files",
+        "Discord webhook"
+      ]
+    },
+    {
+      "callers": [
+        ".github/action_templates/lib_template.yaml",
+        "consumer repos"
+      ],
+      "id": ".github/workflows/libGlobalBuild.yml",
+      "inputs": [
+        {
+          "default": null,
+          "name": "crate_names",
+          "required": true,
+          "type": "string"
+        },
+        {
+          "default": "",
+          "name": "dependent_repo_names",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "default": true,
+          "name": "publish_docs",
+          "required": false,
+          "type": "boolean"
+        },
+        {
+          "default": true,
+          "name": "cargo_publish",
+          "required": false,
+          "type": "boolean"
+        },
+        {
+          "default": false,
+          "name": "cargo_publish_workspace",
+          "required": false,
+          "type": "boolean"
+        },
+        {
+          "default": "",
+          "name": "msrv",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "default": true,
+          "name": "generate_changelog",
+          "required": false,
+          "type": "boolean"
+        },
+        {
+          "default": false,
+          "name": "generate_benchmarks",
+          "required": false,
+          "type": "boolean"
+        },
+        {
+          "default": true,
+          "name": "generate_discord_notification",
+          "required": false,
+          "type": "boolean"
+        },
+        {
+          "default": false,
+          "name": "mod_template",
+          "required": false,
+          "type": "boolean"
+        }
+      ],
+      "kind": "reusable-workflow",
+      "mutable_refs": [
+        "actions/checkout@v6",
+        "taiki-e/install-action@cargo-audit",
+        "actions/upload-artifact@v7",
+        "actions/configure-pages@v6.0.0",
+        "actions/upload-pages-artifact@v5.0.0",
+        "actions/deploy-pages@v5.0.0"
+      ],
+      "native_tools": [
+        "cargo",
+        "jq",
+        "gh",
+        "python3",
+        "bash"
+      ],
+      "network": [
+        "github.com",
+        "crates.io",
+        "rustup/LLVM hosts via rust-setup",
+        "discord.com"
+      ],
+      "notes": [
+        "libGlobalBuild.yml:336 splices inputs.crate_names into run text.",
+        "No development_release input: release name hard-coded 'development' (line 234, 394); refresh-github-release.sh gets no DEVELOPMENT_RELEASE env."
+      ],
+      "observable_behavior": "Library pipeline: lint (fmt, audit, crates.io dry-run via resolve-crate-manifest, MSRV) and 4-OS test matrix (clippy all-features + default features, cargo test). On non-PR: refresh GitHub release ('development' hard-coded or tag), CHANGELOG.md upload, dependent issues on tags; crates.io publish on tags; rustdoc Pages on main; benchmarks on tags; optional modGlobalBuild; Discord notify.",
+      "outputs": [],
+      "owner_justification": "Job graph, permissions and environments stay YAML; inline bash (dry-run/publish loops) belongs in jsl:forge-release.",
+      "permissions": {
+        "benchmarks": {
+          "contents": "write"
+        },
+        "docs": {
+          "contents": "read",
+          "id-token": "write",
+          "pages": "write"
+        },
+        "mod-template/site-check": {
+          "actions": "write",
+          "contents": "write",
+          "id-token": "write",
+          "pages": "write"
+        },
+        "publish": {
+          "contents": "write"
+        }
+      },
+      "privileged": true,
+      "proposed_owner": "yaml-entrypoint",
+      "reads": [
+        "consumer checkout",
+        "Cargo metadata",
+        "inputs.*"
+      ],
+      "secrets": [
+        {
+          "name": "CARGO_REGISTRY_TOKEN",
+          "required": false
+        },
+        {
+          "name": "DW_BOT_PAT",
+          "required": false
+        },
+        {
+          "name": "DISCORD_CHANNEL_WEBHOOK",
+          "required": false
+        },
+        {
+          "name": "DW_TOOLS_CHANNEL_WEBHOOK",
+          "required": false
+        }
+      ],
+      "secrets_used": [
+        "GITHUB_TOKEN",
+        "CARGO_REGISTRY_TOKEN",
+        "DW_BOT_PAT",
+        "DISCORD_CHANNEL_WEBHOOK",
+        "DW_TOOLS_CHANNEL_WEBHOOK"
+      ],
+      "stroggforge_refs": [
+        {
+          "purpose": "helper scripts",
+          "ref": "checkout DreamWeave-MP/StroggForge ref: v72 (lint,publish,crates,docs)"
+        },
+        {
+          "purpose": "toolchain/LLVM/cache",
+          "ref": "actions/rust-setup@v72"
+        },
+        {
+          "purpose": "benchmarks",
+          "ref": "workflows/benchmarks.yml@v72"
+        },
+        {
+          "purpose": "mod template",
+          "ref": "workflows/modGlobalBuild.yml@v72"
+        },
+        {
+          "purpose": "notify",
+          "ref": "workflows/discord.yml@v72"
+        }
+      ],
+      "trigger": [
+        "workflow_call"
+      ],
+      "writes": [
+        "GitHub Release (delete+recreate) + CHANGELOG.md",
+        "artifact cargo-timings-<os>",
+        "crates.io",
+        "GitHub Pages",
+        "issues in dependent repos",
+        "Discord webhook"
+      ]
+    },
+    {
+      "callers": [
+        ".github/workflows/rustGlobalBuild.yml (mod-template, site-check)",
+        ".github/workflows/libGlobalBuild.yml (mod-template, site-check)",
+        ".github/action_templates/mod_template.yaml"
+      ],
+      "id": ".github/workflows/modGlobalBuild.yml",
+      "inputs": [
+        {
+          "default": false,
+          "name": "rust_release",
+          "required": false,
+          "type": "boolean"
+        },
+        {
+          "default": false,
+          "name": "rust_archives",
+          "required": false,
+          "type": "boolean"
+        },
+        {
+          "default": "",
+          "name": "jess_application",
+          "required": false,
+          "type": "string"
+        }
+      ],
+      "kind": "reusable-workflow",
+      "mutable_refs": [
+        "actions/checkout@v7",
+        "actions/configure-pages@v6",
+        "actions/download-artifact@v8",
+        "sigstore/cosign-installer@v3",
+        "actions/deploy-pages@v5",
+        "actions/upload-artifact@v7",
+        "Nexus-Mods/upload-action@main (branch!)"
+      ],
+      "native_tools": [
+        "jess",
+        "git",
+        "gh",
+        "cosign",
+        "docker",
+        "jq",
+        "sed",
+        "bash"
+      ],
+      "network": [
+        "github.com (jess release download, git push, gh API)",
+        "dreamweave-mp.github.io publishers",
+        "ghcr.io (jess image)",
+        "Sigstore",
+        "api.nexusmods.com",
+        "github.com clones for bootstrap sources"
+      ],
+      "notes": [
+        "Contradicts AGENTS.md ('runs the consumer's ./buildSite ... never give it a copy of its own', 'compiles nothing'): header modGlobalBuild.yml:3-8 says 'There is no Zola and no Python here' and every step calls `jess workspace run`; release job runs docker with the jess image (lines 278-289). grep finds no 'buildSite' anywhere in .github or scripts.",
+        "Nexus-Mods/upload-action pinned to @main (line 396) and uses different inputs (file_id, primary_mod_manager_download, update_mod_version) than rustGlobalBuild's @v1.0.0-beta.5 (file_group_id, description, archive_existing_file).",
+        "Uses actions/checkout@v7 while every other workflow uses @v6.",
+        "cosign-installer@v3 floats (no cosign-release pin) whereas corprus-crucible pins SHA + cosign v3.1.3.",
+        "jess pinned by tag v0.2.2 downloaded without checksum (jess-setup); jess image pinned by digest."
+      ],
+      "observable_behavior": "Mod Template pipeline driven by the jess binary (jess workspace run --trusted dreamweave-check/build/site/links/release/record*), not ./buildSite. Non-tag: scaffold a template copy, sync jess.lock pins (commit lock on default branch), record crates.io/GitHub releases into mod.lock and push, build site, cosign-sign dist/sign.txt archives, recreate the development release (mods only), upload Pages artifact; deploy job deploys Pages. Tag: build release, optionally pack a Jess application with the digest-pinned jess image via docker, sign, commit mod.lock record, publish GitHub release (mods only), emit Nexus upload list, dispatch the caller workflow on the default branch; nexus-upload matrix uploads files.",
+      "outputs": [],
+      "owner_justification": "Event/permission/environment boundary; the record/build/release logic already lives in jess command targets (consumer-pinned template) and helper shell, natural home jsl:forge-modtemplate; cosign signing stays native.",
+      "permissions": {
+        "deploy": {
+          "id-token": "write",
+          "pages": "write"
+        },
+        "nexus-upload": "workflow default (contents: read)",
+        "release": {
+          "actions": "write",
+          "contents": "write",
+          "id-token": "write"
+        },
+        "site": {
+          "contents": "write",
+          "id-token": "write",
+          "pages": "read"
+        },
+        "workflow": {
+          "contents": "read"
+        }
+      },
+      "privileged": true,
+      "proposed_owner": "yaml-entrypoint",
+      "reads": [
+        "vars.DREAMWEAVE_BOOTSTRAP_SOURCES",
+        "jess.toml, jess.lock, jess-workspace.toml, config.toml, mod.toml",
+        "dist/sign.txt, dist/github-release, dist/release.json, dist/release-notes.md, dist/nexus.json",
+        "artifacts github-release-*",
+        "github.workflow_ref"
+      ],
+      "secrets": [
+        {
+          "name": "NEXUS_API_KEY",
+          "required": false
+        },
+        {
+          "name": "NEXUS_GROUP_IDS",
+          "required": false
+        }
+      ],
+      "secrets_used": [
+        "GITHUB_TOKEN",
+        "NEXUS_API_KEY",
+        "NEXUS_GROUP_IDS"
+      ],
+      "stroggforge_refs": [
+        {
+          "purpose": "scripts/mod-template/*.sh",
+          "ref": "checkout DreamWeave-MP/StroggForge ref: v72"
+        },
+        {
+          "purpose": "install jess",
+          "ref": "DreamWeave-MP/StroggForge/.github/actions/jess-setup@v72"
+        },
+        {
+          "purpose": "expected Sigstore signer identity recorded in manifests",
+          "ref": "DREAMWEAVE_SIGNING_IDENTITY ...modGlobalBuild.yml@refs/tags/v72"
+        }
+      ],
+      "trigger": [
+        "workflow_call"
+      ],
+      "writes": [
+        "commits pushed to default branch (scaffold, jess.lock, mod.lock)",
+        "GitHub release (development: delete release + tag, create draft, upload, publish; tag: create/upload/edit)",
+        "*.sigstore.json bundles",
+        "Pages artifact + Pages deployment",
+        "artifact 'release'",
+        "workflow_dispatch of caller workflow",
+        "Nexus Mods uploads",
+        "GITHUB_OUTPUT url, needed, recorded, uploads"
+      ]
+    },
+    {
+      "callers": [
+        "rustGlobalBuild.yml (benchmarks job)",
+        "libGlobalBuild.yml (benchmarks job)",
+        ".github/action_templates/benchmark_template.yaml"
+      ],
+      "id": ".github/workflows/benchmarks.yml",
+      "inputs": [
+        {
+          "default": "ubuntu-24.04",
+          "name": "os",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "default": "",
+          "name": "filter",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "default": false,
+          "name": "all_features",
+          "required": false,
+          "type": "boolean"
+        },
+        {
+          "default": "",
+          "name": "release_name",
+          "required": false,
+          "type": "string"
+        }
+      ],
+      "kind": "reusable-workflow",
+      "mutable_refs": [
+        "actions/checkout@v6",
+        "actions/upload-artifact@v7"
+      ],
+      "native_tools": [
+        "cargo",
+        "python3",
+        "gh"
+      ],
+      "network": [
+        "github.com",
+        "crates.io",
+        "LLVM hosts via rust-setup"
+      ],
+      "observable_behavior": "Runs cargo bench on the chosen runner via generate-benchmark-docs.sh, appends BENCHMARKS.md to the step summary, uploads artifact benchmarks-<os> (BENCHMARKS.md, benchmark-output.txt), and when release_name is set uploads BENCHMARKS.md to that release with --clobber.",
+      "outputs": [],
+      "owner_justification": "Runner choice and permission boundary; the bench+report logic is jsl:forge-benchmarks.",
+      "permissions": "none declared; callers grant contents: write for release upload",
+      "privileged": true,
+      "proposed_owner": "yaml-entrypoint",
+      "reads": [
+        "consumer checkout",
+        "target/criterion",
+        "benchmark-output.txt"
+      ],
+      "secrets": [],
+      "secrets_used": [
+        "github.token"
+      ],
+      "stroggforge_refs": [
+        {
+          "purpose": "generate-benchmark-docs.sh, gen_benchmarks.py",
+          "ref": "checkout ref: v72"
+        },
+        {
+          "purpose": "toolchain",
+          "ref": "actions/rust-setup@v72"
+        }
+      ],
+      "trigger": [
+        "workflow_call"
+      ],
+      "writes": [
+        "GITHUB_STEP_SUMMARY",
+        "artifact benchmarks-<os>",
+        "release asset BENCHMARKS.md (if release_name)"
+      ]
+    },
+    {
+      "callers": [
+        "none internal (bump-version.sh edits its pin); external callers"
+      ],
+      "id": ".github/workflows/createRelease.yml",
+      "inputs": [],
+      "kind": "reusable-workflow",
+      "mutable_refs": [
+        "actions/checkout@v6"
+      ],
+      "native_tools": [
+        "gh",
+        "bash"
+      ],
+      "network": [
+        "api.github.com"
+      ],
+      "observable_behavior": "Computes release_name (tag name or 'development') and runs refresh-github-release.sh: deletes an existing release (and the development tag) and recreates it with generated notes plus run id footer. Output release_name.",
+      "outputs": [
+        {
+          "name": "release_name",
+          "value": "jobs.ensure-fresh-release.outputs.release_name"
+        }
+      ],
+      "owner_justification": "Not called internally (AGENTS.md: kept for external callers; St4sh/Cod3x/Mod Template call it per war-room); logic duplicated by publish job. Retire once external callers migrate, else thin yaml-entrypoint over jsl:forge-release.",
+      "permissions": "none declared (inherits caller; needs contents: write)",
+      "privileged": true,
+      "proposed_owner": "retire",
+      "reads": [
+        "github.ref, ref_name, run_id, repository"
+      ],
+      "review_note": "No current caller: the only one found was a repository the maintainer deprecated (2026-11-12). AGENTS.md still keeps it for external callers, so it goes through FOR-104 rather than disappearing.",
+      "reviewed_owner": "retire, after FOR-104 notice",
+      "secrets": [],
+      "secrets_used": [
+        "GITHUB_TOKEN"
+      ],
+      "stroggforge_refs": [
+        {
+          "purpose": "refresh-github-release.sh",
+          "ref": "checkout ref: v72"
+        }
+      ],
+      "trigger": [
+        "workflow_call"
+      ],
+      "uncertain": "external callers (St4sh, Cod3x, Mod Template) asserted by AGENTS.md; not verifiable from this repo",
+      "writes": [
+        "GitHub release delete/create/edit",
+        "development tag deletion",
+        "GITHUB_OUTPUT release_name"
+      ]
+    },
+    {
+      "callers": [
+        "none internal; external"
+      ],
+      "id": ".github/workflows/dependent.yml",
+      "inputs": [
+        {
+          "default": "",
+          "name": "aur_package_name",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "default": "",
+          "name": "dependent_repo_names",
+          "required": false,
+          "type": "string"
+        }
+      ],
+      "kind": "reusable-workflow",
+      "mutable_refs": [
+        "actions/checkout@v6"
+      ],
+      "native_tools": [
+        "gh",
+        "python3",
+        "bash"
+      ],
+      "network": [
+        "api.github.com"
+      ],
+      "notes": [
+        "dependent.yml:35 splices inputs.dependent_repo_names and inputs.aur_package_name into run text in single quotes (injection if input contains a quote), against AGENTS.md rule."
+      ],
+      "observable_behavior": "Opens an issue in each dependent repository (create-dependent-update-issues.sh) using DW_BOT_PAT.",
+      "outputs": [],
+      "owner_justification": "Not called internally; publish jobs call the script directly. Keep only while external callers exist.",
+      "permissions": "none declared",
+      "privileged": true,
+      "proposed_owner": "retire",
+      "reads": [
+        "inputs",
+        "github.event.repository.name"
+      ],
+      "review_note": "Same as createRelease: its only caller was the deprecated repository.",
+      "reviewed_owner": "retire, after FOR-104 notice",
+      "secrets": [
+        {
+          "name": "DW_BOT_PAT",
+          "required": true
+        }
+      ],
+      "secrets_used": [
+        "DW_BOT_PAT"
+      ],
+      "stroggforge_refs": [
+        {
+          "purpose": "create-dependent-update-issues.sh",
+          "ref": "checkout ref: v72"
+        }
+      ],
+      "trigger": [
+        "workflow_call"
+      ],
+      "writes": [
+        "issues in other repos"
+      ]
+    },
+    {
+      "callers": [
+        "rustGlobalBuild.yml notify",
+        "libGlobalBuild.yml notify"
+      ],
+      "id": ".github/workflows/discord.yml",
+      "inputs": [
+        {
+          "default": "",
+          "name": "webhook_url",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "default": "https://avatars.githubusercontent.com/u/138459727?...",
+          "name": "avatar_url",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "default": "",
+          "name": "title",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "default": "",
+          "name": "description",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "default": "",
+          "name": "footer_text",
+          "required": false,
+          "type": "string"
+        }
+      ],
+      "kind": "reusable-workflow",
+      "mutable_refs": [
+        "tsickert/discord-webhook@v7.0.0"
+      ],
+      "native_tools": [
+        "bash",
+        "date"
+      ],
+      "network": [
+        "discord.com"
+      ],
+      "notes": [
+        "webhook_url input is declared but never used.",
+        "Default description always says 'GitHub and the AUR'."
+      ],
+      "observable_behavior": "Posts a Discord embed via webhook (title/description/footer with defaults); skips with a message when no WEBHOOK_URL secret.",
+      "outputs": [],
+      "owner_justification": "Thin notification boundary; formatting could be jsl:forge-notify but the webhook secret stays at the edge.",
+      "permissions": "none declared",
+      "privileged": false,
+      "proposed_owner": "yaml-entrypoint",
+      "reads": [
+        "github.ref, ref_name, sha, run_id, triggering_actor"
+      ],
+      "secrets": [
+        {
+          "name": "WEBHOOK_URL",
+          "required": false
+        }
+      ],
+      "secrets_used": [
+        "WEBHOOK_URL"
+      ],
+      "stroggforge_refs": [],
+      "trigger": [
+        "workflow_call"
+      ],
+      "writes": [
+        "Discord message",
+        "GITHUB_OUTPUT release_time/release_name/display_name/title/description/footer_text"
+      ]
+    },
+    {
+      "callers": [
+        "GitHub events (self)"
+      ],
+      "id": ".github/workflows/toolchain.yml",
+      "inputs": null,
+      "kind": "workflow",
+      "mutable_refs": [
+        "actions/checkout@v6",
+        "dtolnay/rust-toolchain@stable"
+      ],
+      "native_tools": [
+        "clang",
+        "clang++",
+        "lld",
+        "otool/readelf",
+        "rustup"
+      ],
+      "network": [
+        "static.rust-lang.org",
+        "github.com llvm releases",
+        "micro.mamba.pm/conda-forge",
+        "ghcr.io"
+      ],
+      "notes": [
+        "No Windows leg although setup-llvm.sh has a Windows path."
+      ],
+      "observable_behavior": "Self-test: on macOS ARM64, macOS X64 and inside the EL9 builder, installs LLVM via setup-llvm.sh, links a C++ program with clang/lld, runs check-release-binary.sh on it, then runs it with the installed LLVM moved away. Skips commits whose message starts 'RELEASE:'.",
+      "outputs": null,
+      "owner_justification": "Repository CI for the native LLVM boundary; the test itself should stay native.",
+      "permissions": {
+        "workflow": {
+          "contents": "read"
+        }
+      },
+      "privileged": false,
+      "proposed_owner": "yaml-entrypoint",
+      "reads": [
+        "scripts/shared/setup-llvm.sh",
+        "scripts/corprus-crucible/check-release-binary.sh"
+      ],
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [
+        {
+          "purpose": "EL9 test container",
+          "ref": "ghcr.io/dreamweave-mp/stroggforge-linux-x86_64-el9-builder:v72"
+        }
+      ],
+      "trigger": [
+        "workflow_dispatch",
+        "pull_request (paths setup-llvm.sh, check-release-binary.sh, toolchain.yml)",
+        "push main (same paths)"
+      ],
+      "writes": [
+        "$RUNNER_TEMP files",
+        "GITHUB_ENV/GITHUB_PATH via setup-llvm"
+      ]
+    },
+    {
+      "callers": [
+        "GitHub events (self)"
+      ],
+      "id": ".github/workflows/war-room.yml",
+      "inputs": null,
+      "kind": "workflow",
+      "mutable_refs": [
+        "actions/checkout@v6",
+        "dtolnay/rust-toolchain@stable",
+        "actions/setup-node@v6",
+        "taiki-e/install-action@v2",
+        "actions/upload-pages-artifact@v5.0.0",
+        "actions/deploy-pages@v5.0.0",
+        "actionlint installer script fetched by tag v1.7.12 via curl|bash"
+      ],
+      "native_tools": [
+        "cargo",
+        "npm",
+        "node",
+        "zola",
+        "python3",
+        "actionlint",
+        "curl"
+      ],
+      "network": [
+        "static.rust-lang.org",
+        "registry.npmjs.org",
+        "raw.githubusercontent.com (actionlint installer)",
+        "github.com (zola via install-action)",
+        "crates.io"
+      ],
+      "observable_behavior": "Repository CI for the War Room: Rust fmt/test/clippy on tools/war-room, actionlint 1.7.12 over all workflows, generates site content, renders Mermaid via Puppeteer, builds Zola site, checks links; deploys to Pages on main.",
+      "outputs": null,
+      "owner_justification": "Repo-local site CI; generation itself is jsl:forge-warroom candidate.",
+      "permissions": {
+        "deploy": {
+          "id-token": "write",
+          "pages": "write"
+        },
+        "workflow": {
+          "contents": "read"
+        }
+      },
+      "privileged": true,
+      "proposed_owner": "yaml-entrypoint",
+      "reads": [
+        "war-room/*.toml",
+        "site/",
+        "package-lock.json"
+      ],
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [],
+      "trigger": [
+        "pull_request",
+        "push main",
+        "workflow_dispatch"
+      ],
+      "writes": [
+        "site/content, site/static/generated, site/public",
+        "Pages artifact + deployment"
+      ]
+    },
+    {
+      "callers": [
+        "GitHub events (self)"
+      ],
+      "id": ".github/workflows/publish-linux-x86_64-el9-builder.yml",
+      "inputs": null,
+      "kind": "workflow",
+      "mutable_refs": [
+        "actions/checkout@v6",
+        "docker/login-action@v3",
+        "docker/build-push-action@v6",
+        "quay.io/centos/centos:stream9 (base image tag)"
+      ],
+      "native_tools": [
+        "docker buildx"
+      ],
+      "network": [
+        "ghcr.io",
+        "quay.io",
+        "CentOS/EPEL mirrors"
+      ],
+      "observable_behavior": "Builds .github/container-images/linux-x86_64-el9/Dockerfile and pushes ghcr.io/dreamweave-mp/stroggforge-linux-x86_64-el9-builder tagged <tag>+sha-<12> on v* tags, or test-<branch>+sha-<12> on main/dispatch.",
+      "outputs": null,
+      "owner_justification": "Container build/push to GHCR with GITHUB_TOKEN packages: write.",
+      "permissions": {
+        "workflow": {
+          "contents": "read",
+          "packages": "write"
+        }
+      },
+      "privileged": true,
+      "proposed_owner": "native-boundary:docker",
+      "reads": [
+        "Dockerfile",
+        "github.ref_name/ref_type/sha"
+      ],
+      "secrets": null,
+      "secrets_used": [
+        "GITHUB_TOKEN"
+      ],
+      "stroggforge_refs": [],
+      "trigger": [
+        "workflow_dispatch",
+        "push main (paths Dockerfile, this workflow)",
+        "push tags v* (path filters not applied to tags)"
+      ],
+      "uncertain": "Assumes GitHub's documented behavior that path filters are not evaluated for tag pushes, so every v* tag republishes the image; tag v72 must exist as an image before rustGlobalBuild@v72 runs.",
+      "writes": [
+        "GHCR image ghcr.io/dreamweave-mp/stroggforge-linux-x86_64-el9-builder",
+        "GITHUB_OUTPUT tags"
+      ]
+    },
+    {
+      "callers": [
+        "GitHub events (self)"
+      ],
+      "id": ".github/workflows/publish-portmaster-aarch64-el9-builder.yml",
+      "inputs": null,
+      "kind": "workflow",
+      "mutable_refs": [
+        "actions/checkout@v6",
+        "docker/login-action@v3",
+        "docker/build-push-action@v6",
+        "quay.io/centos/centos:stream9 (base image tag)"
+      ],
+      "native_tools": [
+        "docker buildx"
+      ],
+      "network": [
+        "ghcr.io",
+        "quay.io",
+        "CentOS/EPEL mirrors"
+      ],
+      "observable_behavior": "Builds .github/container-images/portmaster-aarch64-el9/Dockerfile and pushes ghcr.io/dreamweave-mp/stroggforge-portmaster-aarch64-el9-builder tagged <tag>+sha-<12> on v* tags, or test-<branch>+sha-<12> on main/dispatch.",
+      "outputs": null,
+      "owner_justification": "Container build/push to GHCR with GITHUB_TOKEN packages: write.",
+      "permissions": {
+        "workflow": {
+          "contents": "read",
+          "packages": "write"
+        }
+      },
+      "privileged": true,
+      "proposed_owner": "native-boundary:docker",
+      "reads": [
+        "Dockerfile",
+        "github.ref_name/ref_type/sha"
+      ],
+      "secrets": null,
+      "secrets_used": [
+        "GITHUB_TOKEN"
+      ],
+      "stroggforge_refs": [],
+      "trigger": [
+        "workflow_dispatch",
+        "push main (paths Dockerfile, this workflow)",
+        "push tags v* (path filters not applied to tags)"
+      ],
+      "uncertain": "Assumes GitHub's documented behavior that path filters are not evaluated for tag pushes, so every v* tag republishes the image; tag v72 must exist as an image before rustGlobalBuild@v72 runs.",
+      "writes": [
+        "GHCR image ghcr.io/dreamweave-mp/stroggforge-portmaster-aarch64-el9-builder",
+        "GITHUB_OUTPUT tags"
+      ]
+    },
+    {
+      "callers": [
+        "DreamWeave-MP/jess release workflow (external)"
+      ],
+      "id": ".github/workflows/publishJessImage.yml",
+      "inputs": [
+        {
+          "default": null,
+          "name": "version",
+          "required": true,
+          "type": "string"
+        }
+      ],
+      "kind": "reusable-workflow",
+      "mutable_refs": [
+        "actions/checkout@v6",
+        "actions/download-artifact@v8",
+        "docker/login-action@v3",
+        "docker/build-push-action@v6"
+      ],
+      "native_tools": [
+        "docker",
+        "unzip",
+        "bash"
+      ],
+      "network": [
+        "ghcr.io",
+        "quay.io",
+        "CentOS mirrors"
+      ],
+      "observable_behavior": "Called by jess's release: downloads github-release-jess-* artifacts, lays out the build context, builds the jess scratch image and pushes ghcr.io/dreamweave-mp/jess:<version> and :sha-<12>, smoke-runs it by digest and writes the digest to the step summary; output digest.",
+      "outputs": [
+        {
+          "name": "digest",
+          "value": "jobs.publish.outputs.digest"
+        }
+      ],
+      "owner_justification": "Registry push with packages: write.",
+      "permissions": {
+        "publish": {
+          "contents": "read",
+          "packages": "write"
+        },
+        "workflow": {
+          "contents": "read"
+        }
+      },
+      "privileged": true,
+      "proposed_owner": "native-boundary:docker",
+      "reads": [
+        "artifacts github-release-jess-*"
+      ],
+      "secrets": [],
+      "secrets_used": [
+        "GITHUB_TOKEN"
+      ],
+      "stroggforge_refs": [
+        {
+          "purpose": "prepare-context.sh and jess Dockerfile",
+          "ref": "checkout ref: v72"
+        }
+      ],
+      "trigger": [
+        "workflow_call"
+      ],
+      "uncertain": "external caller not verifiable here",
+      "writes": [
+        "GHCR ghcr.io/dreamweave-mp/jess",
+        "GITHUB_STEP_SUMMARY",
+        "GITHUB_OUTPUT tags"
+      ]
+    },
+    {
+      "callers": [
+        "rustGlobalBuild.yml release, release-linux, release-android, release-portmaster"
+      ],
+      "id": ".github/actions/corprus-crucible/action.yml",
+      "inputs": [
+        {
+          "default": null,
+          "name": "binary_name",
+          "required": true,
+          "type": "string"
+        },
+        {
+          "default": "README.md,LICENSE",
+          "name": "include_files",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "default": null,
+          "name": "vt_api_key",
+          "required": true,
+          "type": "string"
+        },
+        {
+          "default": null,
+          "name": "release_name",
+          "required": true,
+          "type": "string"
+        },
+        {
+          "default": "development",
+          "name": "development_release",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "default": "",
+          "name": "nexus_api_key",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "default": "",
+          "name": "nexus_group_ids",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "default": "",
+          "name": "platform_os",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "default": "",
+          "name": "platform_arch",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "default": "",
+          "name": "rust_target",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "default": "false",
+          "name": "lint",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "default": "",
+          "name": "cargo_package",
+          "required": false,
+          "type": "string"
+        }
+      ],
+      "kind": "composite-action",
+      "mutable_refs": [
+        "dtolnay/rust-toolchain@stable",
+        "actions/cache@v5.0.5",
+        "actions/cache/restore@v5.0.5",
+        "actions/cache/save@v5.0.5",
+        "crazy-max/ghaction-virustotal@v5",
+        "actions/upload-artifact@v7.0.1"
+      ],
+      "native_tools": [
+        "cargo",
+        "rustup",
+        "cosign",
+        "7z",
+        "python3",
+        "otool/readelf",
+        "clang/lld"
+      ],
+      "network": [
+        "static.rust-lang.org",
+        "LLVM download hosts",
+        "Sigstore Fulcio/Rekor (OIDC)",
+        "virustotal.com",
+        "GitHub cache/artifact service"
+      ],
+      "notes": [
+        "Secrets spliced into run text: action.yml:58 vt_api_key and :220 nexus_api_key are interpolated as \"${{ inputs.* }}\" arguments rather than via env.",
+        "Uses dtolnay/rust-toolchain@stable directly (not rust-setup) so MSRV/toolchain overrides do not apply to release builds.",
+        "sigstore/cosign-installer is SHA-pinned here (faadad0c..., v4.0.0, cosign v3.1.3) — the only SHA-pinned cosign install."
+      ],
+      "observable_behavior": "Per-binary release build: validates VT key (non-PR), resolves suffix/build context, installs stable Rust + LLVM, restores/saves crate and target caches, optional clippy-release lint, cargo build --release, refuses binaries that need the build machine (PRs included). Non-PR: cosign keyless sign-blob -> <bin>-<OS>-<Arch>.bundle, 7z zip <bin>-<OS>-<Arch>.zip, VirusTotal scan, Nexus prep + artifact nexus-<bin>-<OS>-<Arch>, artifact github-release-<bin>-<OS>-<Arch> (zip + .vt.md). PR: uploads the raw binary as artifact <bin>-<OS>-<Arch>.",
+      "outputs": [],
+      "owner_justification": "Orchestration glue across native steps (cargo build, cosign, VT action, cache); individual scripts move to JSL or stay native per row.",
+      "permissions": "requires caller id-token: write (cosign) and contents: write",
+      "privileged": true,
+      "proposed_owner": "yaml-entrypoint",
+      "reads": [
+        "inputs",
+        "consumer source",
+        "~/.cargo registry",
+        "github.event_name, github.workspace",
+        "runner.os/arch"
+      ],
+      "secrets": null,
+      "secrets_used": [
+        "vt_api_key (VT_API_KEY)",
+        "nexus_api_key (NEXUS_API_KEY)",
+        "nexus_group_ids (NEXUS_GROUP_IDS)",
+        "OIDC id-token"
+      ],
+      "stroggforge_refs": [
+        {
+          "purpose": "scripts resolved from the same action ref, satisfying the ref-contract by construction",
+          "ref": "github.action_path/../../../scripts/* (relative)"
+        }
+      ],
+      "trigger": null,
+      "writes": [
+        ".corprus-crucible/{target,dist,github-release-artifacts,nexus-artifacts}",
+        "<bin>-<OS>-<Arch>.zip in workspace",
+        "<bin>-<OS>-<Arch>.bundle",
+        "actions caches",
+        "artifacts github-release-*, nexus-*, PR binary",
+        "GITHUB_ENV SDKROOT/CARGO_BUILD_TARGET, GITHUB_PATH LLVM"
+      ]
+    },
+    {
+      "callers": [
+        "rustGlobalBuild.yml (lint x2, test, crates, docs)",
+        "libGlobalBuild.yml (lint x2, test, crates, docs)",
+        "benchmarks.yml"
+      ],
+      "id": ".github/actions/rust-setup/action.yml",
+      "inputs": [
+        {
+          "default": "stable",
+          "name": "toolchain",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "default": "",
+          "name": "components",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "default": "",
+          "name": "targets",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "default": "true",
+          "name": "llvm",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "default": "",
+          "name": "cache",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "default": "target",
+          "name": "target-dir",
+          "required": false,
+          "type": "string"
+        }
+      ],
+      "kind": "composite-action",
+      "mutable_refs": [
+        "dtolnay/rust-toolchain@master (branch)",
+        "actions/cache@v5.0.5",
+        "actions/cache/restore@v5.0.5"
+      ],
+      "native_tools": [
+        "rustup",
+        "bash"
+      ],
+      "network": [
+        "static.rust-lang.org",
+        "LLVM hosts",
+        "GitHub cache service"
+      ],
+      "observable_behavior": "Installs a Rust toolchain via dtolnay/rust-toolchain@master, optionally clang/lld matching its LLVM (setup-llvm.sh), computes a cache partition, and caches the crate registry and a named target dir (restore-only on PRs). Output cachekey.",
+      "outputs": [
+        {
+          "name": "cachekey",
+          "value": "steps.rust.outputs.cachekey"
+        }
+      ],
+      "owner_justification": "Compiler/toolchain install plus actions/cache; must stay native, at most invoked from JSL.",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "native-boundary:rustup+llvm",
+      "reads": [
+        "Cargo.lock/Cargo.toml hashes",
+        "env CARGO_*"
+      ],
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [
+        {
+          "purpose": "same-ref scripts",
+          "ref": "github.action_path/../../../scripts/shared/{setup-llvm,cache-partition}.sh"
+        }
+      ],
+      "trigger": null,
+      "writes": [
+        "~/.rustup, ~/.cargo",
+        "GITHUB_PATH/GITHUB_ENV via setup-llvm",
+        "actions caches"
+      ]
+    },
+    {
+      "callers": [
+        ".github/action_templates/daily_quality_template.yaml",
+        "external callers"
+      ],
+      "id": ".github/actions/setup-llvm/action.yml",
+      "inputs": [
+        {
+          "default": "",
+          "name": "toolchain",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "default": "",
+          "name": "llvm_version",
+          "required": false,
+          "type": "string"
+        }
+      ],
+      "kind": "composite-action",
+      "mutable_refs": [],
+      "native_tools": [
+        "bash"
+      ],
+      "network": [
+        "apt.llvm.org",
+        "github.com",
+        "micro.mamba.pm",
+        "conda-forge"
+      ],
+      "observable_behavior": "Runs setup-llvm.sh with toolchain/llvm_version inputs; outputs llvm_major and llvm_version.",
+      "outputs": [
+        {
+          "name": "llvm_major"
+        },
+        {
+          "name": "llvm_version"
+        }
+      ],
+      "owner_justification": "Compiler install; kept for external callers per AGENTS.md.",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "native-boundary:llvm-install",
+      "reads": [],
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [
+        {
+          "purpose": "same ref",
+          "ref": "action_path relative scripts/shared/setup-llvm.sh"
+        }
+      ],
+      "trigger": null,
+      "writes": [
+        "GITHUB_PATH/GITHUB_ENV/GITHUB_OUTPUT via setup-llvm.sh"
+      ]
+    },
+    {
+      "callers": [
+        "modGlobalBuild.yml site, release"
+      ],
+      "id": ".github/actions/jess-setup/action.yml",
+      "inputs": [
+        {
+          "default": null,
+          "name": "jess-version",
+          "required": true,
+          "type": "string"
+        }
+      ],
+      "kind": "composite-action",
+      "mutable_refs": [
+        "jess release by tag (JESS_VERSION v0.2.2), no checksum/signature verification"
+      ],
+      "native_tools": [
+        "curl",
+        "unzip"
+      ],
+      "network": [
+        "github.com (release download)"
+      ],
+      "notes": [
+        "Not mentioned in AGENTS.md."
+      ],
+      "observable_behavior": "Downloads jess-<OS>-<Arch>.zip from DreamWeave-MP/jess release <jess-version>, unzips to $RUNNER_TEMP/jess-<ver>, adds to GITHUB_PATH, prints version.",
+      "outputs": [],
+      "owner_justification": "Tool install bootstrap for the JSL runtime itself; must stay native.",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "native-boundary:jess-install",
+      "reads": [
+        "RUNNER_OS, RUNNER_ARCH"
+      ],
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": [
+        "GITHUB_PATH",
+        "$RUNNER_TEMP/jess-<ver>"
+      ]
+    },
+    {
+      "callers": [
+        "copied into consumer repos (not invoked here)",
+        "tools/war-room/src/generate.rs reads templates for the site"
+      ],
+      "id": ".github/action_templates/rust_template.yaml",
+      "inputs": null,
+      "kind": "template",
+      "mutable_refs": [],
+      "native_tools": [],
+      "network": [],
+      "notes": [
+        "Does not grant actions: write, which rustGlobalBuild's mod-template/site-check jobs request (comment tells user to add it).",
+        "Recommends .stroggforge/cargo-build-args.sh in consumer repos: same path StroggForge checkouts use."
+      ],
+      "observable_behavior": "Consumer CI calling rustGlobalBuild.yml@v72 with secrets: inherit and binary_names placeholder.",
+      "outputs": null,
+      "owner_justification": "Consumer-side entry file: events and permissions only.",
+      "permissions": {
+        "contents": "write",
+        "id-token": "write",
+        "pages": "write"
+      },
+      "privileged": true,
+      "proposed_owner": "yaml-entrypoint",
+      "reads": [],
+      "secrets": null,
+      "secrets_used": [
+        "inherit"
+      ],
+      "stroggforge_refs": [
+        {
+          "purpose": "pipeline",
+          "ref": "workflows/rustGlobalBuild.yml@v72"
+        }
+      ],
+      "trigger": [
+        "workflow_dispatch",
+        "pull_request",
+        "push main",
+        "push tags *"
+      ],
+      "writes": []
+    },
+    {
+      "callers": [
+        "copied into consumer repos (not invoked here)",
+        "tools/war-room/src/generate.rs reads templates for the site"
+      ],
+      "id": ".github/action_templates/lib_template.yaml",
+      "inputs": null,
+      "kind": "template",
+      "mutable_refs": [],
+      "native_tools": [],
+      "network": [],
+      "observable_behavior": "Consumer CI calling libGlobalBuild.yml@v72 with secrets: inherit.",
+      "outputs": null,
+      "owner_justification": "Consumer-side entry file: events and permissions only.",
+      "permissions": {
+        "contents": "write",
+        "id-token": "write",
+        "pages": "write"
+      },
+      "privileged": true,
+      "proposed_owner": "yaml-entrypoint",
+      "reads": [],
+      "secrets": null,
+      "secrets_used": [
+        "inherit"
+      ],
+      "stroggforge_refs": [
+        {
+          "purpose": "pipeline",
+          "ref": "workflows/libGlobalBuild.yml@v72"
+        }
+      ],
+      "trigger": [
+        "workflow_dispatch",
+        "pull_request",
+        "push main",
+        "push tags *"
+      ],
+      "writes": []
+    },
+    {
+      "callers": [
+        "copied into consumer repos (not invoked here)",
+        "tools/war-room/src/generate.rs reads templates for the site"
+      ],
+      "id": ".github/action_templates/mod_template.yaml",
+      "inputs": null,
+      "kind": "template",
+      "mutable_refs": [],
+      "native_tools": [],
+      "network": [],
+      "observable_behavior": "Mod site build_site.yml calling modGlobalBuild.yml@v72; release tags '*-[0-9]*'; non-cancelling concurrency on default branch and tags.",
+      "outputs": null,
+      "owner_justification": "Consumer-side entry file: events and permissions only.",
+      "permissions": {
+        "actions": "write",
+        "contents": "write",
+        "id-token": "write",
+        "pages": "write"
+      },
+      "privileged": true,
+      "proposed_owner": "yaml-entrypoint",
+      "reads": [],
+      "secrets": null,
+      "secrets_used": [
+        "inherit"
+      ],
+      "stroggforge_refs": [
+        {
+          "purpose": "pipeline",
+          "ref": "workflows/modGlobalBuild.yml@v72"
+        }
+      ],
+      "trigger": [
+        "push branches **",
+        "push tags *-[0-9]*",
+        "pull_request",
+        "workflow_dispatch"
+      ],
+      "writes": []
+    },
+    {
+      "callers": [
+        "copied into consumer repos (not invoked here)",
+        "tools/war-room/src/generate.rs reads templates for the site"
+      ],
+      "id": ".github/action_templates/benchmark_template.yaml",
+      "inputs": null,
+      "kind": "template",
+      "mutable_refs": [],
+      "native_tools": [],
+      "network": [],
+      "observable_behavior": "workflow_dispatch form (os choice, filter, all_features) calling benchmarks.yml@v72 without release upload.",
+      "outputs": null,
+      "owner_justification": "Consumer-side entry file: events and permissions only.",
+      "permissions": {
+        "contents": "read"
+      },
+      "privileged": false,
+      "proposed_owner": "yaml-entrypoint",
+      "reads": [],
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [
+        {
+          "purpose": "benchmarks",
+          "ref": "workflows/benchmarks.yml@v72"
+        }
+      ],
+      "trigger": [
+        "workflow_dispatch"
+      ],
+      "writes": []
+    },
+    {
+      "callers": [
+        "copied into consumer repos (not invoked here)",
+        "tools/war-room/src/generate.rs reads templates for the site"
+      ],
+      "id": ".github/action_templates/daily_quality_template.yaml",
+      "inputs": null,
+      "kind": "template",
+      "mutable_refs": [
+        "actions/checkout@v6",
+        "dtolnay/rust-toolchain@stable",
+        "taiki-e/install-action@cargo-audit"
+      ],
+      "native_tools": [],
+      "network": [],
+      "notes": [
+        "Not called by any workflow; bump-version.sh rewrites its pin."
+      ],
+      "observable_behavior": "Daily 15:00 UTC fmt, clippy (with setup-llvm@v72), cargo audit on ubuntu-22.04.",
+      "outputs": null,
+      "owner_justification": "Consumer-side entry file: events and permissions only.",
+      "permissions": {
+        "contents": "read"
+      },
+      "privileged": false,
+      "proposed_owner": "yaml-entrypoint",
+      "reads": [],
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [
+        {
+          "purpose": "LLVM for clippy",
+          "ref": "actions/setup-llvm@v72"
+        }
+      ],
+      "trigger": [
+        "workflow_dispatch",
+        "schedule 0 15 * * *"
+      ],
+      "writes": []
+    },
+    {
+      "callers": [
+        "publish-linux-x86_64-el9-builder.yml"
+      ],
+      "id": ".github/container-images/linux-x86_64-el9/Dockerfile",
+      "inputs": null,
+      "kind": "container-image",
+      "mutable_refs": [
+        "FROM quay.io/centos/centos:stream9 (tag, no digest)"
+      ],
+      "native_tools": [
+        "dnf"
+      ],
+      "network": [
+        "quay.io",
+        "CentOS/EPEL mirrors"
+      ],
+      "observable_behavior": "CentOS Stream 9 builder with git, python3, gcc, clang, lld, p7zip, openssl-devel etc.; symlinks /home/runner/work/_actions for container actions. Used as rustGlobalBuild release-linux and toolchain.yml container.",
+      "outputs": null,
+      "owner_justification": "Build environment image (glibc 2.34 floor).",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "native-boundary:docker",
+      "reads": [],
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": [
+        "image layers"
+      ]
+    },
+    {
+      "callers": [
+        "publish-portmaster-aarch64-el9-builder.yml"
+      ],
+      "id": ".github/container-images/portmaster-aarch64-el9/Dockerfile",
+      "inputs": null,
+      "kind": "container-image",
+      "mutable_refs": [
+        "FROM quay.io/centos/centos:stream9 (tag, no digest)"
+      ],
+      "native_tools": [
+        "dnf"
+      ],
+      "network": [
+        "quay.io",
+        "CentOS/EPEL mirrors"
+      ],
+      "observable_behavior": "CentOS Stream 9 host with an aarch64 EL9 sysroot at /usr/aarch64-linux-gnu/sys-root (glibc-devel, libgcc, libstdc++-devel, gcc, openssl-devel) plus clang/lld/llvm for cross builds.",
+      "outputs": null,
+      "owner_justification": "Cross build environment image.",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "native-boundary:docker",
+      "reads": [],
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": []
+    },
+    {
+      "callers": [
+        "publishJessImage.yml"
+      ],
+      "id": ".github/container-images/jess/Dockerfile",
+      "inputs": null,
+      "kind": "container-image",
+      "mutable_refs": [
+        "FROM quay.io/centos/centos:stream9 AS libraries (tag, no digest)"
+      ],
+      "native_tools": [
+        "dnf",
+        "ldd"
+      ],
+      "network": [
+        "quay.io",
+        "CentOS mirrors"
+      ],
+      "observable_behavior": "Two-stage: copies jess runtimes into Stream 9, collects ldd-listed libs + CA bundle into a scratch rootfs; final scratch image with ENTRYPOINT /usr/local/bin/jess and JESS_RUNTIMES=/opt/jess/runtimes; build-time jess --version smoke test.",
+      "outputs": null,
+      "owner_justification": "Runtime image build.",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "native-boundary:docker",
+      "reads": [],
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": []
+    },
+    {
+      "callers": [
+        ".github/actions/corprus-crucible/action.yml"
+      ],
+      "id": "scripts/corprus-crucible/binary-suffix.sh",
+      "inputs": null,
+      "kind": "shell",
+      "mutable_refs": [],
+      "native_tools": [],
+      "network": [],
+      "observable_behavior": "Writes suffix=.exe for Windows, else empty, to GITHUB_OUTPUT.",
+      "outputs": null,
+      "owner_justification": "Pure naming logic.",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "jsl:forge-release",
+      "reads": [
+        "$1 platform os"
+      ],
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": [
+        "GITHUB_OUTPUT suffix"
+      ]
+    },
+    {
+      "callers": [
+        ".github/actions/corprus-crucible/action.yml"
+      ],
+      "id": "scripts/corprus-crucible/build-release-binary.sh",
+      "inputs": null,
+      "kind": "shell",
+      "mutable_refs": [],
+      "native_tools": [
+        "cargo",
+        "mktemp"
+      ],
+      "network": [
+        "crates.io (dependency fetch)"
+      ],
+      "observable_behavior": "Runs cargo build --release (package/workspace/--bin selection, hook features, optional --target) with CARGO_TARGET_DIR, verifies the built binary exists, copies it to dist; exits 1 if missing.",
+      "outputs": null,
+      "owner_justification": "cargo build invocation; argument assembly could be JSL but the build is native.",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "native-boundary:cargo",
+      "reads": [
+        "args",
+        "CARGO_BUILD_TARGET",
+        ".stroggforge/cargo-build-args.sh via feature-args.sh"
+      ],
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": [
+        "<target-dir>, <dist-dir>/<bin>",
+        "GITHUB_OUTPUT binary_name, release_binary"
+      ]
+    },
+    {
+      "callers": [
+        ".github/actions/corprus-crucible/action.yml",
+        ".github/workflows/toolchain.yml"
+      ],
+      "id": "scripts/corprus-crucible/check-release-binary.sh",
+      "inputs": null,
+      "kind": "shell",
+      "mutable_refs": [],
+      "native_tools": [
+        "otool|llvm-otool",
+        "readelf|llvm-readelf",
+        "od",
+        "awk",
+        "sed"
+      ],
+      "network": [],
+      "observable_behavior": "Refuses (exit 1, ::error::) a macOS binary linking non-/usr/lib,/System/Library libs or having LC_RPATH, or an ELF with RPATH/RUNPATH outside $ORIGIN; Windows no-op.",
+      "outputs": null,
+      "owner_justification": "Policy check over tool output; JSL can own the policy while calling otool/readelf.",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "jsl:forge-check",
+      "reads": [
+        "binary",
+        "platform os"
+      ],
+      "review_note": "A release gate, not lint: belongs with verify.",
+      "reviewed_owner": "jsl:forge-verify (+ native otool/readelf until JSL parses Mach-O/ELF load commands)",
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": []
+    },
+    {
+      "callers": [
+        ".github/workflows/rustGlobalBuild.yml test job",
+        ".github/actions/corprus-crucible/action.yml (lint: true)"
+      ],
+      "id": "scripts/corprus-crucible/clippy-release.sh",
+      "inputs": null,
+      "kind": "shell",
+      "mutable_refs": [],
+      "native_tools": [
+        "cargo clippy",
+        "sed"
+      ],
+      "network": [],
+      "observable_behavior": "For each binary in a JSON array (parsed without jq, validated name charset), runs cargo clippy with the release's package/bin/features/target and -W clippy::pedantic -D warnings.",
+      "outputs": null,
+      "owner_justification": "Lint orchestration; cargo clippy itself native.",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "jsl:forge-check",
+      "reads": [
+        "args",
+        ".stroggforge/cargo-build-args.sh via feature-args.sh"
+      ],
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": []
+    },
+    {
+      "callers": [
+        "scripts/corprus-crucible/build-release-binary.sh",
+        "scripts/corprus-crucible/clippy-release.sh"
+      ],
+      "id": "scripts/corprus-crucible/feature-args.sh",
+      "inputs": null,
+      "kind": "shell",
+      "mutable_refs": [],
+      "native_tools": [
+        "bash"
+      ],
+      "network": [],
+      "notes": [
+        "Path collision: rustGlobalBuild test job checks StroggForge out at .stroggforge (rustGlobalBuild.yml:257-261), so in that job the hook path resolves into the StroggForge checkout, which has no root cargo-build-args.sh; 'Clippy with the features the release ships' would then lint default features. The crates job's `rm -rf .stroggforge` (rustGlobalBuild.yml:664,668) would also delete a tracked consumer hook before cargo publish."
+      ],
+      "observable_behavior": "Runs the consumer hook .stroggforge/cargo-build-args.sh (if present, must be executable) and prints only validated feature args (--features/-F/--no-default-features/--all-features), else errors.",
+      "outputs": null,
+      "owner_justification": "Policy filter on consumer hook output.",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "jsl:forge-release",
+      "reads": [
+        ".stroggforge/cargo-build-args.sh (cwd-relative)"
+      ],
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "uncertain": "Depends on actions/checkout clearing a pre-existing non-repo directory at `path` (its documented behavior) and on cargo's dirty-tree check treating a deleted tracked file as dirty; not executed.",
+      "writes": []
+    },
+    {
+      "callers": [
+        ".github/actions/corprus-crucible/action.yml"
+      ],
+      "id": "scripts/corprus-crucible/create-release-archive.sh",
+      "inputs": null,
+      "kind": "shell",
+      "mutable_refs": [],
+      "native_tools": [
+        "7z",
+        "cp",
+        "tr"
+      ],
+      "network": [],
+      "observable_behavior": "Copies include files (case-insensitive match; README.md/LICENSE renamed <bin>-README.md/<bin>-LICENSE; dirs copied) into dist and 7z-zips binary, bundle and includes into $PWD/<bin>-<OS>-<Arch>.zip.",
+      "outputs": null,
+      "owner_justification": "Archive layout logic; 7z is replaceable.",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "jsl:forge-archive",
+      "reads": [
+        "build dir files"
+      ],
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": [
+        "<bin>-<OS>-<Arch>.zip",
+        "dist copies"
+      ]
+    },
+    {
+      "callers": [
+        ".github/actions/corprus-crucible/action.yml"
+      ],
+      "id": "scripts/corprus-crucible/format-virustotal-links.sh",
+      "inputs": null,
+      "kind": "shell",
+      "mutable_refs": [],
+      "native_tools": [],
+      "network": [],
+      "observable_behavior": "Turns VT action 'analysis' (file=url,...) into Markdown and BBCode multiline GITHUB_OUTPUT vt_analysis, vt_analysis_bbcode.",
+      "outputs": null,
+      "owner_justification": "String formatting.",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "jsl:forge-release",
+      "reads": [],
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": [
+        "GITHUB_OUTPUT vt_analysis, vt_analysis_bbcode"
+      ]
+    },
+    {
+      "callers": [
+        ".github/workflows/rustGlobalBuild.yml publish"
+      ],
+      "id": "scripts/corprus-crucible/package-muxapp.sh",
+      "inputs": null,
+      "kind": "shell",
+      "mutable_refs": [],
+      "native_tools": [
+        "unzip",
+        "zip",
+        "find"
+      ],
+      "network": [],
+      "observable_behavior": "For each *-Portmaster-ARM64.zip, unzips, overlays muxapp_dir files, chmod +x top-level *.sh, zips to <name>.muxapp; errors if dir or archives missing.",
+      "outputs": null,
+      "owner_justification": "Archive repackaging.",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "jsl:forge-archive",
+      "reads": [
+        "muxapp dir",
+        "archives"
+      ],
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": [
+        "<output>/*.muxapp"
+      ]
+    },
+    {
+      "callers": [
+        ".github/actions/corprus-crucible/action.yml"
+      ],
+      "id": "scripts/corprus-crucible/prepare-github-release-artifact.sh",
+      "inputs": null,
+      "kind": "shell",
+      "mutable_refs": [],
+      "native_tools": [],
+      "network": [],
+      "observable_behavior": "Stages the zip and a <artifact>.vt.md (from VT_ANALYSIS) under .corprus-crucible/github-release-artifacts/github-release-<bin>-<OS>-<Arch>.",
+      "outputs": null,
+      "owner_justification": "Staging layout.",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "jsl:forge-release",
+      "reads": [
+        "VT_ANALYSIS"
+      ],
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": [
+        ".corprus-crucible/github-release-artifacts/*",
+        "GITHUB_OUTPUT artifact_name, artifact_dir"
+      ]
+    },
+    {
+      "callers": [
+        ".github/actions/corprus-crucible/action.yml"
+      ],
+      "id": "scripts/corprus-crucible/prepare-nexusmods-archive.sh",
+      "inputs": null,
+      "kind": "shell",
+      "mutable_refs": [],
+      "native_tools": [],
+      "network": [],
+      "observable_behavior": "Copies <bin>-<OS>-<Arch>.zip to <bin>-<nexus_platform>-<release>.zip ('/' replaced by '-').",
+      "outputs": null,
+      "owner_justification": "Naming/copy.",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "jsl:forge-nexus",
+      "reads": [],
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": [
+        "<stem>.zip",
+        "GITHUB_OUTPUT nexus_archive, nexus_file_stem"
+      ]
+    },
+    {
+      "callers": [
+        ".github/actions/corprus-crucible/action.yml"
+      ],
+      "id": "scripts/corprus-crucible/prepare-nexusmods-upload-artifact.sh",
+      "inputs": null,
+      "kind": "shell",
+      "mutable_refs": [],
+      "native_tools": [],
+      "network": [],
+      "observable_behavior": "Stages archive plus manifest.env (printf %q group_id, filename, display_name, version, archive_existing_file=true for development release) and description.bbcode (changelog URL + VT BBCode) under .corprus-crucible/nexus-artifacts/nexus-<bin>-<OS>-<Arch>.",
+      "outputs": null,
+      "owner_justification": "Upload manifest construction.",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "jsl:forge-nexus",
+      "reads": [
+        "VT_ANALYSIS_BBCODE",
+        "DEVELOPMENT_RELEASE"
+      ],
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": [
+        ".corprus-crucible/nexus-artifacts/*",
+        "GITHUB_OUTPUT artifact_name, artifact_dir"
+      ]
+    },
+    {
+      "callers": [
+        ".github/workflows/rustGlobalBuild.yml nexus job"
+      ],
+      "id": "scripts/corprus-crucible/read-nexusmods-upload-artifact.sh",
+      "inputs": null,
+      "kind": "shell",
+      "mutable_refs": [],
+      "native_tools": [],
+      "network": [],
+      "notes": [
+        "`source` executes the artifact's manifest.env as shell (read-nexusmods-upload-artifact.sh:20); trusted only because it is produced in the same run."
+      ],
+      "observable_behavior": "Sources manifest.env from the downloaded artifact, validates fields and archive, and writes group_id, filename, display_name, version, archive_existing_file, multiline description to GITHUB_OUTPUT.",
+      "outputs": null,
+      "owner_justification": "Manifest parsing; JSL can parse data instead of `source`-ing shell.",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "jsl:forge-nexus",
+      "reads": [
+        "artifact manifest.env, description.bbcode"
+      ],
+      "review_note": "Replacing it removes `source` of a manifest read from a downloaded artifact (line 20).",
+      "reviewed_owner": "jsl:forge-nexus",
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": [
+        "GITHUB_OUTPUT"
+      ]
+    },
+    {
+      "callers": [
+        ".github/actions/corprus-crucible/action.yml"
+      ],
+      "id": "scripts/corprus-crucible/resolve-build-context.sh",
+      "inputs": null,
+      "kind": "shell",
+      "mutable_refs": [],
+      "native_tools": [],
+      "network": [],
+      "observable_behavior": "Outputs build_dir (. or binary-named dir), target_dir=.corprus-crucible/target, dist_dir=.corprus-crucible/dist.",
+      "outputs": null,
+      "owner_justification": "Pure resolution logic.",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "jsl:forge-release",
+      "reads": [],
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": [
+        "GITHUB_OUTPUT build_dir, target_dir, dist_dir"
+      ]
+    },
+    {
+      "callers": [
+        ".github/actions/corprus-crucible/action.yml"
+      ],
+      "id": "scripts/corprus-crucible/resolve-nexusmods-group-id.sh",
+      "inputs": null,
+      "kind": "shell",
+      "mutable_refs": [],
+      "native_tools": [
+        "python3"
+      ],
+      "network": [],
+      "observable_behavior": "Maps OS/arch + channel (dev if release==DEVELOPMENT_RELEASE else stable) to a key in NEXUS_GROUP_IDS JSON; errors if stable key missing; outputs group_id, nexus_platform, nexus_channel.",
+      "outputs": null,
+      "owner_justification": "JSON lookup logic (embedded Python).",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "jsl:forge-nexus",
+      "reads": [
+        "NEXUS_GROUP_IDS",
+        "DEVELOPMENT_RELEASE"
+      ],
+      "secrets": null,
+      "secrets_used": [
+        "NEXUS_GROUP_IDS"
+      ],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": [
+        "GITHUB_OUTPUT group_id, nexus_platform, nexus_channel"
+      ]
+    },
+    {
+      "callers": [
+        ".github/actions/corprus-crucible/action.yml"
+      ],
+      "id": "scripts/corprus-crucible/sign-release-binary.sh",
+      "inputs": null,
+      "kind": "shell",
+      "mutable_refs": [],
+      "native_tools": [
+        "cosign"
+      ],
+      "network": [
+        "Fulcio",
+        "Rekor",
+        "GitHub OIDC"
+      ],
+      "observable_behavior": "cosign sign-blob -y <binary> --bundle <path> (keyless via OIDC).",
+      "outputs": null,
+      "owner_justification": "Keyless signing with OIDC id-token.",
+      "permissions": null,
+      "privileged": true,
+      "proposed_owner": "native-boundary:cosign",
+      "reads": [],
+      "secrets": null,
+      "secrets_used": [
+        "OIDC id-token"
+      ],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": [
+        "<bin>-<OS>-<Arch>.bundle",
+        "Rekor transparency log entry"
+      ]
+    },
+    {
+      "callers": [
+        ".github/actions/corprus-crucible/action.yml"
+      ],
+      "id": "scripts/corprus-crucible/validate-nexusmods-inputs.sh",
+      "inputs": null,
+      "kind": "shell",
+      "mutable_refs": [],
+      "native_tools": [],
+      "network": [],
+      "observable_behavior": "Fails if only one of nexus API key / NEXUS_GROUP_IDS is set.",
+      "outputs": null,
+      "owner_justification": "Input validation.",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "jsl:forge-nexus",
+      "reads": [
+        "$1 api key",
+        "NEXUS_GROUP_IDS"
+      ],
+      "secrets": null,
+      "secrets_used": [
+        "NEXUS_API_KEY (as argv)",
+        "NEXUS_GROUP_IDS"
+      ],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": []
+    },
+    {
+      "callers": [
+        ".github/actions/corprus-crucible/action.yml"
+      ],
+      "id": "scripts/corprus-crucible/validate-virustotal-key.sh",
+      "inputs": null,
+      "kind": "shell",
+      "mutable_refs": [],
+      "native_tools": [],
+      "network": [],
+      "observable_behavior": "Fails with ::error:: if VT key arg is empty.",
+      "outputs": null,
+      "owner_justification": "Input validation.",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "jsl:forge-release",
+      "reads": [],
+      "secrets": null,
+      "secrets_used": [
+        "VT_API_KEY (as argv)"
+      ],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": []
+    },
+    {
+      "callers": [
+        ".github/workflows/publishJessImage.yml"
+      ],
+      "id": "scripts/jess-image/prepare-context.sh",
+      "inputs": null,
+      "kind": "shell",
+      "mutable_refs": [],
+      "native_tools": [
+        "unzip"
+      ],
+      "network": [],
+      "observable_behavior": "Unzips each jess-*.zip into context/runtimes/<stem>[.exe], copies Linux LICENSE-* and README into context/licenses; requires jess-Linux-X64.",
+      "outputs": null,
+      "owner_justification": "Archive layout.",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "jsl:forge-archive",
+      "reads": [],
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": [
+        "context/runtimes, context/licenses"
+      ]
+    },
+    {
+      "callers": [
+        ".github/workflows/modGlobalBuild.yml site, release"
+      ],
+      "id": "scripts/mod-template/commit-records.sh",
+      "inputs": null,
+      "kind": "shell",
+      "mutable_refs": [],
+      "native_tools": [
+        "git",
+        "jess",
+        "jq"
+      ],
+      "network": [
+        "github.com",
+        "crates.io",
+        "GitHub API"
+      ],
+      "observable_behavior": "Up to 5 attempts: fetch default branch, force-detach to it, sync pins, run jess dreamweave-record (if dist/release.json), dreamweave-record-crates, dreamweave-record-releases, commit modified/new *mod.lock as github-actions[bot] and push to the default branch.",
+      "outputs": null,
+      "owner_justification": "Record logic already in jess targets; git push stays native.",
+      "permissions": null,
+      "privileged": true,
+      "proposed_owner": "jsl:forge-modtemplate",
+      "reads": [
+        "dist/release.json",
+        "GITHUB_TOKEN"
+      ],
+      "secrets": null,
+      "secrets_used": [
+        "GITHUB_TOKEN"
+      ],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": [
+        "git commits pushed to default branch (mod.lock)"
+      ]
+    },
+    {
+      "callers": [
+        ".github/workflows/modGlobalBuild.yml release"
+      ],
+      "id": "scripts/mod-template/nexus-uploads.sh",
+      "inputs": null,
+      "kind": "shell",
+      "mutable_refs": [],
+      "native_tools": [
+        "jq"
+      ],
+      "network": [],
+      "observable_behavior": "Emits uploads JSON from dist/nexus.json, plus per-platform application zips mapped through NEXUS_GROUP_IDS keys <os>-<arch>-stable.",
+      "outputs": null,
+      "owner_justification": "Data shaping.",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "jsl:forge-nexus",
+      "reads": [
+        "dist/nexus.json",
+        "dist/release.json",
+        "APPLICATION",
+        "NEXUS_GROUP_IDS"
+      ],
+      "secrets": null,
+      "secrets_used": [
+        "NEXUS_GROUP_IDS"
+      ],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": [
+        "GITHUB_OUTPUT uploads"
+      ]
+    },
+    {
+      "callers": [
+        ".github/workflows/modGlobalBuild.yml site"
+      ],
+      "id": "scripts/mod-template/scaffold.sh",
+      "inputs": null,
+      "kind": "shell",
+      "mutable_refs": [],
+      "native_tools": [
+        "git",
+        "sed",
+        "grep"
+      ],
+      "network": [
+        "github.com"
+      ],
+      "observable_behavior": "If jess.toml declares org.dreamweave.mod-template and the tool files are untouched since the root commit: git rm tool source/template page, rewrite jess-workspace.toml, edit config.toml, commit and push to default branch (5 retries); otherwise error with manual instructions.",
+      "outputs": null,
+      "owner_justification": "Repo transformation logic; push native.",
+      "permissions": null,
+      "privileged": true,
+      "proposed_owner": "jsl:forge-modtemplate",
+      "reads": [
+        "jess.toml",
+        "content/template/mod.toml",
+        "git history"
+      ],
+      "secrets": null,
+      "secrets_used": [
+        "GITHUB_TOKEN (checkout credentials)"
+      ],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": [
+        "commit pushed to default branch"
+      ]
+    },
+    {
+      "callers": [
+        ".github/workflows/modGlobalBuild.yml",
+        "scripts/mod-template/commit-records.sh"
+      ],
+      "id": "scripts/mod-template/sync-pins.sh",
+      "inputs": null,
+      "kind": "shell",
+      "mutable_refs": [],
+      "native_tools": [
+        "jess",
+        "git"
+      ],
+      "network": [
+        "dreamweave-mp.github.io publishers",
+        "github.com"
+      ],
+      "observable_behavior": "With jess.lock: jess workspace sync --locked. Else with DREAMWEAVE_BOOTSTRAP_SOURCES: shallow-clone owner/repo@ref sources and sync offline. Else sync from DREAMWEAVE_PUBLISHERS and, when publishing, commit+push jess.lock to the default branch (fails if jess-workspace.toml moved).",
+      "outputs": null,
+      "owner_justification": "Package resolution policy.",
+      "permissions": null,
+      "privileged": true,
+      "proposed_owner": "jsl:forge-modtemplate",
+      "reads": [
+        "jess.lock",
+        "DREAMWEAVE_PUBLISHERS",
+        "DREAMWEAVE_BOOTSTRAP_SOURCES",
+        "GITHUB_REPOSITORY"
+      ],
+      "secrets": null,
+      "secrets_used": [
+        "GITHUB_TOKEN (checkout credentials)"
+      ],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": [
+        "jess.lock commit pushed (default branch)",
+        "$RUNNER_TEMP/dreamweave-bootstrap"
+      ]
+    },
+    {
+      "callers": [
+        ".github/actions/rust-setup/action.yml",
+        ".github/actions/corprus-crucible/action.yml"
+      ],
+      "id": "scripts/shared/cache-partition.sh",
+      "inputs": null,
+      "kind": "shell",
+      "mutable_refs": [],
+      "native_tools": [
+        "cksum",
+        "sw_vers"
+      ],
+      "network": [],
+      "observable_behavior": "Outputs partition=<image>-<cksum of CARGO_PROFILE/BUILD/TARGET_*, RUSTFLAGS...> for cache keys.",
+      "outputs": null,
+      "owner_justification": "Pure key derivation.",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "jsl:forge-check",
+      "reads": [
+        "ImageOS",
+        "/etc/os-release",
+        "env"
+      ],
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": [
+        "GITHUB_OUTPUT partition"
+      ]
+    },
+    {
+      "callers": [
+        "rustGlobalBuild.yml publish",
+        "libGlobalBuild.yml publish"
+      ],
+      "id": "scripts/shared/changelog.sh",
+      "inputs": null,
+      "kind": "shell",
+      "mutable_refs": [],
+      "native_tools": [
+        "git"
+      ],
+      "network": [],
+      "observable_behavior": "Writes CHANGELOG.md from git tags (version-sorted) and commit subjects with links; needs full history.",
+      "outputs": null,
+      "owner_justification": "Text generation over git log.",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "jsl:forge-changelog",
+      "reads": [
+        "git tags/log",
+        "GITHUB_REPOSITORY",
+        "GITHUB_SERVER_URL"
+      ],
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": [
+        "CHANGELOG.md"
+      ]
+    },
+    {
+      "callers": [
+        "scripts/shared/create-dependent-update-issues.sh"
+      ],
+      "id": "scripts/shared/create-dependent-update-issue.sh",
+      "inputs": null,
+      "kind": "shell",
+      "mutable_refs": [],
+      "native_tools": [
+        "gh"
+      ],
+      "network": [
+        "api.github.com"
+      ],
+      "observable_behavior": "Creates an issue '📦 Update <repo> dependency to <ref>' in a target repo, assigned to the actor, labelled enhancement if the label exists.",
+      "outputs": null,
+      "owner_justification": "API call composition; token stays at the edge.",
+      "permissions": null,
+      "privileged": true,
+      "proposed_owner": "jsl:forge-release",
+      "reads": [
+        "GITHUB_REF_NAME",
+        "GITHUB_REPOSITORY",
+        "GITHUB_ACTOR",
+        "GITHUB_EVENT_REPOSITORY_NAME",
+        "GH_TOKEN"
+      ],
+      "secrets": null,
+      "secrets_used": [
+        "DW_BOT_PAT (GH_TOKEN)"
+      ],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": [
+        "issue in target repo"
+      ]
+    },
+    {
+      "callers": [
+        "rustGlobalBuild.yml publish",
+        "libGlobalBuild.yml publish",
+        "dependent.yml"
+      ],
+      "id": "scripts/shared/create-dependent-update-issues.sh",
+      "inputs": null,
+      "kind": "shell",
+      "mutable_refs": [],
+      "native_tools": [
+        "python3",
+        "gh"
+      ],
+      "network": [
+        "api.github.com"
+      ],
+      "observable_behavior": "Parses newline list or JSON array of repos (python3) and calls create-dependent-update-issue.sh for each; exits 1 if any failed.",
+      "outputs": null,
+      "owner_justification": "Fan-out logic.",
+      "permissions": null,
+      "privileged": true,
+      "proposed_owner": "jsl:forge-release",
+      "reads": [
+        "args"
+      ],
+      "secrets": null,
+      "secrets_used": [
+        "DW_BOT_PAT (GH_TOKEN)"
+      ],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": [
+        "issues"
+      ]
+    },
+    {
+      "callers": [
+        "rustGlobalBuild.yml docs",
+        "libGlobalBuild.yml docs"
+      ],
+      "id": "scripts/shared/docs-index.sh",
+      "inputs": null,
+      "kind": "shell",
+      "mutable_refs": [],
+      "native_tools": [
+        "jq"
+      ],
+      "network": [],
+      "observable_behavior": "Writes target/doc/index.html meta-refresh to <first name with - → _>/index.html.",
+      "outputs": null,
+      "owner_justification": "Trivial generation.",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "jsl:forge-docs",
+      "reads": [],
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": [
+        "target/doc/index.html"
+      ]
+    },
+    {
+      "callers": [
+        ".github/workflows/benchmarks.yml"
+      ],
+      "id": "scripts/shared/generate-benchmark-docs.sh",
+      "inputs": null,
+      "kind": "shell",
+      "mutable_refs": [],
+      "native_tools": [
+        "cargo",
+        "python3|python",
+        "tee"
+      ],
+      "network": [],
+      "observable_behavior": "Runs cargo bench (optional --all-features, filter) tee'd to benchmark-output.txt, then execs python3/python gen_benchmarks.py.",
+      "outputs": null,
+      "owner_justification": "Orchestration; cargo bench native.",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "jsl:forge-benchmarks",
+      "reads": [
+        "BENCH_FILTER",
+        "BENCH_ALL_FEATURES"
+      ],
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": [
+        "benchmark-output.txt",
+        "BENCHMARKS.md (via generator)"
+      ]
+    },
+    {
+      "callers": [
+        "rustGlobalBuild.yml publish"
+      ],
+      "id": "scripts/shared/publish-github-release-artifacts.sh",
+      "inputs": null,
+      "kind": "shell",
+      "mutable_refs": [],
+      "native_tools": [
+        "gh"
+      ],
+      "network": [
+        "api.github.com",
+        "uploads.github.com"
+      ],
+      "observable_behavior": "gh release upload --clobber of *.zip and *.muxapp (error if none) and appends body file to the release notes.",
+      "outputs": null,
+      "owner_justification": "Release mutation with write token; JSL may compute what to upload.",
+      "permissions": null,
+      "privileged": true,
+      "proposed_owner": "native-boundary:gh-release",
+      "reads": [
+        "download dir",
+        "body file"
+      ],
+      "secrets": null,
+      "secrets_used": [
+        "GITHUB_TOKEN"
+      ],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": [
+        "GitHub release assets and body"
+      ]
+    },
+    {
+      "callers": [
+        "rustGlobalBuild.yml publish",
+        "libGlobalBuild.yml publish",
+        "createRelease.yml"
+      ],
+      "id": "scripts/shared/refresh-github-release.sh",
+      "inputs": null,
+      "kind": "shell",
+      "mutable_refs": [],
+      "native_tools": [
+        "gh"
+      ],
+      "network": [
+        "api.github.com"
+      ],
+      "observable_behavior": "Deletes an existing release (and, for DEVELOPMENT_RELEASE, the tag via API, tolerating absent refs), recreates with --generate-notes (prerelease for development), appends 'Generated by workflow run' footer; exit 255 on failures.",
+      "outputs": null,
+      "owner_justification": "Destructive release/tag mutation; policy (when to delete) could be JSL.",
+      "permissions": null,
+      "privileged": true,
+      "proposed_owner": "native-boundary:gh-release",
+      "reads": [
+        "DEVELOPMENT_RELEASE",
+        "args"
+      ],
+      "secrets": null,
+      "secrets_used": [
+        "GITHUB_TOKEN"
+      ],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": [
+        "GitHub release delete/create/edit",
+        "development tag deletion"
+      ]
+    },
+    {
+      "callers": [
+        "libGlobalBuild.yml lint, crates"
+      ],
+      "id": "scripts/shared/resolve-crate-manifest.sh",
+      "inputs": null,
+      "kind": "shell",
+      "mutable_refs": [],
+      "native_tools": [
+        "cargo metadata",
+        "jq"
+      ],
+      "network": [],
+      "observable_behavior": "Prints manifest_path of the workspace package whose name matches ignoring -/_; exit 1 if none.",
+      "outputs": null,
+      "owner_justification": "Metadata query.",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "jsl:forge-release",
+      "reads": [],
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": []
+    },
+    {
+      "callers": [
+        "rustGlobalBuild.yml lint",
+        "libGlobalBuild.yml lint"
+      ],
+      "id": "scripts/shared/resolve-msrv.sh",
+      "inputs": null,
+      "kind": "shell",
+      "mutable_refs": [],
+      "native_tools": [
+        "cargo metadata",
+        "jq",
+        "sort -V"
+      ],
+      "network": [],
+      "observable_behavior": "Resolves 'auto' to the highest rust-version among workspace members, validates N.N[.N], writes toolchain= to GITHUB_OUTPUT.",
+      "outputs": null,
+      "owner_justification": "Metadata query + validation.",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "jsl:forge-check",
+      "reads": [],
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": [
+        "GITHUB_OUTPUT toolchain"
+      ]
+    },
+    {
+      "callers": [
+        ".github/actions/rust-setup/action.yml",
+        ".github/actions/setup-llvm/action.yml",
+        ".github/actions/corprus-crucible/action.yml",
+        ".github/workflows/toolchain.yml"
+      ],
+      "id": "scripts/shared/setup-llvm.sh",
+      "inputs": null,
+      "kind": "shell",
+      "mutable_refs": [],
+      "native_tools": [
+        "rustc",
+        "curl",
+        "apt-get",
+        "sudo",
+        "dnf",
+        "micromamba",
+        "tar",
+        "7z",
+        "xcrun",
+        "clang",
+        "ld.lld/lld-link",
+        "cygpath"
+      ],
+      "network": [
+        "apt.llvm.org (deb over http, gpg key over https)",
+        "github.com/llvm/llvm-project releases",
+        "api.github.com",
+        "micro.mamba.pm",
+        "conda.anaconda.org (conda-forge)",
+        "EL9 AppStream/BaseOS mirrors"
+      ],
+      "notes": [
+        "AGENTS.md is self-contradictory and partly wrong here: it says 'a stream/rustc LLVM major mismatch fails loudly on purpose', but setup-llvm.sh:119-128 falls back to conda-forge on mismatch (AGENTS.md also says conda-forge is used 'on EL9 when the stream trails rustc').",
+        "Downloads (LLVM tarballs, micromamba 'latest', conda packages by major) are not checksum-verified; micromamba is unpinned 'latest'."
+      ],
+      "observable_behavior": "Installs clang/lld/llvm matching rustc's LLVM major: apt.llvm.org (Ubuntu, adds apt source + key), dnf stream clang/lld with conda-forge nocfg fallback via micromamba (EL9), LLVM GitHub tarball (macOS ARM64, Windows, apt-less Linux), conda-forge (Intel macOS); sets SDKROOT (macOS), CARGO_BUILD_TARGET (Windows); verifies clang and lld majors; outputs llvm_major, llvm_version.",
+      "outputs": null,
+      "owner_justification": "Compiler install; must stay native.",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "native-boundary:llvm-install",
+      "reads": [
+        "rustc -vV",
+        "RUNNER_OS",
+        "RUNNER_TEMP",
+        "/etc/os-release"
+      ],
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": [
+        "GITHUB_PATH",
+        "GITHUB_ENV SDKROOT, CARGO_BUILD_TARGET",
+        "GITHUB_OUTPUT llvm_major, llvm_version",
+        "/etc/apt sources + keys, /usr/local/bin symlinks",
+        "$RUNNER_TEMP/llvm-<major>, micromamba"
+      ]
+    },
+    {
+      "callers": [
+        ".github/action_templates/rust_template.yaml (comment)"
+      ],
+      "id": "scripts/cargo-build-args.example.sh",
+      "inputs": null,
+      "kind": "shell",
+      "mutable_refs": [],
+      "native_tools": [],
+      "network": [],
+      "observable_behavior": "Example consumer hook printing feature args per platform tuple; not executed by StroggForge.",
+      "outputs": null,
+      "owner_justification": "Documentation example, not executable behavior of the pipeline (could become a JSL config schema).",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "retire",
+      "reads": [],
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": []
+    },
+    {
+      "callers": [
+        "maintainer (manual)"
+      ],
+      "id": "bump-version.sh",
+      "inputs": null,
+      "kind": "shell",
+      "mutable_refs": [],
+      "native_tools": [
+        "sed",
+        "grep",
+        "git"
+      ],
+      "network": [],
+      "notes": [
+        "Leftover check greps only *.yml/*.yaml/*.md and omits the @refs/tags pattern; file list covers every file currently carrying a pin."
+      ],
+      "observable_behavior": "Interactive: prompts old/new tag, sed-rewrites StroggForge @vN, ref: vN, @refs/tags/vN and builder image :vN in a fixed file list, reports leftovers, optionally commits 'RELEASE: Bump ...' and creates the git tag locally.",
+      "outputs": null,
+      "owner_justification": "Maintainer release tooling; text rewriting fits JSL.",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "jsl:forge-release",
+      "reads": [
+        "stdin",
+        "13 workflow/template files"
+      ],
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": [
+        "edited files",
+        "local git commit and tag"
+      ]
+    },
+    {
+      "callers": [
+        "scripts/shared/generate-benchmark-docs.sh",
+        "benchmarks.yml"
+      ],
+      "id": ".github/scripts/gen_benchmarks.py",
+      "inputs": null,
+      "kind": "python",
+      "mutable_refs": [],
+      "native_tools": [
+        "python3"
+      ],
+      "network": [],
+      "observable_behavior": "Builds BENCHMARKS.md from target/criterion/**/new/{benchmark,estimates}.json (Mermaid bar charts, tables), falling back to benchmark-output.txt raw log.",
+      "outputs": null,
+      "owner_justification": "Pure report generation.",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "jsl:forge-benchmarks",
+      "reads": [
+        "target/criterion",
+        "benchmark-output.txt"
+      ],
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": [
+        "BENCHMARKS.md"
+      ]
+    },
+    {
+      "callers": [
+        "rustGlobalBuild.yml crates",
+        "libGlobalBuild.yml crates"
+      ],
+      "id": ".github/scripts/publish_workspace.py",
+      "inputs": null,
+      "kind": "python",
+      "mutable_refs": [],
+      "native_tools": [
+        "cargo",
+        "python3"
+      ],
+      "network": [
+        "index.crates.io",
+        "crates.io"
+      ],
+      "observable_behavior": "Publishes publishable workspace members in dependency order with cargo publish -p, skipping versions present in index.crates.io, retrying 429s (up to 30) and waiting up to 15 min for each crate to appear; --list and --dry-run modes.",
+      "outputs": null,
+      "owner_justification": "Registry upload with CARGO_REGISTRY_TOKEN; ordering/skip logic could move to jsl:forge-release invoking cargo publish.",
+      "permissions": null,
+      "privileged": true,
+      "proposed_owner": "native-boundary:cargo-publish",
+      "reads": [
+        "cargo metadata",
+        "CARGO_REGISTRY_TOKEN (via cargo)"
+      ],
+      "review_note": "Ordering from cargo metadata, skip-if-published, 429 retry and index wait are organization logic; only `cargo publish` with CARGO_REGISTRY_TOKEN stays native, in the privileged crates job.",
+      "reviewed_owner": "jsl:forge-release + native-boundary:cargo-publish",
+      "secrets": null,
+      "secrets_used": [
+        "CARGO_REGISTRY_TOKEN"
+      ],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": [
+        "crates.io packages"
+      ]
+    },
+    {
+      "callers": [
+        ".github/workflows/war-room.yml"
+      ],
+      "id": "scripts/war-room/check-site.py",
+      "inputs": null,
+      "kind": "python",
+      "mutable_refs": [],
+      "native_tools": [
+        "python3"
+      ],
+      "network": [],
+      "observable_behavior": "Parses site/public HTML and fails listing missing local link targets/anchors or links escaping the base path.",
+      "outputs": null,
+      "owner_justification": "Repo-local site check.",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "jsl:forge-warroom",
+      "reads": [
+        "site/public/**/*.html",
+        "site/config.toml"
+      ],
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": []
+    },
+    {
+      "callers": [
+        "package.json script 'diagrams'",
+        ".github/workflows/war-room.yml"
+      ],
+      "id": "scripts/war-room/render-diagrams.mjs",
+      "inputs": null,
+      "kind": "node",
+      "mutable_refs": [],
+      "native_tools": [
+        "node",
+        "puppeteer/Chromium"
+      ],
+      "network": [],
+      "observable_behavior": "Renders site/static/generated/maps/*.mmd to SVG with Mermaid inside headless Chrome (Puppeteer), validating XML.",
+      "outputs": null,
+      "owner_justification": "Build-time rendering; Puppeteer/Chrome dependency may keep it native.",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "jsl:forge-warroom",
+      "reads": [
+        "site/static/generated/maps/*.mmd",
+        "node_modules/mermaid"
+      ],
+      "review_note": "No JSL Mermaid renderer exists. Options: convert diagrams to schematic JSON, keep pre-rendered SVG under review, or keep Node build-only. FOR-103 decides.",
+      "reviewed_owner": "undecided (FOR-103)",
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "uncertain": "whether JSL can host headless rendering; may need to stay node",
+      "writes": [
+        "*.svg"
+      ]
+    },
+    {
+      "callers": [
+        ".github/workflows/war-room.yml"
+      ],
+      "id": "tools/war-room",
+      "inputs": null,
+      "kind": "rust-tool",
+      "mutable_refs": [],
+      "native_tools": [
+        "cargo"
+      ],
+      "network": [],
+      "observable_behavior": "Cargo binary stroggforge-war-room: loads war-room/{ecosystem,plans,toolchains,workflows}.toml and every .github/workflows/*.yml and .github/actions/*/action.yml (plus action_templates for pages), validates structure (unique ids, references, cycles); `check` validates only, `build` wipes and regenerates site/content and site/static/generated (maps .mmd, schematics JSON, summary.json, Markdown).",
+      "outputs": null,
+      "owner_justification": "Repository tooling, not shipped to consumers.",
+      "permissions": null,
+      "privileged": false,
+      "proposed_owner": "jsl:forge-warroom",
+      "reads": [
+        "war-room/*.toml",
+        ".github/workflows/*",
+        ".github/actions/*/action.yml",
+        ".github/action_templates/*",
+        "site/pages",
+        "site/maps"
+      ],
+      "secrets": null,
+      "secrets_used": [],
+      "stroggforge_refs": [],
+      "trigger": null,
+      "writes": [
+        "site/content/",
+        "site/static/generated/"
+      ]
+    }
+  ],
+  "images": [
+    {
+      "built_by": ".github/workflows/publish-linux-x86_64-el9-builder.yml",
+      "digest": null,
+      "image": "ghcr.io/dreamweave-mp/stroggforge-linux-x86_64-el9-builder",
+      "locations": [
+        ".github/workflows/rustGlobalBuild.yml:344",
+        ".github/workflows/toolchain.yml:45"
+      ],
+      "pinned_by_digest": false,
+      "tag": "v72"
+    },
+    {
+      "built_by": ".github/workflows/publish-portmaster-aarch64-el9-builder.yml",
+      "digest": null,
+      "image": "ghcr.io/dreamweave-mp/stroggforge-portmaster-aarch64-el9-builder",
+      "locations": [
+        ".github/workflows/rustGlobalBuild.yml:434"
+      ],
+      "pinned_by_digest": false,
+      "tag": "v72"
+    },
+    {
+      "built_by": ".github/workflows/publishJessImage.yml",
+      "digest": "sha256:e0c569ed7689061ffae478b19ef8204a19caf14ee66dbfae483d8294993065e7",
+      "image": "ghcr.io/dreamweave-mp/jess",
+      "locations": [
+        ".github/workflows/modGlobalBuild.yml:56"
+      ],
+      "pinned_by_digest": true,
+      "tag": null
+    },
+    {
+      "built_by": null,
+      "digest": null,
+      "image": "quay.io/centos/centos",
+      "locations": [
+        ".github/container-images/linux-x86_64-el9/Dockerfile:1",
+        ".github/container-images/portmaster-aarch64-el9/Dockerfile:1",
+        ".github/container-images/jess/Dockerfile:13"
+      ],
+      "pinned_by_digest": false,
+      "tag": "stream9"
+    },
+    {
+      "built_by": null,
+      "digest": null,
+      "image": "scratch",
+      "locations": [
+        ".github/container-images/jess/Dockerfile:33"
+      ],
+      "note": "empty base",
+      "pinned_by_digest": null,
+      "tag": null
+    },
+    {
+      "built_by": "self",
+      "digest": null,
+      "image": "ghcr.io/dreamweave-mp/stroggforge-linux-x86_64-el9-builder / -portmaster-aarch64-el9-builder (published tags)",
+      "locations": [
+        "publish-*-builder.yml"
+      ],
+      "pinned_by_digest": false,
+      "tag": "<vN> + sha-<12> on tags; test-<branch> + sha-<12> on main/dispatch"
+    },
+    {
+      "built_by": "self",
+      "digest": "output digest",
+      "image": "ghcr.io/dreamweave-mp/jess (published tags)",
+      "locations": [
+        ".github/workflows/publishJessImage.yml:24"
+      ],
+      "pinned_by_digest": null,
+      "tag": "<version>, sha-<12>"
+    }
+  ],
+  "note": "Executable behavior read from code at source_sha. Workflows, actions, scripts and templates are identical to main 72c3050 (v72); only tools/war-room gained the inspect command.",
+  "source_sha": "ec5e6c493b819130d075d0ca63aae5bfc5d4c1f5",
+  "third_party_actions": [
+    {
+      "action": "Nexus-Mods/upload-action",
+      "full_sha_pin": false,
+      "github_owned": false,
+      "locations": [
+        ".github/workflows/modGlobalBuild.yml:396"
+      ],
+      "ref": "main",
+      "ref_kind": "branch"
+    },
+    {
+      "action": "Nexus-Mods/upload-action",
+      "full_sha_pin": false,
+      "github_owned": false,
+      "locations": [
+        ".github/workflows/rustGlobalBuild.yml:619"
+      ],
+      "ref": "v1.0.0-beta.5",
+      "ref_kind": "tag"
+    },
+    {
+      "action": "actions/cache/restore",
+      "full_sha_pin": false,
+      "github_owned": true,
+      "locations": [
+        ".github/actions/corprus-crucible/action.yml:108",
+        ".github/actions/corprus-crucible/action.yml:120",
+        ".github/actions/rust-setup/action.yml:75",
+        ".github/actions/rust-setup/action.yml:97"
+      ],
+      "ref": "v5.0.5",
+      "ref_kind": "tag"
+    },
+    {
+      "action": "actions/cache/save",
+      "full_sha_pin": false,
+      "github_owned": true,
+      "locations": [
+        ".github/actions/corprus-crucible/action.yml:163"
+      ],
+      "ref": "v5.0.5",
+      "ref_kind": "tag"
+    },
+    {
+      "action": "actions/cache",
+      "full_sha_pin": false,
+      "github_owned": true,
+      "locations": [
+        ".github/actions/corprus-crucible/action.yml:96",
+        ".github/actions/rust-setup/action.yml:63",
+        ".github/actions/rust-setup/action.yml:87"
+      ],
+      "ref": "v5.0.5",
+      "ref_kind": "tag"
+    },
+    {
+      "action": "actions/checkout",
+      "full_sha_pin": false,
+      "github_owned": true,
+      "locations": [
+        ".github/action_templates/daily_quality_template.yaml:16",
+        ".github/action_templates/daily_quality_template.yaml:26",
+        ".github/action_templates/daily_quality_template.yaml:38",
+        ".github/workflows/war-room.yml:20",
+        ".github/workflows/publish-portmaster-aarch64-el9-builder.yml:27",
+        ".github/workflows/createRelease.yml:18",
+        ".github/workflows/createRelease.yml:19",
+        ".github/workflows/libGlobalBuild.yml:85",
+        ".github/workflows/libGlobalBuild.yml:89",
+        ".github/workflows/libGlobalBuild.yml:171",
+        ".github/workflows/libGlobalBuild.yml:220",
+        ".github/workflows/libGlobalBuild.yml:224",
+        ".github/workflows/libGlobalBuild.yml:271",
+        ".github/workflows/libGlobalBuild.yml:275",
+        ".github/workflows/libGlobalBuild.yml:321",
+        ".github/workflows/libGlobalBuild.yml:324",
+        ".github/workflows/benchmarks.yml:40",
+        ".github/workflows/benchmarks.yml:44",
+        ".github/workflows/dependent.yml:25",
+        ".github/workflows/publish-linux-x86_64-el9-builder.yml:27",
+        ".github/workflows/rustGlobalBuild.yml:149",
+        ".github/workflows/rustGlobalBuild.yml:153",
+        ".github/workflows/rustGlobalBuild.yml:253",
+        ".github/workflows/rustGlobalBuild.yml:257",
+        ".github/workflows/rustGlobalBuild.yml:319",
+        ".github/workflows/rustGlobalBuild.yml:349",
+        ".github/workflows/rustGlobalBuild.yml:381",
+        ".github/workflows/rustGlobalBuild.yml:453",
+        ".github/workflows/rustGlobalBuild.yml:485",
+        ".github/workflows/rustGlobalBuild.yml:489",
+        ".github/workflows/rustGlobalBuild.yml:604",
+        ".github/workflows/rustGlobalBuild.yml:641",
+        ".github/workflows/rustGlobalBuild.yml:645",
+        ".github/workflows/rustGlobalBuild.yml:687",
+        ".github/workflows/rustGlobalBuild.yml:712",
+        ".github/workflows/rustGlobalBuild.yml:715",
+        ".github/workflows/publishJessImage.yml:38",
+        ".github/workflows/toolchain.yml:49"
+      ],
+      "ref": "v6",
+      "ref_kind": "tag"
+    },
+    {
+      "action": "actions/checkout",
+      "full_sha_pin": false,
+      "github_owned": true,
+      "locations": [
+        ".github/workflows/modGlobalBuild.yml:85",
+        ".github/workflows/modGlobalBuild.yml:89",
+        ".github/workflows/modGlobalBuild.yml:244",
+        ".github/workflows/modGlobalBuild.yml:248"
+      ],
+      "ref": "v7",
+      "ref_kind": "tag"
+    },
+    {
+      "action": "actions/configure-pages",
+      "full_sha_pin": false,
+      "github_owned": true,
+      "locations": [
+        ".github/workflows/modGlobalBuild.yml:132"
+      ],
+      "ref": "v6",
+      "ref_kind": "tag"
+    },
+    {
+      "action": "actions/configure-pages",
+      "full_sha_pin": false,
+      "github_owned": true,
+      "locations": [
+        ".github/workflows/libGlobalBuild.yml:337",
+        ".github/workflows/rustGlobalBuild.yml:728"
+      ],
+      "ref": "v6.0.0",
+      "ref_kind": "tag"
+    },
+    {
+      "action": "actions/deploy-pages",
+      "full_sha_pin": false,
+      "github_owned": true,
+      "locations": [
+        ".github/workflows/modGlobalBuild.yml:231"
+      ],
+      "ref": "v5",
+      "ref_kind": "tag"
+    },
+    {
+      "action": "actions/deploy-pages",
+      "full_sha_pin": false,
+      "github_owned": true,
+      "locations": [
+        ".github/workflows/war-room.yml:69",
+        ".github/workflows/libGlobalBuild.yml:343",
+        ".github/workflows/rustGlobalBuild.yml:734"
+      ],
+      "ref": "v5.0.0",
+      "ref_kind": "tag"
+    },
+    {
+      "action": "actions/download-artifact",
+      "full_sha_pin": false,
+      "github_owned": true,
+      "locations": [
+        ".github/workflows/publishJessImage.yml:45",
+        ".github/workflows/modGlobalBuild.yml:147",
+        ".github/workflows/modGlobalBuild.yml:268",
+        ".github/workflows/modGlobalBuild.yml:391"
+      ],
+      "ref": "v8",
+      "ref_kind": "tag"
+    },
+    {
+      "action": "actions/download-artifact",
+      "full_sha_pin": false,
+      "github_owned": true,
+      "locations": [
+        ".github/workflows/rustGlobalBuild.yml:496",
+        ".github/workflows/rustGlobalBuild.yml:564",
+        ".github/workflows/rustGlobalBuild.yml:610"
+      ],
+      "ref": "v8.0.1",
+      "ref_kind": "tag"
+    },
+    {
+      "action": "actions/setup-node",
+      "full_sha_pin": false,
+      "github_owned": true,
+      "locations": [
+        ".github/workflows/war-room.yml:24"
+      ],
+      "ref": "v6",
+      "ref_kind": "tag"
+    },
+    {
+      "action": "actions/upload-artifact",
+      "full_sha_pin": false,
+      "github_owned": true,
+      "locations": [
+        ".github/workflows/libGlobalBuild.yml:200",
+        ".github/workflows/benchmarks.yml:64",
+        ".github/workflows/rustGlobalBuild.yml:296",
+        ".github/workflows/modGlobalBuild.yml:358"
+      ],
+      "ref": "v7",
+      "ref_kind": "tag"
+    },
+    {
+      "action": "actions/upload-artifact",
+      "full_sha_pin": false,
+      "github_owned": true,
+      "locations": [
+        ".github/actions/corprus-crucible/action.yml:267",
+        ".github/actions/corprus-crucible/action.yml:289",
+        ".github/actions/corprus-crucible/action.yml:298",
+        ".github/workflows/rustGlobalBuild.yml:512"
+      ],
+      "ref": "v7.0.1",
+      "ref_kind": "tag"
+    },
+    {
+      "action": "actions/upload-pages-artifact",
+      "full_sha_pin": true,
+      "github_owned": true,
+      "locations": [
+        ".github/workflows/modGlobalBuild.yml:212"
+      ],
+      "ref": "fc324d3547104276b827a68afc52ff2a11cc49c9",
+      "ref_kind": "sha"
+    },
+    {
+      "action": "actions/upload-pages-artifact",
+      "full_sha_pin": false,
+      "github_owned": true,
+      "locations": [
+        ".github/workflows/war-room.yml:52",
+        ".github/workflows/libGlobalBuild.yml:338",
+        ".github/workflows/rustGlobalBuild.yml:729"
+      ],
+      "ref": "v5.0.0",
+      "ref_kind": "tag"
+    },
+    {
+      "action": "crazy-max/ghaction-virustotal",
+      "full_sha_pin": false,
+      "github_owned": false,
+      "locations": [
+        ".github/actions/corprus-crucible/action.yml:200"
+      ],
+      "ref": "v5",
+      "ref_kind": "tag"
+    },
+    {
+      "action": "docker/build-push-action",
+      "full_sha_pin": false,
+      "github_owned": false,
+      "locations": [
+        ".github/workflows/publish-portmaster-aarch64-el9-builder.yml:65",
+        ".github/workflows/publish-linux-x86_64-el9-builder.yml:65",
+        ".github/workflows/publishJessImage.yml:76"
+      ],
+      "ref": "v6",
+      "ref_kind": "tag"
+    },
+    {
+      "action": "docker/login-action",
+      "full_sha_pin": false,
+      "github_owned": false,
+      "locations": [
+        ".github/workflows/publish-portmaster-aarch64-el9-builder.yml:30",
+        ".github/workflows/publish-linux-x86_64-el9-builder.yml:30",
+        ".github/workflows/publishJessImage.yml:55"
+      ],
+      "ref": "v3",
+      "ref_kind": "tag"
+    },
+    {
+      "action": "dtolnay/rust-toolchain",
+      "full_sha_pin": false,
+      "github_owned": false,
+      "locations": [
+        ".github/actions/rust-setup/action.yml:40"
+      ],
+      "ref": "master",
+      "ref_kind": "branch"
+    },
+    {
+      "action": "dtolnay/rust-toolchain",
+      "full_sha_pin": false,
+      "github_owned": false,
+      "locations": [
+        ".github/action_templates/daily_quality_template.yaml:19",
+        ".github/action_templates/daily_quality_template.yaml:29",
+        ".github/action_templates/daily_quality_template.yaml:41",
+        ".github/workflows/war-room.yml:21",
+        ".github/actions/corprus-crucible/action.yml:72",
+        ".github/workflows/toolchain.yml:51"
+      ],
+      "ref": "stable",
+      "ref_kind": "branch",
+      "uncertain": "dtolnay/rust-toolchain@stable is a branch selecting the toolchain"
+    },
+    {
+      "action": "nttld/setup-ndk",
+      "full_sha_pin": false,
+      "github_owned": false,
+      "locations": [
+        ".github/workflows/rustGlobalBuild.yml:386"
+      ],
+      "ref": "v1",
+      "ref_kind": "tag"
+    },
+    {
+      "action": "sigstore/cosign-installer",
+      "full_sha_pin": true,
+      "github_owned": false,
+      "locations": [
+        ".github/actions/corprus-crucible/action.yml:172"
+      ],
+      "ref": "faadad0cce49287aee09b3a48701e75088a2c6ad",
+      "ref_kind": "sha"
+    },
+    {
+      "action": "sigstore/cosign-installer",
+      "full_sha_pin": false,
+      "github_owned": false,
+      "locations": [
+        ".github/workflows/modGlobalBuild.yml:174",
+        ".github/workflows/modGlobalBuild.yml:306"
+      ],
+      "ref": "v3",
+      "ref_kind": "tag"
+    },
+    {
+      "action": "taiki-e/install-action",
+      "full_sha_pin": false,
+      "github_owned": false,
+      "locations": [
+        ".github/action_templates/daily_quality_template.yaml:42",
+        ".github/workflows/libGlobalBuild.yml:110",
+        ".github/workflows/rustGlobalBuild.yml:174"
+      ],
+      "ref": "cargo-audit",
+      "ref_kind": "tool-tag",
+      "uncertain": "taiki-e/install-action@<tool> is a per-tool ref (tag/branch) maintained by taiki-e; mutable either way"
+    },
+    {
+      "action": "taiki-e/install-action",
+      "full_sha_pin": false,
+      "github_owned": false,
+      "locations": [
+        ".github/workflows/war-room.yml:28"
+      ],
+      "ref": "v2",
+      "ref_kind": "tag"
+    },
+    {
+      "action": "tsickert/discord-webhook",
+      "full_sha_pin": false,
+      "github_owned": false,
+      "locations": [
+        ".github/workflows/discord.yml:101"
+      ],
+      "ref": "v7.0.0",
+      "ref_kind": "tag"
+    },
+    {
+      "action": "varrcan/aur-publish-action",
+      "full_sha_pin": false,
+      "github_owned": false,
+      "locations": [
+        ".github/workflows/rustGlobalBuild.yml:690"
+      ],
+      "ref": "v1",
+      "ref_kind": "tag"
+    }
+  ]
+}
