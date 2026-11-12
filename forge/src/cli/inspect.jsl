@@ -1,5 +1,5 @@
 --!strict
--- `forge-inspect [root]`: the workflow and action contracts as stroggforge.inspect/1 JSON Lines on
+-- `forge-inspect [root]`: the workflow and action contracts as stroggforge.inspect/2 JSON Lines on
 -- stdout, and nothing else there, so the output can be diffed as it is.
 local commands = require '../commands'
 local common = require './common'

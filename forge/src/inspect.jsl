@@ -1,7 +1,11 @@
 --!strict
--- `stroggforge.inspect/1`: the workflow and action contracts as JSON Lines. A header, then one line
--- per file in bytewise path order. Object keys are sorted and an empty mapping is written `[]`, as
--- the Rust war room's `inspect` wrote them through serde_json.
+-- `stroggforge.inspect/2`: the workflow and action contracts, and a digest of every executable
+-- helper, as JSON Lines. A header, then one line per workflow or action in bytewise path order, then
+-- one line per executable file in bytewise path order. Object keys are sorted and an empty mapping is
+-- written `[]`, as the Rust war room's `inspect` wrote them through serde_json. A workflow keeps its
+-- whole `on` and `defaults`; a step keeps its contract fields and `sha256:<hex>` of its `run` script.
+-- The golden is what a migration's review diffs: a trigger, permission, step or helper changed is a
+-- line changed.
 --
 -- The Rust war room's `inspect` is the reference: docs/vnext/golden/workflow-contracts.jsonl.
 -- @jess/yaml's layout says what the Lua tables can't (mapping or sequence, `1.0` or `1`), and
@@ -14,17 +18,34 @@
 --
 -- Unlike the Rust, which loaded the whole war room first, this reads only .github: it works on any
 -- repository that has workflows.
+local bytes = require '@dream/bytes'
 local diagnostics = require './diagnostics'
+local fs = require '@dream/fs'
 local json = require '@jess/json'
 local value = require '@jess/data/value'
 local workflows = require './workflows'
 
-local Schema = 'stroggforge.inspect/1'
+local Schema = 'stroggforge.inspect/2'
 
 type Layout = workflows.Layout
 type Value = value.Value
 
-local StepKeys = table.freeze { 'id', 'name', 'uses', 'if', 'shell', 'with', 'env', 'working-directory' }
+local StepKeys = table.freeze {
+  'id',
+  'name',
+  'uses',
+  'if',
+  'shell',
+  'with',
+  'env',
+  'working-directory',
+  'continue-on-error',
+  'timeout-minutes',
+}
+
+-- The folders and files whose contents run in CI or a release: the helpers the workflows call and
+-- the images they build in. Each file under them is one `executable` line.
+local Executables = table.freeze { 'scripts', '.github/scripts', '.github/container-images', 'bump-version.sh' }
 
 local function unrepresentable(report: diagnostics.Report, path: string, where: string, what: string)
   diagnostics.add(report, 'FORGE-E057', path, `{what} has no JSON key`, if where == '' then nil else where)
@@ -145,7 +166,11 @@ local function steps(workflow: workflows.Workflow, node: unknown, report: diagno
     for _, key in StepKeys do
       if mapping and mapping[key] ~= nil then fields[key] = field(workflow, step, key, report, `{where}[{index}].{key}`) end
     end
-    fields.run = mapping ~= nil and mapping.run ~= nil
+    -- The script itself never: its digest, so a changed script is a changed line.
+    local run = mapping and mapping.run
+    fields.run = if type(run) == 'string'
+      then `sha256:{bytes.sha256(run)}`
+      else field(workflow, step, 'run', report, `{where}[{index}].run`)
     table.insert(out, object(fields))
   end
 
@@ -198,6 +223,8 @@ local function line(workflow: workflows.Workflow, report: diagnostics.Report): s
   local on = workflows.lookup(layout, document.on)
   local call = on and on.workflow_call
   out.events = events(layout, document.on)
+  out.on = field(workflow, document, 'on', report, 'on')
+  out.defaults = field(workflow, document, 'defaults', report, 'defaults')
   out.inputs = field(workflow, call, 'inputs', report, 'on.workflow_call.inputs')
   out.secrets = field(workflow, call, 'secrets', report, 'on.workflow_call.secrets')
   out.outputs = field(workflow, call, 'outputs', report, 'on.workflow_call.outputs')
@@ -229,11 +256,53 @@ local function line(workflow: workflows.Workflow, report: diagnostics.Report): s
   return json.encode(object(out))
 end
 
---- The whole document for `loaded`, newline-terminated.
-local function render(loaded: { workflows.Workflow }, report: diagnostics.Report): string
-  local lines = { json.encode(object { schema = Schema, files = #loaded }) }
+--- Every file under Executables in `root`, repository-relative, sorted bytewise.
+local function executables(report: diagnostics.Report, root: string): { string }
+  local out: { string } = {}
+  local function walk(relative: string)
+    local full = fs.join(root, relative)
+    if fs.isFile(full) then
+      table.insert(out, relative)
+      return
+    end
+
+    if not fs.isDir(full) then return end
+
+    local names, problem = fs.list(full)
+    if not names then
+      diagnostics.add(report, 'FORGE-E001', relative, problem or 'unreadable')
+      return
+    end
+
+    for _, name in names do
+      walk(`{relative}/{name}`)
+    end
+  end
+
+  for _, relative in Executables do
+    walk(relative)
+  end
+  table.sort(out)
+
+  return out
+end
+
+--- The whole document for `loaded` under `root`, newline-terminated.
+local function render(root: string, loaded: { workflows.Workflow }, report: diagnostics.Report): string
+  local helpers = executables(report, root)
+  local lines = { json.encode(object { schema = Schema, files = #loaded, executables = #helpers }) }
   for _, workflow in loaded do
     table.insert(lines, line(workflow, report))
+  end
+
+  for _, path in helpers do
+    local contents, problem = fs.readFile(fs.join(root, path))
+    if not contents then
+      diagnostics.add(report, 'FORGE-E001', path, problem or 'unreadable')
+      continue
+    end
+
+    table.insert(lines, json.encode(object { kind = 'executable', path = path, sha256 = bytes.sha256(contents) }))
   end
 
   return table.concat(lines, '\n') .. '\n'

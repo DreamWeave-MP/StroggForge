@@ -20,13 +20,13 @@ export type CheckResult = {
   workflows: number,
 }
 
---- The workflow contracts under `request.root`, as `stroggforge.inspect/1`.
+--- The workflow contracts under `request.root`, as `stroggforge.inspect/2`.
 local function inspectCommand(request: Request): InspectResult
   local report = diagnostics.new()
   local found = workflows.load(report, request.root)
   if diagnostics.hasErrors(report) then return { ok = false, text = nil, report = report } end
 
-  local text = inspect.render(found, report)
+  local text = inspect.render(request.root, found, report)
   if diagnostics.hasErrors(report) then return { ok = false, text = nil, report = report } end
 
   return { ok = true, text = text, report = report }
