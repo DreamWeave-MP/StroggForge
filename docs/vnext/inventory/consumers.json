@@ -5,12 +5,13 @@
     "DreamWeave-MP/Morrobroom",
     "DreamWeave-MP/Openmw_Config",
     "DreamWeave-MP/S3LightFixes",
+    "DreamWeave-MP/Starwind-Builder",
     "DreamWeave-MP/StroggForge",
     "DreamWeave-MP/dream_archive",
     "DreamWeave-MP/dream_archivetool",
     "DreamWeave-MP/greenmote",
-    "DreamWeave-MP/vfstool",
-    "(3 unlisted)"
+    "DreamWeave-MP/jess",
+    "DreamWeave-MP/vfstool"
   ],
   "commands": [
     "gh search code DreamWeave-MP/StroggForge --owner DreamWeave-MP --limit 100 --json repository,path",
@@ -97,7 +98,16 @@
     "gh api repos/DreamWeave-MP/dream-soft-render/commits/HEAD --jq .sha",
     "gh api repos/DreamWeave-MP/dream-soft-render/contents/.github/workflows?ref=a7b2ac061ecb8f3d57a28affb54a941f7636ace9 --jq [.[] | select(.type==\"file\") | .path]",
     "gh api repos/DreamWeave-MP/dream-soft-render/contents/.github/workflows/build.yml?ref=a7b2ac061ecb8f3d57a28affb54a941f7636ace9 --jq .content",
-    "gh api repos/DreamWeave-MP/dream-soft-render/contents/.github/workflows/quality.yml?ref=a7b2ac061ecb8f3d57a28affb54a941f7636ace9 --jq .content"
+    "gh api repos/DreamWeave-MP/dream-soft-render/contents/.github/workflows/quality.yml?ref=a7b2ac061ecb8f3d57a28affb54a941f7636ace9 --jq .content",
+    "gh api repos/DreamWeave-MP/Starwind-Builder --jq [.default_branch, .private, .archived, .full_name]",
+    "gh api repos/DreamWeave-MP/Starwind-Builder/commits/HEAD --jq .sha",
+    "gh api repos/DreamWeave-MP/Starwind-Builder/contents/.github/workflows?ref=d5997333d01e84b84f4389d24b9823e51aa0ea31 --jq [.[] | select(.type==\"file\") | .path]",
+    "gh api repos/DreamWeave-MP/Starwind-Builder/contents/.github/workflows/build_starwind.yml?ref=d5997333d01e84b84f4389d24b9823e51aa0ea31 --jq .content",
+    "gh api repos/DreamWeave-MP/jess --jq [.default_branch, .private, .archived, .full_name]",
+    "gh api repos/DreamWeave-MP/jess/commits/HEAD --jq .sha",
+    "gh api repos/DreamWeave-MP/jess/contents/.github/workflows?ref=fd08aba9cd551c3c35a6a6c0b9cbec3e99924ea9 --jq [.[] | select(.type==\"file\") | .path]",
+    "gh api repos/DreamWeave-MP/jess/contents/.github/workflows/docs.yaml?ref=fd08aba9cd551c3c35a6a6c0b9cbec3e99924ea9 --jq .content",
+    "gh api repos/DreamWeave-MP/jess/contents/.github/workflows/release.yaml?ref=fd08aba9cd551c3c35a6a6c0b9cbec3e99924ea9 --jq .content"
   ],
   "consumers": [
     {
@@ -1578,6 +1588,7 @@
       "archived": false,
       "calls": [
         {
+          "file": ".github/workflows/build_starwind.yml",
           "job": "call-discord-webhook",
           "kind": "job",
           "permissions": {
@@ -1596,18 +1607,21 @@
         }
       ],
       "default_branch": "master",
-      "head_sha": null,
+      "head_sha": "d5997333d01e84b84f4389d24b9823e51aa0ea31",
       "listed_in_ecosystem": false,
       "private": false,
       "project": null,
-      "repository": "unlisted-1",
+      "repository": "DreamWeave-MP/Starwind-Builder",
       "unlisted": true,
-      "workflow_files": null
+      "workflow_files": [
+        ".github/workflows/build_starwind.yml"
+      ]
     },
     {
       "archived": false,
       "calls": [
         {
+          "file": ".github/workflows/release.yaml",
           "job": "build",
           "kind": "job",
           "permissions": {
@@ -1640,6 +1654,7 @@
           ]
         },
         {
+          "file": ".github/workflows/release.yaml",
           "job": "image",
           "kind": "job",
           "permissions": {
@@ -1660,92 +1675,16 @@
         }
       ],
       "default_branch": "main",
-      "head_sha": null,
+      "head_sha": "fd08aba9cd551c3c35a6a6c0b9cbec3e99924ea9",
       "listed_in_ecosystem": false,
       "private": false,
       "project": null,
-      "repository": "unlisted-2",
+      "repository": "DreamWeave-MP/jess",
       "unlisted": true,
-      "workflow_files": null
-    },
-    {
-      "archived": false,
-      "calls": [
-        {
-          "job": "release_cleanup",
-          "kind": "job",
-          "permissions": {
-            "job": null,
-            "workflow": null
-          },
-          "ref": "v6",
-          "secrets": "inherit",
-          "uses": "DreamWeave-MP/StroggForge/.github/workflows/createRelease.yml",
-          "with_keys": []
-        },
-        {
-          "job": "release",
-          "kind": "step",
-          "permissions": {
-            "job": {
-              "contents": "write",
-              "id-token": "write"
-            },
-            "workflow": null
-          },
-          "ref": "v6",
-          "uses": "DreamWeave-MP/StroggForge/.github/actions/corprus-crucible",
-          "with_keys": [
-            "binary_name",
-            "github_token",
-            "include_files",
-            "release_name",
-            "vt_api_key"
-          ]
-        },
-        {
-          "job": "call-discord-webhook",
-          "kind": "job",
-          "permissions": {
-            "job": null,
-            "workflow": null
-          },
-          "ref": "v6",
-          "secrets": [
-            "WEBHOOK_URL"
-          ],
-          "uses": "DreamWeave-MP/StroggForge/.github/workflows/discord.yml",
-          "with_keys": [
-            "description",
-            "title"
-          ]
-        },
-        {
-          "job": "nag-dependents",
-          "kind": "job",
-          "permissions": {
-            "job": null,
-            "workflow": null
-          },
-          "ref": "v6",
-          "secrets": [
-            "DW_BOT_PAT"
-          ],
-          "uses": "DreamWeave-MP/StroggForge/.github/workflows/dependent.yml",
-          "with_keys": [
-            "aur_package_name",
-            "target_repo"
-          ]
-        }
-      ],
-      "default_branch": "main",
-      "head_sha": null,
-      "listed_in_ecosystem": false,
-      "private": false,
-      "project": null,
-      "repository": "unlisted-3",
-      "unlisted": true,
-      "workflow_files": null
+      "workflow_files": [
+        ".github/workflows/docs.yaml",
+        ".github/workflows/release.yaml"
+      ]
     }
   ],
   "errors": [
@@ -1771,6 +1710,6 @@
       "step": "list workflows"
     }
   ],
-  "redaction": "Callers not in war-room/ecosystem.toml are numbered, not named: the maintainer decides which organization repositories may be listed (AGENTS.md).",
+  "redaction": "Callers not in war-room/ecosystem.toml are listed with listed_in_ecosystem false. A deprecated caller the maintainer excluded (2026-11-12) is left out entirely.",
   "stroggforge_head": "72c3050"
 }

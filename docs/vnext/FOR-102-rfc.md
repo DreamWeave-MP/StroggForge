@@ -188,7 +188,7 @@ around it moves.
 | builder images, Dockerfiles | stay | Docker | — |
 | mod-template `commit-records`, `scaffold`, `sync-pins` | the Mod Template's own targets, not the forge | `git push` | coordinate with the template |
 | `bump-version.sh` | `forge release bump` | `git` | FOR-204 |
-| `createRelease.yml`, `dependent.yml` | deprecated, kept while a caller exists | — | FOR-104 |
+| `createRelease.yml`, `dependent.yml` | retired: their only caller is deprecated (FOR-101) | — | FOR-104 notice, then removal |
 
 ## Cross-platform limits
 
@@ -258,7 +258,7 @@ native tools listed above. Bash stays only inside bootstrap steps that must run 
 ## Open decisions
 
 1. Who ratifies this RFC, and who is final approver for FOR-201 merge (CIV-000 leaves it open).
-2. Whether the three unlisted callers may be named (FOR-101).
+2. ~~Whether the unlisted callers may be named~~: settled 2026-11-12. jess and Starwind-Builder are listed; a deprecated caller is left out (FOR-101).
 3. Whether the AUR job's push-to-main behavior is intended (FOR-101 defect 2).
 4. Bootstrap option A now, or wait for D.
 5. Whether `forge` lives in this repository long-term or becomes its own package repository
