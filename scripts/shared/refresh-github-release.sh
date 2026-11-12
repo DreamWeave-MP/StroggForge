@@ -5,6 +5,13 @@ usage='usage: refresh-github-release.sh <release-name> <workflow-run-id> <github
 release_name=${1:?$usage}
 workflow_run_id=${2:?$usage}
 github_repository=${3:?$usage}
+
+# A tag may start with `-`; as a release name it would reach gh as an option (`--help` publishes
+# nothing and exits 0). No release is named like that, so refuse it.
+if [[ "$release_name" == -* ]]; then
+  echo "::error::Refusing release name '$release_name': it starts with '-'."
+  exit 1
+fi
 # The rolling pre-release pushes to the default branch refresh: its tag is deleted and made again.
 development_release=${DEVELOPMENT_RELEASE:-development}
 

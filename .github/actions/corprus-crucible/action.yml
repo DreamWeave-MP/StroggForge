@@ -226,10 +226,10 @@ runs:
       env:
         NEXUS_GROUP_IDS: ${{ inputs.nexus_group_ids }}
         DEVELOPMENT_RELEASE: ${{ inputs.development_release }}
-        # The release name is a tag name on tags, which may hold shell syntax: it reaches the script
-        # only as data, through the environment.
         PLATFORM_OS: ${{ inputs.platform_os || runner.os }}
         PLATFORM_ARCH: ${{ inputs.platform_arch || runner.arch }}
+        # The release name is a tag name on tags, which may hold shell syntax: it reaches the script
+        # only as data, through the environment.
         RELEASE_NAME: ${{ inputs.release_name }}
       run: >-
         bash "${{ github.action_path }}/../../../scripts/corprus-crucible/resolve-nexusmods-group-id.sh"
