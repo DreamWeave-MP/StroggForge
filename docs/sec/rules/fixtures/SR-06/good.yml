@@ -1,0 +1,17 @@
+name: Good
+on: push
+permissions: {}
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - run: cargo build --release
+  sign:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
+    steps:
+      - run: cosign sign-blob --yes app

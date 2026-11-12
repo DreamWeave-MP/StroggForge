@@ -1,0 +1,10 @@
+name: Good
+on: push
+permissions: {}
+jobs:
+  setup:
+    runs-on: ubuntu-24.04
+    steps:
+      - run: |
+          curl -fsSLo tool.tar.gz https://example.invalid/tool.tar.gz
+          echo "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef  tool.tar.gz" | sha256sum -c

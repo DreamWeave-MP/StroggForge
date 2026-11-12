@@ -1,0 +1,472 @@
+--!strict
+-- SEC-101's static supply-chain rules, as executable assertions over a repository's GitHub
+-- workflows and composite actions. A planning prototype (SEC-101 authorizes design, not gates):
+-- it reports, and nothing in CI runs it. Each rule names the threat it stands for in
+-- docs/sec/SEC-101-threat-model.md; fixtures/<rule>/bad.yml must trip it and good.yml must not.
+--
+--   jess run --trusted docs/sec/rules/rules.jsl test               # the fixtures
+--   jess run --trusted docs/sec/rules/rules.jsl scan <repo root>   # findings, one per line
+--
+-- Needs a jess whose @jess/yaml has decodeWithLayout (jess main at 1a4be2f or later).
+local fs = require '@dream/fs'
+local yaml = require '@jess/yaml'
+
+type Layout = { [unknown]: { keys: { unknown }?, floats: { [unknown]: boolean } } }
+type Step = { [string]: unknown }
+type Job = { id: string, permissions: unknown, steps: { Step }, uses: string?, with: { [string]: unknown }? }
+type Document = {
+  path: string,
+  action: boolean,
+  on: unknown,
+  permissions: unknown,
+  jobs: { Job },
+  steps: { Step },
+}
+export type Finding = { rule: string, path: string, where: string, detail: string }
+
+local decodeWithLayout: (string) -> (unknown, Layout) = (yaml :: any).decodeWithLayout
+  or error('rules.jsl needs a jess whose @jess/yaml has decodeWithLayout', 0)
+
+local function isMapping(layout: Layout, value: unknown): boolean
+  return type(value) == 'table' and layout[value] ~= nil and layout[value].keys ~= nil
+end
+
+local function isSequence(layout: Layout, value: unknown): boolean
+  return type(value) == 'table' and layout[value] ~= nil and layout[value].keys == nil
+end
+
+local function mapping(layout: Layout, value: unknown): { [string]: unknown }
+  if isMapping(layout, value) then return value :: { [string]: unknown } end
+
+  return {}
+end
+
+local function sequence(layout: Layout, value: unknown): { unknown }
+  if isSequence(layout, value) then return value :: { unknown } end
+
+  return {}
+end
+
+--- A workflow or action file as the rules read it, or nil and why.
+local function read(path: string, text: string): (Document?, string?)
+  local parsed, decoded, layout = pcall(decodeWithLayout, text)
+  if not parsed then return nil, tostring(decoded) end
+
+  local root = mapping(layout, decoded)
+  local action = string.match(path, 'action%.ya?ml$') ~= nil
+  local document: Document = { path = path, action = action, on = root.on, permissions = root.permissions, jobs = {}, steps = {} }
+
+  local function steps(value: unknown): { Step }
+    local out = {}
+    for _, step in sequence(layout, value) do
+      table.insert(out, mapping(layout, step))
+    end
+
+    return out
+  end
+
+  if action then
+    document.steps = steps(mapping(layout, root.runs).steps)
+  end
+
+  local jobs = mapping(layout, root.jobs)
+  local names = {}
+  for name in jobs do
+    table.insert(names, name)
+  end
+  table.sort(names)
+  for _, name in names do
+    local job = mapping(layout, jobs[name])
+    local uses = job.uses
+    table.insert(document.jobs, {
+      id = name,
+      permissions = job.permissions,
+      steps = steps(job.steps),
+      uses = if type(uses) == 'string' then uses else nil,
+      with = mapping(layout, job.with),
+    })
+  end
+
+  return document, nil
+end
+
+-- What every step of a document runs, with where it is, for the rules that read steps.
+type Located = { where: string, step: Step, job: Job? }
+
+local function located(document: Document): { Located }
+  local out = {}
+  for index, step in document.steps do
+    table.insert(out, { where = `runs.steps[{index}]`, step = step, job = nil })
+  end
+
+  for _, job in document.jobs do
+    for index, step in job.steps do
+      table.insert(out, { where = `jobs.{job.id}.steps[{index}]`, step = step, job = job })
+    end
+  end
+
+  return out
+end
+
+--- Every `uses:` reference in the document: steps', and reusable-workflow jobs'.
+local function references(document: Document): { { where: string, uses: string, with: { [string]: unknown }? } }
+  local out = {}
+  for _, entry in located(document) do
+    local uses = entry.step.uses
+    if type(uses) == 'string' then
+      local with = entry.step.with
+      table.insert(out, { where = entry.where, uses = uses, with = if type(with) == 'table' then with :: { [string]: unknown } else nil })
+    end
+  end
+
+  for _, job in document.jobs do
+    if job.uses then table.insert(out, { where = `jobs.{job.id}`, uses = job.uses, with = job.with }) end
+  end
+
+  return out
+end
+
+--- A reference that resolves outside this repository: not `./local`, not `docker://`.
+local function remote(uses: string): boolean
+  return string.sub(uses, 1, 2) ~= './' and string.sub(uses, 1, 9) ~= 'docker://'
+end
+
+local function ownOrganization(uses: string, organization: string): boolean
+  return string.lower(string.sub(uses, 1, #organization + 1)) == string.lower(organization) .. '/'
+end
+
+local function pinned(uses: string): boolean
+  local ref = string.match(uses, '@([^@]+)$')
+  return ref ~= nil and #ref == 40 and string.match(ref, '^%x+$') ~= nil
+end
+
+local function permissionValues(value: unknown): { [string]: string }
+  if type(value) == 'string' then return { ['*'] = value } end
+  if type(value) ~= 'table' then return {} end
+
+  local out = {}
+  for scope, level in value :: { [string]: unknown } do
+    if type(level) == 'string' then out[scope] = level end
+  end
+
+  return out
+end
+
+local function grants(value: unknown, scope: string, level: string): boolean
+  local values = permissionValues(value)
+  return values[scope] == level or values['*'] == `{level}-all`
+end
+
+local function triggers(on: unknown): { [string]: boolean }
+  local out: { [string]: boolean } = {}
+  if type(on) == 'string' then
+    out[on] = true
+  elseif type(on) == 'table' then
+    for key, value in on :: { [unknown]: unknown } do
+      if type(key) == 'string' then out[key] = true end
+      if type(value) == 'string' then out[value] = true end
+    end
+  end
+
+  return out
+end
+
+-- Values anyone who can open a pull request or an issue chooses: a branch name, a title or body, a
+-- comment, a commit message.
+local Untrusted = { 'github%.event%.', 'github%.head_ref' }
+
+-- Values a calling workflow or an earlier step chooses: trusted only as far as every caller and
+-- every value they derive from (a tag name may hold `$(...)`).
+local Derived = { 'inputs%.', 'steps%.[%w_-]+%.outputs', 'needs%.[%w_-]+%.outputs' }
+
+-- Running the repository's own build: what executes dependency code (build.rs, proc macros, npm
+-- install scripts) on the runner.
+local BuildCommands = { 'cargo%s+build', 'cargo%s+test', 'cargo%s+run', 'cargo%s+clippy', 'cargo%s+publish', 'npm%s+ci', 'npm%s+install', 'npm%s+run', 'make%f[%s]' }
+local BuildActions = { 'corprus%-crucible', 'rust%-setup', 'rustGlobalBuild', 'libGlobalBuild' }
+
+local function matchesAny(text: string, patterns: { string }): boolean
+  for _, pattern in patterns do
+    if string.find(text, pattern) then return true end
+  end
+
+  return false
+end
+
+type Rule = {
+  id: string,
+  threat: string,
+  summary: string,
+  check: (Document, string, (string, string) -> ()) -> (),
+}
+
+local Rules: { Rule } = {
+  {
+    id = 'SR-01',
+    threat = 'T-ACT',
+    summary = 'a third-party action or reusable workflow is pinned to a full commit SHA',
+    check = function(document, organization, report)
+      for _, reference in references(document) do
+        if remote(reference.uses) and not ownOrganization(reference.uses, organization) and not pinned(reference.uses) then
+          report(reference.where, reference.uses)
+        end
+      end
+    end,
+  },
+  {
+    id = 'SR-02',
+    threat = 'T-ACT',
+    summary = 'an own-organization reference names a commit, not a movable tag or branch (advisory: a policy decision)',
+    check = function(document, organization, report)
+      for _, reference in references(document) do
+        if ownOrganization(reference.uses, organization) and not pinned(reference.uses) then report(reference.where, reference.uses) end
+      end
+    end,
+  },
+  {
+    id = 'SR-03',
+    threat = 'T-INJ',
+    summary = 'no attacker-choosable `${{ }}` value is spliced into a run script',
+    check = function(document, _, report)
+      for _, entry in located(document) do
+        local run = entry.step.run
+        if type(run) ~= 'string' then continue end
+
+        for expression in string.gmatch(run, '%${{(.-)}}') do
+          if matchesAny(expression, Untrusted) then report(entry.where, '${{' .. expression .. '}}') end
+        end
+      end
+    end,
+  },
+  {
+    id = 'SR-11',
+    threat = 'T-INJ',
+    summary = 'no caller input or step output is spliced into a run script (pass it through env)',
+    check = function(document, _, report)
+      for _, entry in located(document) do
+        local run = entry.step.run
+        if type(run) ~= 'string' then continue end
+
+        for expression in string.gmatch(run, '%${{(.-)}}') do
+          if matchesAny(expression, Derived) and not matchesAny(expression, Untrusted) then
+            report(entry.where, '${{' .. expression .. '}}')
+          end
+        end
+      end
+    end,
+  },
+  {
+    id = 'SR-04',
+    threat = 'T-PRIV',
+    summary = 'a workflow declares top-level permissions, and never write-all',
+    check = function(document, _, report)
+      if document.action then return end
+
+      if document.permissions == nil then report('permissions', 'absent: the repository default applies') end
+      if document.permissions == 'write-all' then report('permissions', 'write-all') end
+
+      for _, job in document.jobs do
+        if job.permissions == 'write-all' then report(`jobs.{job.id}.permissions`, 'write-all') end
+      end
+    end,
+  },
+  {
+    id = 'SR-05',
+    threat = 'T-PR',
+    summary = 'no trigger runs with secrets on attacker-supplied content (pull_request_target, workflow_run, issue_comment)',
+    check = function(document, _, report)
+      local on = triggers(document.on)
+      for _, trigger in { 'pull_request_target', 'workflow_run', 'issue_comment' } do
+        if on[trigger] then report('on', trigger) end
+      end
+    end,
+  },
+  {
+    id = 'SR-06',
+    threat = 'T-BUILD',
+    summary = 'a job that can sign (id-token: write) or write the repository does not also run dependency code',
+    check = function(document, _, report)
+      for _, job in document.jobs do
+        local privileged = grants(job.permissions, 'id-token', 'write') or grants(job.permissions, 'contents', 'write')
+        if not privileged then continue end
+
+        for index, step in job.steps do
+          local run = if type(step.run) == 'string' then step.run :: string else ''
+          local uses = if type(step.uses) == 'string' then step.uses :: string else ''
+          if matchesAny(run, BuildCommands) or matchesAny(uses, BuildActions) then
+            report(`jobs.{job.id}.steps[{index}]`, 'privileged job runs build or install code')
+            break
+          end
+        end
+      end
+    end,
+  },
+  {
+    id = 'SR-07',
+    threat = 'T-DL',
+    summary = 'nothing downloaded is piped to a shell, and a downloaded executable is checked by digest or signature in the same step',
+    check = function(document, _, report)
+      for _, entry in located(document) do
+        local run = entry.step.run
+        if type(run) ~= 'string' then continue end
+
+        if string.find(run, 'curl[^\n|]*|%s*s?u?d?o?%s*b?a?sh') or string.find(run, 'wget[^\n|]*|%s*b?a?sh') then
+          report(entry.where, 'download piped to a shell')
+        elseif (string.find(run, 'curl%s') or string.find(run, 'wget%s'))
+          and not (string.find(run, 'sha256sum') or string.find(run, 'shasum') or string.find(run, 'cosign%s+verify') or string.find(run, 'gh%s+attestation%s+verify')) then
+          report(entry.where, 'download without a digest or signature check in the step')
+        end
+      end
+    end,
+  },
+  {
+    id = 'SR-08',
+    threat = 'T-ACT',
+    summary = 'no secret is handed to a third-party action that is not pinned to a commit',
+    check = function(document, organization, report)
+      for _, reference in references(document) do
+        if not remote(reference.uses) or ownOrganization(reference.uses, organization) or pinned(reference.uses) then continue end
+
+        for key, value in reference.with or {} do
+          if type(value) == 'string' and string.find(value, '%${{%s*secrets%.') then report(reference.where, `{reference.uses} with.{key}`) end
+        end
+      end
+    end,
+  },
+  {
+    id = 'SR-09',
+    threat = 'T-CRED',
+    summary = 'a checkout in a job that can write does not leave its token in .git/config (persist-credentials: false)',
+    check = function(document, _, report)
+      for _, job in document.jobs do
+        local writes = grants(job.permissions, 'contents', 'write') or grants(job.permissions, 'id-token', 'write')
+        if not writes then continue end
+
+        for index, step in job.steps do
+          local uses = step.uses
+          if type(uses) ~= 'string' or not string.find(uses, '^actions/checkout@') then continue end
+
+          local with: { [string]: unknown } = if type(step.with) == 'table' then step.with :: { [string]: unknown } else {}
+          if with['persist-credentials'] ~= false then report(`jobs.{job.id}.steps[{index}]`, uses) end
+        end
+      end
+    end,
+  },
+  {
+    id = 'SR-10',
+    threat = 'T-SIG',
+    summary = 'a signature check names one exact signer identity and issuer, not a pattern',
+    check = function(document, _, report)
+      for _, entry in located(document) do
+        local run = entry.step.run
+        if type(run) ~= 'string' or not string.find(run, 'cosign%s+verify') then continue end
+
+        if string.find(run, 'identity%-regexp') or string.find(run, 'oidc%-issuer%-regexp') then
+          report(entry.where, 'identity or issuer given as a pattern')
+        end
+
+        if not string.find(run, 'certificate%-oidc%-issuer') then report(entry.where, 'no issuer pinned') end
+      end
+    end,
+  },
+}
+
+--- Every workflow and composite action under `root`, sorted by path.
+local function files(root: string): { string }
+  local out = {}
+  local workflows = fs.join(root, '.github/workflows')
+  for _, name in (fs.isDir(workflows) and fs.list(workflows) or {}) :: { string } do
+    if string.match(name, '%.ya?ml$') then table.insert(out, `.github/workflows/{name}`) end
+  end
+
+  local actions = fs.join(root, '.github/actions')
+  for _, name in (fs.isDir(actions) and fs.list(actions) or {}) :: { string } do
+    for _, file in { 'action.yml', 'action.yaml' } do
+      if fs.isFile(fs.join(fs.join(actions, name), file)) then table.insert(out, `.github/actions/{name}/{file}`) end
+    end
+  end
+  table.sort(out)
+
+  return out
+end
+
+--- Every rule over every file under `root`. `organization` is whose references count as one's own.
+local function scan(root: string, organization: string): ({ Finding }, { string })
+  local findings: { Finding } = {}
+  local unreadable = {}
+  for _, path in files(root) do
+    local text = fs.readFileString(fs.join(root, path))
+    local document, problem = read(path, text or '')
+    if not document then
+      table.insert(unreadable, `{path}: {problem}`)
+      continue
+    end
+
+    for _, rule in Rules do
+      rule.check(document, organization, function(where, detail)
+        table.insert(findings, { rule = rule.id, path = path, where = where, detail = detail })
+      end)
+    end
+  end
+
+  return findings, unreadable
+end
+
+--- Each rule's fixtures: bad.yml must trip exactly that rule at least once, good.yml must not.
+local function test(): number
+  -- Run from the checkout's root, as the usage above says.
+  local here = fs.join((assert(fs.cwd())), 'docs/sec/rules')
+  local failures = 0
+  for _, rule in Rules do
+    for _, kind in { 'bad', 'good' } do
+      local path = fs.join(here, `fixtures/{rule.id}/{kind}.yml`)
+      local text = fs.readFileString(path)
+      if not text then
+        print(`FAIL {rule.id} {kind}: no fixture at {path}`)
+        failures += 1
+        continue
+      end
+
+      local name = if string.find(text, '\nruns:') then 'action.yml' else `{kind}.yml`
+      local document, problem = read(name, text)
+      if not document then
+        print(`FAIL {rule.id} {kind}: {problem}`)
+        failures += 1
+        continue
+      end
+
+      local tripped = 0
+      rule.check(document, 'DreamWeave-MP', function() tripped += 1 end)
+      local ok = if kind == 'bad' then tripped > 0 else tripped == 0
+      print(`{if ok then 'ok  ' else 'FAIL'} {rule.id} {kind}: {tripped} finding(s)`)
+      if not ok then failures += 1 end
+    end
+  end
+
+  return if failures == 0 then 0 else 1
+end
+
+local command, root, organization = ...
+if command == 'test' then return test() end
+
+if command == 'scan' and type(root) == 'string' then
+  local findings, unreadable = scan(root, if type(organization) == 'string' then organization else 'DreamWeave-MP')
+  for _, line in unreadable do
+    print(`unreadable {line}`)
+  end
+
+  local counts: { [string]: number } = {}
+  for _, finding in findings do
+    print(`{finding.rule}\t{finding.path}\t{finding.where}\t{finding.detail}`)
+    counts[finding.rule] = (counts[finding.rule] or 0) + 1
+  end
+
+  for _, rule in Rules do
+    print(`# {rule.id} {rule.threat} {counts[rule.id] or 0}: {rule.summary}`)
+  end
+
+  return 0
+end
+
+print('usage: rules.jsl test | rules.jsl scan <repository root> [organization]')
+
+return 64

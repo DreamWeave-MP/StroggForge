@@ -1,0 +1,8 @@
+name: Bad
+on: push
+permissions: {}
+jobs:
+  setup:
+    runs-on: ubuntu-24.04
+    steps:
+      - run: curl -fsSL https://example.invalid/install.sh | sh

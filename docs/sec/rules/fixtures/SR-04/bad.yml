@@ -1,0 +1,8 @@
+name: Bad
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    permissions: write-all
+    steps:
+      - run: echo hi

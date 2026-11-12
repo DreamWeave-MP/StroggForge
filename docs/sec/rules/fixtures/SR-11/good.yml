@@ -1,0 +1,14 @@
+name: Good
+on:
+  workflow_call:
+    inputs:
+      release_name:
+        type: string
+permissions: {}
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    steps:
+      - env:
+          RELEASE_NAME: ${{ inputs.release_name }}
+        run: gh release create "$RELEASE_NAME"

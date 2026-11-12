@@ -1,0 +1,6 @@
+name: Bad
+on: push
+permissions: {}
+jobs:
+  build:
+    uses: DreamWeave-MP/StroggForge/.github/workflows/rustGlobalBuild.yml@v72

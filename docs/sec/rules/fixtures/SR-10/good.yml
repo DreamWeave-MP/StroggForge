@@ -1,0 +1,11 @@
+name: Good
+on: push
+permissions: {}
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - run: >-
+          cosign verify-blob jess --bundle jess.bundle
+          --certificate-identity https://github.com/DreamWeave-MP/StroggForge/.github/workflows/rustGlobalBuild.yml@refs/tags/v70
+          --certificate-oidc-issuer https://token.actions.githubusercontent.com

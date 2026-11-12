@@ -1,0 +1,18 @@
+SR-01	.github/workflows/docs.yaml	jobs.build.steps[1]	actions/checkout@v6
+SR-01	.github/workflows/docs.yaml	jobs.build.steps[2]	dtolnay/rust-toolchain@stable
+SR-01	.github/workflows/docs.yaml	jobs.build.steps[3]	Swatinem/rust-cache@v2
+SR-01	.github/workflows/docs.yaml	jobs.build.steps[12]	actions/upload-pages-artifact@v5.0.0
+SR-01	.github/workflows/docs.yaml	jobs.deploy.steps[1]	actions/deploy-pages@v5.0.0
+SR-02	.github/workflows/release.yaml	jobs.build	DreamWeave-MP/StroggForge/.github/workflows/rustGlobalBuild.yml@v70
+SR-02	.github/workflows/release.yaml	jobs.image	DreamWeave-MP/StroggForge/.github/workflows/publishJessImage.yml@v70
+# SR-01 T-ACT 5: a third-party action or reusable workflow is pinned to a full commit SHA
+# SR-02 T-ACT 2: an own-organization reference names a commit, not a movable tag or branch (advisory: a policy decision)
+# SR-03 T-INJ 0: no attacker-choosable `${{ }}` value is spliced into a run script
+# SR-11 T-INJ 0: no caller input or step output is spliced into a run script (pass it through env)
+# SR-04 T-PRIV 0: a workflow declares top-level permissions, and never write-all
+# SR-05 T-PR 0: no trigger runs with secrets on attacker-supplied content (pull_request_target, workflow_run, issue_comment)
+# SR-06 T-BUILD 0: a job that can sign (id-token: write) or write the repository does not also run dependency code
+# SR-07 T-DL 0: nothing downloaded is piped to a shell, and a downloaded executable is checked by digest or signature in the same step
+# SR-08 T-ACT 0: no secret is handed to a third-party action that is not pinned to a commit
+# SR-09 T-CRED 0: a checkout in a job that can write does not leave its token in .git/config (persist-credentials: false)
+# SR-10 T-SIG 0: a signature check names one exact signer identity and issuer, not a pattern
