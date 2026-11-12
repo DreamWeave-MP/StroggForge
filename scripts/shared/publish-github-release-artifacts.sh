@@ -7,6 +7,13 @@ body_file=${2:?$usage}
 download_dir=${3:?$usage}
 github_repository=${4:?$usage}
 
+# A tag may start with `-`; as a release name it would reach gh as an option (`--help` publishes
+# nothing and exits 0). No release is named like that, so refuse it.
+if [[ "$release_name" == -* ]]; then
+  echo "::error::Refusing release name '$release_name': it starts with '-'."
+  exit 1
+fi
+
 tmp_files=()
 cleanup() {
   rm -f "${tmp_files[@]}"

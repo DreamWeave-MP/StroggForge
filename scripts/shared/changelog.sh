@@ -4,12 +4,14 @@ set -euo pipefail
 output=${1:-CHANGELOG.md}
 repo_url="${GITHUB_SERVER_URL:-https://github.com}/${GITHUB_REPOSITORY:?GITHUB_REPOSITORY is required}"
 
-mapfile -t tags < <(git tag --sort=-version:refname 2>/dev/null)
+# A ref named like an option (`--output=…`) can be made with `git update-ref` though `git tag`
+# refuses it; it is no release, and passed to git log it would be read as an option.
+mapfile -t tags < <(git tag --sort=-version:refname 2>/dev/null | grep -v '^-' || true)
 
 emit_commits() {
   local range=$1
 
-  git log "$range" --format="format:%h %s" | while read -r hash msg; do
+  git log --format="format:%h %s" --end-of-options "$range" | while read -r hash msg; do
     echo "- [$hash]($repo_url/commit/$hash) - $msg"
   done
 }
@@ -24,7 +26,7 @@ emit_commits() {
     emit_commits "HEAD"
     echo ""
   else
-    unreleased=$(git log "${tags[0]}..HEAD" --format="format:%h %s")
+    unreleased=$(git log --format="format:%h %s" --end-of-options "${tags[0]}..HEAD")
     if [ -n "$unreleased" ]; then
       echo "## Unreleased"
       echo ""

@@ -543,12 +543,16 @@ jobs:
       - name: Upload the archives to the GitHub release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # A tag name on tags: data for the script, never script text.
+          RELEASE_NAME: ${{ steps.release.outputs.release_name }}
+          BODY_PATH: ${{ steps.release_body.outputs.body_path }}
+          REPOSITORY: ${{ github.repository }}
         run: >-
           bash .stroggforge/scripts/shared/publish-github-release-artifacts.sh
-          "${{ steps.release.outputs.release_name }}"
-          "${{ steps.release_body.outputs.body_path }}"
+          "$RELEASE_NAME"
+          "$BODY_PATH"
           .corprus-crucible/github-release-downloads
-          "${{ github.repository }}"
+          "$REPOSITORY"
 
       - name: Generate and upload the changelog
         if: inputs.generate_changelog
