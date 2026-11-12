@@ -1,0 +1,53 @@
+# Trees tests/differential.jsl finds the forge and the Rust war room disagreeing on, where the forge
+# is meant to. `id` is `<set>:<tree>`, as the differential prints it. Anything not here is a
+# disagreement to fix.
+
+[[explained]]
+id = "mutation:.github/actions/setup/action.yml:bom"
+reason = "YAML 1.2 (5.2) allows a byte order mark at the start of a stream; serde_yaml_ng's libyaml reads it as a second document and refuses the file."
+
+[[explained]]
+id = "mutation:.github/workflows/build.yml:bom"
+reason = "YAML 1.2 (5.2) allows a byte order mark at the start of a stream; serde_yaml_ng's libyaml reads it as a second document and refuses the file."
+
+[[explained]]
+id = "mutation:.github/workflows/notify.yaml:bom"
+reason = "YAML 1.2 (5.2) allows a byte order mark at the start of a stream; serde_yaml_ng's libyaml reads it as a second document and refuses the file."
+
+# Where @jess/yaml follows YAML 1.2's core schema and serde_yaml_ng (libyaml, with YAML 1.1 habits)
+# doesn't. These change `check` verdicts too when the value is a name, a job key or a needs entry.
+
+[[explained]]
+id = "inspect:case:local-tag-scalars"
+reason = "A node with an explicit tag isn't resolved by the core schema (YAML 1.2, 3.3.2): `!t 12` holds the string 12. serde_yaml_ng resolves the scalar under the tag as if it were plain."
+
+[[explained]]
+id = "inspect:case:yaml11-integers"
+reason = "YAML 1.2's core schema has no binary integers and no sign on hexadecimal or octal ones, and reads 007 as the decimal 7. serde_yaml_ng reads 0b101 and -0x1 as integers and 007 as a string, as YAML 1.1 did."
+
+[[explained]]
+id = "inspect:case:unsigned-64"
+reason = "Luau's exact integer is signed 64-bit, so @jess/yaml refuses an integer from 2^63 to 2^64-1 that serde_yaml_ng keeps as a u64."
+
+[[explained]]
+id = "inspect:case:null-tag-empty"
+reason = "An empty scalar is one of the core schema's null forms, so `!!null \"\"` is null; serde_yaml_ng refuses it."
+
+# @jess/yaml defects the differential found, fixed by jess#31 (https://github.com/DreamWeave-MP/jess/pull/31).
+# Remove these once the forge runs on a jess with that change.
+
+[[explained]]
+id = "inspect:case:flow-implicit-null"
+reason = "jess defect, fixed by jess#31: @jess/yaml refuses a flow mapping's implicit entries ({a, b})."
+
+[[explained]]
+id = "inspect:case:empty-tag-suffix"
+reason = "jess defect, fixed by jess#31: @jess/yaml accepts a named tag handle with no suffix (!! x)."
+
+[[explained]]
+id = "inspect:case:block-indicator-in-compact-mapping"
+reason = "jess defect, fixed by jess#31: @jess/yaml measures a compact `- key: |2` block scalar's indentation from the dash, not the key."
+
+[[explained]]
+id = "inspect:case:yaml-1-1-directive"
+reason = "jess defect, fixed by jess#31: @jess/yaml refuses a %YAML 1.1 document, which YAML 1.2 (6.8.1) reads as 1.2."

@@ -1,0 +1,79 @@
+# YAML values that tell two readers apart, each written into the fixture's notify.yaml as `env`
+# and run through both inspects by tests/differential.jsl. Where they're meant to differ,
+# fixtures/differential.toml says why under `inspect:case:<id>`.
+
+[[case]]
+id = "floats"
+edits = [{ file = ".github/workflows/notify.yaml", find = 'jobs:\n', replace = '''env:\n  A: 1.0\n  B: 1e3\n  C: 1e300\n  D: 0.000001\n  E: -0.0\n  F: 5e-324\n  G: .inf\n  H: -.inf\n  I: .nan\njobs:\n''' }]
+
+[[case]]
+id = "integers"
+edits = [{ file = ".github/workflows/notify.yaml", find = 'jobs:\n', replace = '''env:\n  A: 0x1F\n  B: 0o17\n  C: 9007199254740993\n  D: -9223372036854775808\n  E: +12\n  F: -0\njobs:\n''' }]
+
+[[case]]
+id = "strings"
+edits = [{ file = ".github/workflows/notify.yaml", find = 'jobs:\n', replace = '''env:\n  A: "tab\there"\n  B: 'it''s'\n  C: "\u2028 \U0001F600 \x7f"\n  D: plain text with 'quotes' and "doubles"\n  E: ""\njobs:\n''' }]
+
+[[case]]
+id = "nulls-and-bools"
+edits = [{ file = ".github/workflows/notify.yaml", find = 'jobs:\n', replace = '''env:\n  A: ~\n  B: null\n  C:\n  D: true\n  E: False\n  F: !!str true\njobs:\n''' }]
+
+[[case]]
+id = "collections"
+edits = [{ file = ".github/workflows/notify.yaml", find = 'jobs:\n', replace = '''env:\n  A: {}\n  B: []\n  C: {1: a, 2: b}\n  D: [[], {}]\n  E: {true: x, 1.5: y}\njobs:\n''' }]
+
+[[case]]
+id = "anchors"
+edits = [{ file = ".github/workflows/notify.yaml", find = 'jobs:\n', replace = '''env:\n  A: &a [1, 2]\n  B: *a\n  C: &m {k: v}\n  D: *m\njobs:\n''' }]
+
+[[case]]
+id = "merge-key"
+edits = [{ file = ".github/workflows/notify.yaml", find = 'jobs:\n', replace = '''env:\n  BASE: &base {a: 1}\n  M:\n    <<: *base\n    b: 2\njobs:\n''' }]
+
+[[case]]
+id = "tags"
+edits = [{ file = ".github/workflows/notify.yaml", find = 'jobs:\n', replace = '''env:\n  A: !foo bar\n  B: !foo {a: 1}\n  C: !foo [1]\n  D: !!str 5\n  E: !!float 1\n  F: !<tag:example.com,2026:x> y\njobs:\n''' }]
+
+[[case]]
+id = "block-scalars"
+edits = [{ file = ".github/workflows/notify.yaml", find = 'jobs:\n', replace = '''env:\n  A: |\n    line\n    two\n  B: >\n    folded\n    text\n  C: |-\n    stripped\n  D: |+\n    kept\n\njobs:\n''' }]
+
+[[case]]
+id = "comments"
+edits = [{ file = ".github/workflows/notify.yaml", find = 'jobs:\n', replace = '''env:\n  A: value # comment\n  B: "quoted # not" # comment\njobs:\n''' }]
+
+[[case]]
+id = "local-tag-scalars"
+edits = [{ file = ".github/workflows/notify.yaml", find = 'jobs:\n', replace = '''env:\n  A: !t 12\n  B: !t true\n  C: !t ~\njobs:\n''' }]
+
+[[case]]
+id = "yaml11-integers"
+edits = [{ file = ".github/workflows/notify.yaml", find = 'jobs:\n', replace = '''env:\n  A: 0b101\n  B: -0x1\n  C: 007\njobs:\n''' }]
+
+[[case]]
+id = "unsigned-64"
+edits = [{ file = ".github/workflows/notify.yaml", find = 'jobs:\n', replace = '''env:\n  A: 18446744073709551615\njobs:\n''' }]
+
+[[case]]
+id = "null-tag-empty"
+edits = [{ file = ".github/workflows/notify.yaml", find = 'jobs:\n', replace = '''env:\n  A: !!null ""\njobs:\n''' }]
+
+[[case]]
+id = "nan-key"
+edits = [{ file = ".github/workflows/notify.yaml", find = 'jobs:\n', replace = '''env:\n  .nan: a\njobs:\n''' }]
+
+[[case]]
+id = "flow-implicit-null"
+edits = [{ file = ".github/workflows/notify.yaml", find = 'jobs:\n', replace = '''env:\n  A: {a, b}\njobs:\n''' }]
+
+[[case]]
+id = "empty-tag-suffix"
+edits = [{ file = ".github/workflows/notify.yaml", find = 'jobs:\n', replace = '''env:\n  A: !! x\njobs:\n''' }]
+
+[[case]]
+id = "block-indicator-in-compact-mapping"
+edits = [{ file = ".github/workflows/notify.yaml", find = '      - run: echo said\n', replace = '''      - run: |2\n           x\n''' }]
+
+[[case]]
+id = "yaml-1-1-directive"
+edits = [{ file = ".github/workflows/notify.yaml", find = 'name: Notify', replace = '''%YAML 1.1\n---\nname: Notify''' }]

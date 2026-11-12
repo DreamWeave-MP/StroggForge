@@ -50,12 +50,11 @@ local function isTable(context: Context, value: unknown): boolean
   return type(value) == 'table' and entry(context, value).keys ~= nil
 end
 
---- The keys of a decoded table, sorted, so a report lists its findings in the same order every run.
-local function sortedKeys(value: { [string]: unknown }): { string }
-  local keys = {}
-  for key in value do
-    table.insert(keys, key)
-  end
+--- The keys of a decoded table in the order serde visited them: toml 0.9 holds a table in a
+--- BTreeMap, so bytewise sorted, whatever order the file wrote them in. The Rust stopped at the first
+--- bad key in that order, so the forge's first finding is the one the Rust reported.
+local function visitedKeys(context: Context, value: unknown): { string }
+  local keys = table.clone(entry(context, value).keys or {})
   table.sort(keys)
 
   return keys
@@ -127,7 +126,7 @@ local function decodeField(context: Context, owner: unknown, field: Field, value
 
     local variant = value :: { [string]: unknown }
     local keys = 0
-    for _, key in sortedKeys(variant) do
+    for _, key in visitedKeys(context, value) do
       local inner = variant[key]
       keys += 1
       if not oneOf(values, key) then
@@ -150,7 +149,7 @@ local function decodeField(context: Context, owner: unknown, field: Field, value
 
     local record = field.record :: Spec
     local entries = value :: { [string]: unknown }
-    for _, key in sortedKeys(entries) do
+    for _, key in visitedKeys(context, value) do
       decode(entries[key], record, context, `{where}.{key}`)
     end
 
@@ -190,27 +189,30 @@ function decode(value: unknown, spec: Spec, context: Context, where: string): Re
     return nil
   end
 
+  -- As serde deserialized a struct: each key in the order it visited them, an unknown one refused
+  -- there and a known one's value checked there; then, after every key, the fields that never came,
+  -- in the order the record declares them.
   local record = value :: Record
-  local known: { [string]: boolean } = {}
-  for _, entry in spec do
-    known[entry.name] = true
-    local at = if where == '' then entry.name else `{where}.{entry.name}`
-    local found = record[entry.name]
-    if found == nil then
-      if not entry.optional then
-        diagnostics.add(context.report, 'FORGE-E011', context.path, `missing field {entry.name}`, at)
-      end
+  local fields: { [string]: Field } = {}
+  for _, field in spec do
+    fields[field.name] = field
+  end
+
+  for _, key in visitedKeys(context, value) do
+    local at = if where == '' then key else `{where}.{key}`
+    local field = fields[key]
+    if field then
+      decodeField(context, record, field, record[key], at)
     else
-      decodeField(context, record, entry, found, at)
+      diagnostics.add(context.report, 'FORGE-E010', context.path, `unknown field {key}`, at)
     end
   end
 
-  -- Sorted, so the same file reports the same unknown fields in the same order every run.
-  for _, key in sortedKeys(record) do
-    if known[key] then continue end
-
-    local at = if where == '' then key else `{where}.{key}`
-    diagnostics.add(context.report, 'FORGE-E010', context.path, `unknown field {key}`, at)
+  for _, field in spec do
+    if record[field.name] == nil and not field.optional then
+      local at = if where == '' then field.name else `{where}.{field.name}`
+      diagnostics.add(context.report, 'FORGE-E011', context.path, `missing field {field.name}`, at)
+    end
   end
 
   return record

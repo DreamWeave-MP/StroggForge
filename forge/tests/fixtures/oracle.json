@@ -1,5 +1,9 @@
 {
   "cases": {
+    "action-folders-in-path-order": {
+      "message": "Error: workflow/action requires a name",
+      "ok": false
+    },
     "action-inputs-as-a-list": {
       "message": "Error: workflow contract must be a mapping Caused by: invalid type: sequence, expected a map",
       "ok": false
@@ -16,6 +20,10 @@
       "message": "Error: plan rollout: a plan is blocked exactly when a requirement or prerequisite is blocked",
       "ok": false
     },
+    "aliases-past-the-repetition-limit": {
+      "message": "Error: parse workflow <root>/.github/workflows/laughs.yml Caused by: repetition limit exceeded",
+      "ok": false
+    },
     "blocked-without-a-blocker": {
       "message": "Error: plan release-1: a plan is blocked exactly when a requirement or prerequisite is blocked",
       "ok": false
@@ -27,6 +35,10 @@
     "calls-a-plain-workflow": {
       "message": "Error: project tool: notify is not a reusable StroggForge workflow",
       "ok": false
+    },
+    "comment-on-the-marker": {
+      "message": "",
+      "ok": true
     },
     "datetime-for-string": {
       "message": "Error: parse <root>/war-room/ecosystem.toml Caused by: TOML parse error at line 3, column 12 | 3 | reviewed = 2026-11-12 | ^^^^^^^^^^ invalid type: map, expected a string",
@@ -92,6 +104,10 @@
       "message": "Error: parse <root>/war-room/ecosystem.toml Caused by: TOML parse error at line 2, column 10 | 2 | schema = 1.0 | ^^^ invalid type: floating point `1.0`, expected u32",
       "ok": false
     },
+    "float-in-needs": {
+      "message": "Error: needs must contain job names",
+      "ok": false
+    },
     "folder-named-like-a-workflow": {
       "message": "Error: Is a directory (os error 21)",
       "ok": false
@@ -132,6 +148,10 @@
       "message": "",
       "ok": true
     },
+    "merge-key": {
+      "message": "",
+      "ok": true
+    },
     "missing-field": {
       "message": "Error: parse <root>/war-room/ecosystem.toml Caused by: TOML parse error at line 13, column 1 | 13 | [[projects]] | ^^^^^^^^^^^^ missing field `summary`",
       "ok": false
@@ -150,6 +170,10 @@
     },
     "needs-keyed-by-integer": {
       "message": "Error: unsupported job needs value: Mapping {1: String(\"test\")}",
+      "ok": false
+    },
+    "nesting-past-128": {
+      "message": "Error: parse workflow <root>/.github/workflows/deep.yml Caused by: recursion limit exceeded at line 3 column 131",
       "ok": false
     },
     "no-jobs": {
@@ -256,9 +280,65 @@
       "message": "Error: old-tool has a successor but is not superseded or archived",
       "ok": false
     },
+    "tagged-action-steps": {
+      "message": "",
+      "ok": true
+    },
+    "tagged-job": {
+      "message": "",
+      "ok": true
+    },
+    "tagged-jobs": {
+      "message": "",
+      "ok": true
+    },
+    "tagged-name": {
+      "message": "",
+      "ok": true
+    },
+    "tagged-needs": {
+      "message": "Error: unsupported job needs value: TaggedValue { tag: !t, value: String(\"test\") }",
+      "ok": false
+    },
+    "tagged-needs-list": {
+      "message": "Error: unsupported job needs value: TaggedValue { tag: !t, value: Sequence [String(\"test\")] }",
+      "ok": false
+    },
+    "tagged-on": {
+      "message": "",
+      "ok": true
+    },
+    "tagged-root": {
+      "message": "",
+      "ok": true
+    },
+    "tagged-root-on-the-marker": {
+      "message": "",
+      "ok": true
+    },
+    "tagged-runs": {
+      "message": "",
+      "ok": true
+    },
+    "tagged-secrets": {
+      "message": "",
+      "ok": true
+    },
+    "tagged-step": {
+      "message": "",
+      "ok": true
+    },
+    "tagged-steps": {
+      "message": "",
+      "ok": true
+    },
     "toml-syntax": {
       "message": "Error: parse <root>/war-room/ecosystem.toml Caused by: TOML parse error at line 4, column 9 | 4 | scope = | ^ string values must be quoted, expected literal string",
       "ok": false
+    },
+    "two-workflows-one-id": {
+      "message": "",
+      "ok": true
     },
     "unknown-distribution": {
       "message": "Error: parse <root>/war-room/ecosystem.toml Caused by: TOML parse error at line 26, column 17 | 26 | distribution = [\"ftp\"] | ^^^^^ unknown variant `ftp`, expected one of `crates-io`, `github-releases`, `github-pages`, `aur`, `source`",
@@ -309,6 +389,6 @@
       "ok": false
     }
   },
-  "corpus_sha256": "d35d6e6458572a855981b4750e15c305678bc8632fa23fc029258e0ef32fc15e",
+  "corpus_sha256": "24b0eb49e577d9b34569b05a828495c594d8206f880681cd5f4061dd991249bc",
   "oracle": "stroggforge-war-room check"
 }

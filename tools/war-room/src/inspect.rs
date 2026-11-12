@@ -1,24 +1,29 @@
 //! `inspect`: the workflow and composite action contracts as this checkout's YAML states them,
-//! as JSON Lines in the `stroggforge.inspect/1` shape. It is the reference the JSL forge's own
-//! `forge inspect` is compared against (FOR-101/FOR-201), so its rules are written for a reader
-//! that has only Lua tables:
+//! and a digest of every executable helper, as JSON Lines in the `stroggforge.inspect/2` shape. It
+//! is the reference the JSL forge's own `forge inspect` is compared against (FOR-101/FOR-201/
+//! FOR-202), and its golden is what a migration's review diffs: a change to a trigger, a
+//! permission, a step or a helper script changes a line.
 //!
-//! - one compact JSON object per line: a header, then one line per file, ordered by path;
+//! - one compact JSON object per line: a header, then one line per workflow or action ordered by
+//!   path, then one line per executable file ordered by path;
 //! - object keys sorted bytewise, which is what `serde_json`'s default map does;
-//! - an empty mapping is written `[]`, because a decoded Lua table cannot say which it was;
-//! - a step keeps `id`, `name`, `uses`, `if`, `shell`, `with`, `env` and `working-directory`,
-//!   and says whether it has a `run` script without carrying the script.
+//! - an empty mapping is written `[]`, as the first reader (Lua tables) needed;
+//! - a workflow keeps its whole `on`, with every filter, schedule and dispatch input;
+//! - a step keeps `id`, `name`, `uses`, `if`, `shell`, `with`, `env`, `working-directory`,
+//!   `continue-on-error` and `timeout-minutes`, and its `run` script as `sha256:<hex>` of the
+//!   script, or `null` when it has none.
 use std::{fs, path::Path};
 
 use anyhow::{Context, Result};
 use serde_json::{Map, Value as Json, json};
 use serde_yaml_ng::Value;
+use sha2::{Digest, Sha256};
 
 use crate::workflows::Workflow;
 
-pub const SCHEMA: &str = "stroggforge.inspect/1";
+pub const SCHEMA: &str = "stroggforge.inspect/2";
 
-const STEP_KEYS: [&str; 8] = [
+const STEP_KEYS: [&str; 10] = [
     "id",
     "name",
     "uses",
@@ -27,14 +32,64 @@ const STEP_KEYS: [&str; 8] = [
     "with",
     "env",
     "working-directory",
+    "continue-on-error",
+    "timeout-minutes",
 ];
+
+/// The folders and files whose contents run in CI or a release, or are copied into consumers: the
+/// helpers the workflows call, the images they build in, the actions and everything beside them,
+/// the consumer templates, and the Node manifest the site build installs from. Each file under
+/// them is one `executable` line.
+const EXECUTABLES: [&str; 8] = [
+    "scripts",
+    ".github/scripts",
+    ".github/container-images",
+    ".github/actions",
+    ".github/action_templates",
+    "bump-version.sh",
+    "package.json",
+    "package-lock.json",
+];
+
+fn sha256(bytes: &[u8]) -> String {
+    use std::fmt::Write;
+    Sha256::digest(bytes)
+        .iter()
+        .fold(String::with_capacity(64), |mut hex, byte| {
+            write!(hex, "{byte:02x}").expect("writing to a String cannot fail");
+            hex
+        })
+}
+
+/// Every file under `EXECUTABLES`, repository-relative with `/` separators, sorted bytewise.
+fn executables(root: &Path) -> Result<Vec<String>> {
+    fn walk(root: &Path, relative: &str, out: &mut Vec<String>) -> Result<()> {
+        let path = root.join(relative);
+        if path.is_file() {
+            out.push(relative.to_owned());
+        } else if path.is_dir() {
+            for entry in fs::read_dir(&path).with_context(|| format!("read {relative}"))? {
+                let name = entry?.file_name().to_string_lossy().into_owned();
+                walk(root, &format!("{relative}/{name}"), out)?;
+            }
+        }
+        Ok(())
+    }
+    let mut out = Vec::new();
+    for relative in EXECUTABLES {
+        walk(root, relative, &mut out)?;
+    }
+    out.sort();
+    Ok(out)
+}
 
 pub fn inspect(root: &Path, workflows: &[Workflow]) -> Result<String> {
     let mut ordered: Vec<&Workflow> = workflows.iter().collect();
     ordered.sort_by(|left, right| left.path.cmp(&right.path));
 
+    let helpers = executables(root)?;
     let mut lines = vec![serde_json::to_string(
-        &json!({ "schema": SCHEMA, "files": ordered.len() }),
+        &json!({ "schema": SCHEMA, "files": ordered.len(), "executables": helpers.len() }),
     )?];
     for workflow in ordered {
         let text = fs::read_to_string(root.join(&workflow.path))
@@ -42,6 +97,12 @@ pub fn inspect(root: &Path, workflows: &[Workflow]) -> Result<String> {
         let document: Value =
             serde_yaml_ng::from_str(&text).with_context(|| format!("parse {}", workflow.path))?;
         lines.push(serde_json::to_string(&file(workflow, &document)?)?);
+    }
+    for path in helpers {
+        let bytes = fs::read(root.join(&path)).with_context(|| format!("read {path}"))?;
+        lines.push(serde_json::to_string(
+            &json!({ "kind": "executable", "path": path, "sha256": sha256(&bytes) }),
+        )?);
     }
     Ok(lines.join("\n") + "\n")
 }
@@ -64,6 +125,12 @@ fn file(workflow: &Workflow, document: &Value) -> Result<Json> {
 
     if workflow.action {
         let runs = document.get("runs");
+        // Everything `runs` says besides its steps (`main`, `pre`, `post-if`, `image`, ...).
+        let mut rest = runs.cloned().unwrap_or(Value::Null);
+        if let Value::Mapping(mapping) = &mut rest {
+            mapping.remove("steps");
+        }
+        out.insert("runs".into(), raw(runs.map(|_| &rest))?);
         out.insert("inputs".into(), raw(document.get("inputs"))?);
         out.insert("outputs".into(), raw(document.get("outputs"))?);
         out.insert(
@@ -80,6 +147,9 @@ fn file(workflow: &Workflow, document: &Value) -> Result<Json> {
     let on = document.get("on");
     let call = on.and_then(|on| on.get("workflow_call"));
     out.insert("events".into(), events(on));
+    out.insert("on".into(), raw(on)?);
+    out.insert("defaults".into(), raw(document.get("defaults"))?);
+    out.insert("run-name".into(), raw(document.get("run-name"))?);
     out.insert(
         "inputs".into(),
         raw(call.and_then(|call| call.get("inputs")))?,
@@ -150,11 +220,20 @@ fn steps(value: Option<&Value>) -> Result<Json> {
                     entry.insert(key.into(), raw(Some(value))?);
                 }
             }
-            entry.insert("run".into(), step.get("run").is_some().into());
+            entry.insert("run".into(), script(step.get("run"))?);
             Ok(Json::Object(entry))
         })
         .collect::<Result<Vec<_>>>()
         .map(Json::Array)
+}
+
+/// A step's `run` as `sha256:<hex>` of the script, `null` when it has none, or the value itself
+/// when it isn't text (which GitHub would refuse).
+fn script(value: Option<&Value>) -> Result<Json> {
+    match value {
+        Some(Value::String(text)) => Ok(format!("sha256:{}", sha256(text.as_bytes())).into()),
+        other => raw(other),
+    }
 }
 
 /// A YAML value as JSON, `null` when absent, every empty mapping written as `[]`.
@@ -199,9 +278,13 @@ mod tests {
             .map(|line| serde_json::from_str(line).unwrap())
             .collect();
         let count = crate::workflows::load(&root).unwrap().len();
-        assert_eq!(lines[0], json!({ "schema": SCHEMA, "files": count }));
-        assert_eq!(lines.len(), count + 1);
-        let paths: Vec<&str> = lines[1..]
+        let helpers = executables(&root).unwrap().len();
+        assert_eq!(
+            lines[0],
+            json!({ "schema": SCHEMA, "files": count, "executables": helpers })
+        );
+        assert_eq!(lines.len(), count + helpers + 1);
+        let paths: Vec<&str> = lines[1..=count]
             .iter()
             .map(|line| line["path"].as_str().unwrap())
             .collect();
@@ -243,18 +326,32 @@ mod tests {
     }
 
     #[test]
-    fn steps_keep_their_contract_but_not_their_scripts() {
+    fn steps_keep_their_contract_and_a_digest_of_their_scripts() {
         let parse = |text: &str| serde_yaml_ng::from_str::<Value>(text).unwrap();
         let steps = steps(Some(&parse(
-            "- name: Build\n  id: build\n  run: |\n    echo secret\n- uses: actions/checkout@v6\n",
+            "- name: Build\n  id: build\n  continue-on-error: true\n  run: |\n    echo secret\n- uses: actions/checkout@v6\n",
         )))
         .unwrap();
         assert_eq!(
             steps,
             json!([
-                { "id": "build", "name": "Build", "run": true },
-                { "uses": "actions/checkout@v6", "run": false }
+                {
+                    "continue-on-error": true,
+                    "id": "build",
+                    "name": "Build",
+                    "run": format!("sha256:{}", sha256(b"echo secret\n")),
+                },
+                { "uses": "actions/checkout@v6", "run": null }
             ])
+        );
+        assert!(!steps.to_string().contains("secret\\n"));
+    }
+
+    #[test]
+    fn a_digest_is_sha256_in_lowercase_hex() {
+        assert_eq!(
+            sha256(b"abc"),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
         );
     }
 }

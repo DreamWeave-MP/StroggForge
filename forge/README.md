@@ -10,12 +10,14 @@ runs, and stays the reference until FOR-202 replaces it.
 
 ## Commands
 
-From the checkout's root, with jess 0.3.0 or newer on `PATH`:
+From the checkout's root, with a jess whose `@jess/yaml` has `decodeWithLayout` on `PATH`
+([jess#30](https://github.com/DreamWeave-MP/jess/pull/30); no released jess has it yet, and on
+one that doesn't the forge stops with that message, exit 1):
 
 ```sh
 jess workspace run --trusted forge-check                  # validate war-room/ against .github/
 jess workspace run --trusted forge-check -- --format json # stroggforge.diagnostics/1 on stdout
-jess workspace run --trusted forge-inspect                # stroggforge.inspect/1 JSON Lines
+jess workspace run --trusted forge-inspect                # stroggforge.inspect/2 JSON Lines
 ```
 
 Both take an optional root as their first argument and default to the working folder. `--trusted`
@@ -44,22 +46,49 @@ prerequisites, and no cycles. It reports every violation, where the Rust stopped
 It also holds the workflow YAML to the shapes serde made the Rust insist on: `jobs` a mapping of
 named jobs, each job a mapping, `steps` a list, `needs` a name or a list of names, and an
 `inputs`, `secrets` or `outputs` contract a mapping (`FORGE-E056`). A folder named like a workflow
-is an unreadable workflow, as it was.
+is an unreadable workflow, as it was. `@jess/yaml`'s layout says whether the file wrote a mapping
+or a sequence, so `jobs: []`, `steps: {}` and `needs: {1: test}` are refused as serde refused them,
+and a tag is read through everywhere serde read through it, and nowhere else (`needs`).
 
-Where it decides differently, `tests/fixtures/cases.toml` says so with a `divergence`:
+It reads YAML within serde_yaml_ng's limits: 128 nested collections, and alias jumps over the
+expanded document of at most 100 per parser event (a billion-laughs file is refused, as the Rust
+refused it). An alias to a scalar decodes to a plain value, so it counts as an event but not a jump;
+that can move the repetition threshold, never past a document the Rust refused by a wide margin.
+
+Its first finding is the error the Rust stopped on: TOML tables are walked in sorted key order, as
+toml 0.9 visited them, with missing fields after; the files in the order the Rust read them; actions
+in Rust's path order (`a/` before `a-b/`); a workflow's jobs, needs, name and contract in its
+loader's order. `tests/differential.jsl` holds it to that on every pair of corpus faults.
+
+Where it decides differently, it says so: `tests/fixtures/cases.toml` with a `divergence`, and
+`tests/fixtures/differential.toml` for the differential's trees.
 
 - A date is exactly `YYYY-MM-DD` in digits. Rust checked the length and parsed each part as an
   integer, so it also took `2026-+1-03` and `2024-2-029`.
-- In workflow YAML, an empty `{}` where a list belongs or `[]` where a mapping does (`jobs: []`,
-  `steps: {}`, `secrets: []`, `needs: {}`), and a mapping keyed 1 to n where a list belongs
-  (`needs: {1: test}`), pass. @jess/yaml decodes them to the same Lua tables as their opposites
-  and keeps no layout to say which the file wrote; nine `[[accept]]` divergences pin them. TOML
-  keeps that distinction in its layout, so the war-room files have no such hole.
+- YAML scalars resolve by YAML 1.2's core schema, where serde_yaml_ng kept YAML 1.1 habits: `0b101`
+  and `-0x1` are strings, `007` is 7, `!t 12` holds the string `12`, `!!null ""` is null. Where such a
+  value is a name, a job key or a needs entry, the verdict changes with it.
+- An integer from 2^63 to 2^64-1, or `.nan` as a key, can't be held in Luau and is refused.
+- A byte order mark at the start of a file is allowed, as YAML 1.2 allows it.
+- Four `@jess/yaml` defects the differential found are fixed in
+  [jess#31](https://github.com/DreamWeave-MP/jess/pull/31) and recorded until the forge runs on it.
 
-`inspect` writes what the decoded table holds where serde kept more: `1.0` as `1`, `010` as `10`,
-`{1: a}` as `["a"]`, a tag as `{"tag", "value"}`. An integer past 2^53 or a key that is a collection
-is `FORGE-E057` rather than output. `src/inspect.jsl` lists them and the suite pins each one. Unlike
-the Rust, `inspect` reads only `.github`, so it works on a repository with no war room.
+`inspect` (`stroggforge.inspect/2`) is the golden a migration's review diffs. Beside each
+workflow's contract it keeps the whole `on` (every branch, path and tag filter, schedule and
+dispatch input), `defaults`, every job's fields including `permissions`, each step's
+`continue-on-error` and `timeout-minutes`, and `sha256:<hex>` of each step's `run` script; then one
+line per file under `scripts/`, `.github/scripts/`, `.github/container-images/` and
+`bump-version.sh` with its SHA-256, and likewise every file under `.github/actions/` and
+`.github/action_templates/`, `package.json` and `package-lock.json`; and `run-name`, and an action's
+whole `runs` besides its steps. A changed trigger, permission, step or helper is a changed line.
+File modes aren't recorded: `@dream/fs` doesn't expose them, and git shows a mode change in review.
+
+`inspect` writes JSON as serde_json wrote it: floats as floats (`1.0`, `1e+300`), integers past 2^53
+exactly, a tag `!t` as `{"!t": value}`. Two differences remain, both pinned by the suite: `010` is
+the integer 10, as YAML 1.2 reads it, where serde_yaml read a string; and a key written `1.0` is
+`"1"`, which the layout can't record. A key that is null or a collection is `FORGE-E057`, where
+the Rust stopped with an error. Unlike the Rust, `inspect` reads only `.github`, so it works on a
+repository with no war room.
 
 ## Layout
 
@@ -68,7 +97,7 @@ src/diagnostics.jsl   codes, exit statuses, text and JSON reports
 src/schema.jsl        closed TOML records
 src/model.jsl         the war-room files as records
 src/workflows.jsl     the workflow and action YAML
-src/inspect.jsl       the stroggforge.inspect/1 contract
+src/inspect.jsl       the stroggforge.inspect/2 contract
 src/check.jsl         the structural rules
 src/commands.jsl      typed requests and results: what another tool calls
 src/cli/              argv, printing and exit statuses
@@ -94,6 +123,5 @@ cargo build --locked -p stroggforge-war-room
 jess run --trusted forge/tests/oracle.jsl target/debug/stroggforge-war-room
 ```
 
-jess 0.3.0's YAML loader drops the last line break of a block scalar that ends a document. The
-suite tolerates exactly that difference on the one golden line it affects, and expects byte
-equality on a jess without the defect.
+The golden comparison is byte for byte: any jess with `decodeWithLayout` also has the block-scalar
+chomping fix (jess#28) that jess 0.3.0 lacks.

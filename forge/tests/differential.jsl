@@ -1,0 +1,369 @@
+--!strict
+-- The Rust/JSL differential (FOR-202): the forge and the Rust war room on the same trees, compared
+-- on verdict, on which finding comes first, and on exit status. Run it from the checkout's root
+-- while the Rust war room is still the oracle:
+--
+--   cargo build --locked -p stroggforge-war-room
+--   jess run --trusted forge/tests/differential.jsl target/debug/stroggforge-war-room <jess> [receipt.json]
+--
+-- `<jess>` is the jess that runs the forge's command line for the exit-status runs. It exits 0 when
+-- every tree agrees or disagrees for a reason fixtures/differential.toml records, 1 otherwise, and
+-- writes the counts and every disagreement to the receipt when given one.
+--
+-- Five sets of trees, all built from fixtures/repo under target/forge-differential:
+--
+-- - single: every case and accept of cases.toml;
+-- - pair: every two cases both sides refuse alone, applied together. The Rust stops at its first
+--   error and the forge reports all of them, so the question is whether the forge's first finding
+--   is the one the Rust stopped on. Each side's first finding is matched against what it said for
+--   each case alone, exactly or with its line and column numbers set aside; one that matches
+--   neither is a disagreement. Only two cases whose edits can't both be made are skipped;
+-- - mutation: each fixture file with one line deleted, duplicated, indented or outdented, cut short,
+--   or given a byte-order mark, CRLF line ends, a tab, a NUL or a byte that isn't UTF-8;
+-- - inspect: every tree above the Rust accepts, and each of fixtures/inspect-cases.toml, through
+--   both `inspect`s, byte for byte;
+-- - cli: the forge's command line against the forge in process on the singles, for its real exit
+--   status (the singles already hold that status to the Rust's).
+--
+-- The exit contract (FOR-102): the Rust exits 0 or 1; the forge 0, 65 for findings, 66 when an
+-- input can't be read. Agreement is 0 with 0, and 1 with 65 or 66, with 66 exactly when the Rust's
+-- error was the operating system's.
+local commands = require '../src/commands'
+local common = require '../src/cli/common'
+local diagnostics = require '../src/diagnostics'
+local bytes = require '@dream/bytes'
+local fs = require '@dream/fs'
+local json = require '@jess/json'
+local process = require '@dream/process'
+local support = require './support'
+local toml = require '@jess/data/toml'
+
+local rust, jessBinary, receiptPath = ...
+if type(rust) ~= 'string' or type(jessBinary) ~= 'string' then
+  print('usage: jess run --trusted forge/tests/differential.jsl <stroggforge-war-room> <jess> [receipt.json]')
+
+  return 64
+end
+
+type Edit = support.Edit
+type Case = support.Case
+type Side = { status: number, first: string, message: string }
+type Disagreement = { set: string, id: string, rust: string, forge: string, reason: string? }
+type Explained = { id: string, reason: string }
+
+local scratch = fs.join(support.Repository, 'target', 'forge-differential')
+local explained: { [string]: string } = {}
+do
+  local path = fs.join(support.Fixtures, 'differential.toml')
+  if fs.isFile(path) then
+    local document = toml.decode(support.read(path)) :: { explained: { Explained }? }
+    for _, entry in document.explained or {} do
+      explained[entry.id] = entry.reason
+    end
+  end
+end
+
+--- The Rust's verdict on `root`: its exit status and its error, one line, without the root.
+local function runRust(root: string): Side
+  local result, problem = process.run(rust, { 'check', root }, { stdout = 'capture', stderr = 'capture' })
+  if not result then error(`cannot run {rust}: {problem}`, 0) end
+
+  local stderr = string.gsub(result.stderr or '', string.gsub(root, '%p', '%%%0'), '<root>')
+  local message = string.gsub(string.gsub(stderr, '%s+', ' '), '^%s*(.-)%s*$', '%1')
+
+  return { status = result.code or 1, first = message, message = message }
+end
+
+--- The forge's verdict on `root`, in process: the status its command line would end with, and its
+--- first finding without the root.
+local function runForge(root: string): Side
+  local result = commands.check { root = root }
+  local first = ''
+  if result.report[1] then
+    local only = diagnostics.new()
+    local diagnostic = result.report[1]
+    diagnostics.add(only, diagnostic.code, diagnostic.path, diagnostic.message, diagnostic.where)
+    first = diagnostics.text(only)
+  end
+  first = string.gsub(first, string.gsub(root, '%p', '%%%0'), '<root>')
+
+  return { status = common.status(result.report), first = first, message = diagnostics.text(result.report) }
+end
+
+--- Whether two exit statuses agree under the contract above.
+local function statusesAgree(rustSide: Side, forgeSide: Side): boolean
+  if rustSide.status == 0 then return forgeSide.status == 0 end
+
+  local system = string.find(rustSide.message, '(os error', 1, true) ~= nil
+  if forgeSide.status == diagnostics.Status.missing then return system end
+
+  return forgeSide.status == diagnostics.Status.invalid and not system
+end
+
+local counts: { [string]: { agree: number, explained: number, disagree: number, skipped: number } } = {}
+local disagreements: { Disagreement } = {}
+
+local function tally(set: string, id: string, agrees: boolean, rustText: string, forgeText: string)
+  local count = counts[set]
+  if not count then
+    count = { agree = 0, explained = 0, disagree = 0, skipped = 0 }
+    counts[set] = count
+  end
+
+  if agrees then
+    count.agree += 1
+    return
+  end
+
+  local reason = explained[`{set}:{id}`]
+  if reason then count.explained += 1 else count.disagree += 1 end
+  table.insert(disagreements, { set = set, id = id, rust = rustText, forge = forgeText, reason = reason })
+end
+
+local function skip(set: string)
+  local count = counts[set] or { agree = 0, explained = 0, disagree = 0, skipped = 0 }
+  counts[set] = count
+  count.skipped += 1
+end
+
+--- Both `inspect`s on `root`: whether they agree (both refuse, or both write the same bytes), and
+--- what each said.
+local function inspectBoth(root: string): (boolean, string, string)
+  local result, problem = process.run(rust, { 'inspect', root }, { stdout = 'capture', stderr = 'capture' })
+  if not result then error(`cannot run {rust}: {problem}`, 0) end
+
+  local forgeResult = commands.inspect { root = root }
+  local rustText = if result.success then result.stdout or '' else `refused: {result.stderr or ''}`
+  local forgeText = if forgeResult.ok then forgeResult.text :: string else `refused: {diagnostics.text(forgeResult.report)}`
+  if result.success ~= forgeResult.ok then return false, rustText, forgeText end
+
+  return not result.success or rustText == forgeText, rustText, forgeText
+end
+
+--- The first line where two texts differ, for the report.
+local function firstDifference(left: string, right: string): (string, string)
+  local leftLines, rightLines = string.split(left, '\n'), string.split(right, '\n')
+  for index = 1, math.max(#leftLines, #rightLines) do
+    if leftLines[index] ~= rightLines[index] then return leftLines[index] or '', rightLines[index] or '' end
+  end
+
+  return left, right
+end
+
+local function compareInspect(id: string, root: string)
+  local agrees, rustText, forgeText = inspectBoth(root)
+  local rustLine, forgeLine = firstDifference(rustText, forgeText)
+  tally('inspect', id, agrees, string.sub(rustLine, 1, 400), string.sub(forgeLine, 1, 400))
+end
+
+-- Singles. A case's divergence is already explained by cases.toml.
+local corpus = support.corpus()
+local rustAlone: { [string]: string }, forgeAlone: { [string]: string } = {}, {}
+local refusedAlone: { [string]: boolean } = {}
+local singles: { Case } = table.clone(corpus.case)
+table.move(corpus.accept, 1, #corpus.accept, #singles + 1, singles)
+for _, case in singles do
+  local root = support.broken(fs.join(scratch, 'single'), case)
+  local rustSide, forgeSide = runRust(root), runForge(root)
+  rustAlone[case.id], forgeAlone[case.id] = rustSide.first, forgeSide.first
+  refusedAlone[case.id] = rustSide.status ~= 0 and forgeSide.status ~= 0
+  if rustSide.status == 0 then compareInspect(`single:{case.id}`, root) end
+  local verdictsAgree = (rustSide.status == 0) == (forgeSide.status == 0)
+  if case.divergence then verdictsAgree = not verdictsAgree end
+  local agrees = verdictsAgree and (case.divergence ~= nil or statusesAgree(rustSide, forgeSide))
+  tally('single', case.id, agrees, `{rustSide.status} {rustSide.first}`, `{forgeSide.status} {forgeSide.first}`)
+end
+
+-- Pairs: which of the two faults each side names first.
+local refusing: { Case } = {}
+for _, case in corpus.case do
+  if not case.divergence and refusedAlone[case.id] then table.insert(refusing, case) end
+end
+
+--- A message with its numbers set aside: two faults in one file move each other's line numbers.
+local function loose(text: string): string return (string.gsub(text, '%d+', '#')) end
+
+--- Which of the two cases `text` is the first finding of, matched exactly and then loosely; `either`
+--- when the two cases alone said the same thing, so any order is consistent; nil when neither.
+local function named(text: string, alone: { [string]: string }, first: string, second: string): string?
+  if alone[first] == alone[second] or loose(alone[first]) == loose(alone[second]) then
+    if loose(text) == loose(alone[first]) then return 'either' end
+  end
+
+  if text == alone[first] then return first end
+  if text == alone[second] then return second end
+  if loose(text) == loose(alone[first]) then return first end
+  if loose(text) == loose(alone[second]) then return second end
+
+  return nil
+end
+
+for left = 1, #refusing do
+  for right = left + 1, #refusing do
+    local first, second = refusing[left], refusing[right]
+    local edits: { Edit } = table.clone(first.edits)
+    table.move(second.edits, 1, #second.edits, #edits + 1, edits)
+    local id = `{first.id}+{second.id}`
+    -- support.broken raises when one case's edit removed the text the other's replaces: two faults
+    -- that can't be made together are no pair, and the run goes on to the next.
+    local built, root = pcall(support.broken, fs.join(scratch, 'pair'), { id = 'pair', edits = edits } :: any)
+    if not built then
+      skip('pair')
+      continue
+    end
+
+    local rustSide, forgeSide = runRust(root :: string), runForge(root :: string)
+    local rustNames = named(rustSide.first, rustAlone, first.id, second.id)
+    local forgeNames = named(forgeSide.first, forgeAlone, first.id, second.id)
+    local sameFault = rustNames ~= nil and forgeNames ~= nil and (rustNames == forgeNames or rustNames == 'either' or forgeNames == 'either')
+
+    -- Both refuse; which of 65 and 66 the forge ends with is checked on the singles, since an
+    -- unreadable input outranks findings there whichever came first.
+    local bothRefuse = rustSide.status ~= 0 and forgeSide.status ~= 0
+    tally('pair', id, sameFault and bothRefuse, `{rustNames or 'neither'}: {rustSide.first}`, `{forgeNames or 'neither'}: {forgeSide.first}`)
+  end
+end
+
+-- Mutations of every fixture file, each applied alone.
+type Mutation = { id: string, file: string, text: string }
+
+local function lines(text: string): { string }
+  local out = {}
+  for line in string.gmatch(text, '([^\n]*)\n') do
+    table.insert(out, line)
+  end
+
+  return out
+end
+
+local function mutations(): { Mutation }
+  local repo = fs.join(support.Fixtures, 'repo')
+  local walked = support.must(fs.walk(repo))
+  local files: { string } = {}
+  for _, path in walked.paths do
+    -- Walked paths may be absolute or relative to the fixture; never to the working folder.
+    local relative = if string.sub(path, 1, #repo + 1) == repo .. '/' then string.sub(path, #repo + 2) else path
+    if relative ~= '' and fs.isFile(fs.join(repo, relative)) then table.insert(files, relative) end
+  end
+  table.sort(files)
+
+  local out = {}
+  for _, file in files do
+    local text = support.read(fs.join(repo, file))
+    local split = lines(text)
+    local function add(kind: string, mutated: string)
+      if mutated ~= text then table.insert(out, { id = `{file}:{kind}`, file = file, text = mutated }) end
+    end
+
+    for index, line in split do
+      local before = table.concat(split, '\n', 1, index - 1)
+      local after = table.concat(split, '\n', index + 1)
+      -- The file with line `index` replaced by `middle`, or removed when it's nil.
+      local function around(middle: string?): string
+        local parts: { string } = {}
+        if index > 1 then table.insert(parts, before) end
+        if middle then table.insert(parts, middle) end
+        if index < #split then table.insert(parts, after) end
+
+        return table.concat(parts, '\n') .. '\n'
+      end
+
+      add(`delete-{index}`, around(nil))
+      add(`duplicate-{index}`, around(line .. '\n' .. line))
+      add(`indent-{index}`, around('  ' .. line))
+      if string.sub(line, 1, 1) == ' ' then add(`outdent-{index}`, around(string.sub(line, 2))) end
+      if string.sub(line, 1, 2) == '  ' then add(`tab-{index}`, around('\t' .. string.sub(line, 3))) end
+    end
+
+    for _, fraction in { 1, 2, 3 } do
+      add(`truncate-{fraction}/4`, string.sub(text, 1, math.floor(#text * fraction / 4)))
+    end
+    add('bom', '\u{FEFF}' .. text)
+    add('crlf', (string.gsub(text, '\n', '\r\n')))
+    add('nul', string.sub(text, 1, math.floor(#text / 2)) .. '\0' .. string.sub(text, math.floor(#text / 2) + 1))
+    add('not-utf8', string.sub(text, 1, math.floor(#text / 2)) .. '\255' .. string.sub(text, math.floor(#text / 2) + 1))
+  end
+
+  return out
+end
+
+for _, mutation in mutations() do
+  local root = support.broken(fs.join(scratch, 'mutation'), {
+    id = 'mutation',
+    edits = { { file = mutation.file, find = '', replace = mutation.text } },
+  } :: any)
+  local rustSide, forgeSide = runRust(root), runForge(root)
+  local agrees = (rustSide.status == 0) == (forgeSide.status == 0) and statusesAgree(rustSide, forgeSide)
+  tally('mutation', mutation.id, agrees, `{rustSide.status} {rustSide.first}`, `{forgeSide.status} {forgeSide.first}`)
+  if rustSide.status == 0 then compareInspect(`mutation:{mutation.id}`, root) end
+end
+
+-- YAML values chosen to tell two readers apart, through both inspects.
+do
+  local path = fs.join(support.Fixtures, 'inspect-cases.toml')
+  local document = toml.decode(support.read(path)) :: { case: { Case } }
+  for _, case in document.case do
+    for _, edit in case.edits do
+      if edit.find then edit.find = string.gsub(edit.find, '\\n', '\n') end
+      if edit.replace then edit.replace = string.gsub(edit.replace, '\\n', '\n') end
+    end
+    compareInspect(`case:{case.id}`, support.broken(fs.join(scratch, 'inspect'), case))
+  end
+end
+
+-- The command line, for its real exit status on every single.
+for _, case in singles do
+  local root = support.broken(fs.join(scratch, 'cli'), case)
+  local result, problem = process.run(jessBinary, { 'workspace', 'run', '--trusted', 'forge-check', '--', root }, {
+    stdout = 'capture',
+    stderr = 'capture',
+    cwd = support.Repository,
+  })
+
+  if not result then error(`cannot run {jessBinary}: {problem}`, 0) end
+
+  local expected = runForge(root).status
+  tally('cli', case.id, result.code == expected, `in process {expected}`, `command line {tostring(result.code)}`)
+end
+
+support.must(fs.remove(scratch, { recursive = true }))
+
+local unexplained = 0
+for _, count in counts do
+  unexplained += count.disagree
+end
+
+local names = {}
+for set in counts do
+  table.insert(names, set)
+end
+table.sort(names)
+for _, set in names do
+  local count = counts[set]
+  print(`{set}: {count.agree} agree, {count.explained} explained, {count.disagree} disagree, {count.skipped} skipped`)
+end
+
+for _, disagreement in disagreements do
+  if disagreement.reason then continue end
+
+  print(`DISAGREE {disagreement.set}:{disagreement.id}`)
+  print(`  rust:  {disagreement.rust}`)
+  print(`  forge: {disagreement.forge}`)
+end
+
+if type(receiptPath) == 'string' then
+  local rustBytes = support.must(fs.readFile(rust))
+  support.write(
+    receiptPath,
+    json.encodeTable({
+      schema = 'stroggforge.differential/1',
+      oracle = 'stroggforge-war-room check',
+      oracle_sha256 = bytes.sha256(rustBytes),
+      corpus_sha256 = support.corpusDigest(),
+      counts = counts,
+      disagreements = disagreements,
+    }, { indent = 2 }) .. '\n'
+  )
+end
+
+return if unexplained == 0 then 0 else 1
