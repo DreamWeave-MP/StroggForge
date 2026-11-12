@@ -41,8 +41,18 @@ integers that weren't written as floats), unique IDs, references that resolve to
 platforms, workflows, jobs and composite steps, plan states that agree with their requirements and
 prerequisites, and no cycles. It reports every violation, where the Rust stopped at the first.
 
-One rule differs on purpose: a date is four digits, two and two. Rust's integer parsing also took
-`2026-+1-03`.
+It also holds the workflow YAML to the shapes serde made the Rust insist on: `jobs` a mapping of
+named jobs, each job a mapping, `steps` a list, `needs` a name or a list of names, and an
+`inputs`, `secrets` or `outputs` contract a mapping (`FORGE-E056`). A folder named like a workflow
+is an unreadable workflow, as it was.
+
+Where it decides differently, `tests/fixtures/cases.toml` says so with a `divergence`:
+
+- A date is exactly `YYYY-MM-DD` in digits. Rust checked the length and parsed each part as an
+  integer, so it also took `2026-+1-03` and `2024-2-029`.
+- `needs: {}` and `needs: {1: test}` pass. @jess/yaml decodes them to the same Lua tables as `[]`
+  and `[test]`, and nothing records which the file said. TOML keeps that distinction in its
+  layout, so the war-room files have no such hole.
 
 ## Layout
 
