@@ -10,15 +10,20 @@
 -- every tree agrees or disagrees for a reason fixtures/differential.toml records, 1 otherwise, and
 -- writes the counts and every disagreement to the receipt when given one.
 --
--- Four sets of trees, all built from fixtures/repo under target/forge-differential:
+-- Five sets of trees, all built from fixtures/repo under target/forge-differential:
 --
 -- - single: every case and accept of cases.toml;
--- - pair: every two refusing cases applied together. The Rust stops at its first error and the
---   forge reports all of them, so the question is whether the forge's first finding is the one the
---   Rust stopped on. Each side's report is matched against what it said for each case alone;
+-- - pair: every two cases both sides refuse alone, applied together. The Rust stops at its first
+--   error and the forge reports all of them, so the question is whether the forge's first finding
+--   is the one the Rust stopped on. Each side's first finding is matched against what it said for
+--   each case alone, exactly or with its line and column numbers set aside; one that matches
+--   neither is a disagreement. Only two cases whose edits can't both be made are skipped;
 -- - mutation: each fixture file with one line deleted, duplicated, indented or outdented, cut short,
 --   or given a byte-order mark, CRLF line ends, a tab, a NUL or a byte that isn't UTF-8;
--- - cli: the forge's command line on the singles, for its real exit status.
+-- - inspect: every tree above the Rust accepts, and each of fixtures/inspect-cases.toml, through
+--   both `inspect`s, byte for byte;
+-- - cli: the forge's command line against the forge in process on the singles, for its real exit
+--   status (the singles already hold that status to the Rust's).
 --
 -- The exit contract (FOR-102): the Rust exits 0 or 1; the forge 0, 65 for findings, 66 when an
 -- input can't be read. Agreement is 0 with 0, and 1 with 65 or 66, with 66 exactly when the Rust's
@@ -121,15 +126,48 @@ local function skip(set: string)
   count.skipped += 1
 end
 
+--- Both `inspect`s on `root`: whether they agree (both refuse, or both write the same bytes), and
+--- what each said.
+local function inspectBoth(root: string): (boolean, string, string)
+  local result, problem = process.run(rust, { 'inspect', root }, { stdout = 'capture', stderr = 'capture' })
+  if not result then error(`cannot run {rust}: {problem}`, 0) end
+
+  local forgeResult = commands.inspect { root = root }
+  local rustText = if result.success then result.stdout or '' else `refused: {result.stderr or ''}`
+  local forgeText = if forgeResult.ok then forgeResult.text :: string else `refused: {diagnostics.text(forgeResult.report)}`
+  if result.success ~= forgeResult.ok then return false, rustText, forgeText end
+
+  return not result.success or rustText == forgeText, rustText, forgeText
+end
+
+--- The first line where two texts differ, for the report.
+local function firstDifference(left: string, right: string): (string, string)
+  local leftLines, rightLines = string.split(left, '\n'), string.split(right, '\n')
+  for index = 1, math.max(#leftLines, #rightLines) do
+    if leftLines[index] ~= rightLines[index] then return leftLines[index] or '', rightLines[index] or '' end
+  end
+
+  return left, right
+end
+
+local function compareInspect(id: string, root: string)
+  local agrees, rustText, forgeText = inspectBoth(root)
+  local rustLine, forgeLine = firstDifference(rustText, forgeText)
+  tally('inspect', id, agrees, string.sub(rustLine, 1, 400), string.sub(forgeLine, 1, 400))
+end
+
 -- Singles. A case's divergence is already explained by cases.toml.
 local corpus = support.corpus()
 local rustAlone: { [string]: string }, forgeAlone: { [string]: string } = {}, {}
+local refusedAlone: { [string]: boolean } = {}
 local singles: { Case } = table.clone(corpus.case)
 table.move(corpus.accept, 1, #corpus.accept, #singles + 1, singles)
 for _, case in singles do
   local root = support.broken(fs.join(scratch, 'single'), case)
   local rustSide, forgeSide = runRust(root), runForge(root)
   rustAlone[case.id], forgeAlone[case.id] = rustSide.first, forgeSide.first
+  refusedAlone[case.id] = rustSide.status ~= 0 and forgeSide.status ~= 0
+  if rustSide.status == 0 then compareInspect(`single:{case.id}`, root) end
   local verdictsAgree = (rustSide.status == 0) == (forgeSide.status == 0)
   if case.divergence then verdictsAgree = not verdictsAgree end
   local agrees = verdictsAgree and (case.divergence ~= nil or statusesAgree(rustSide, forgeSide))
@@ -139,7 +177,25 @@ end
 -- Pairs: which of the two faults each side names first.
 local refusing: { Case } = {}
 for _, case in corpus.case do
-  if not case.divergence and rustAlone[case.id] ~= forgeAlone[case.id] then table.insert(refusing, case) end
+  if not case.divergence and refusedAlone[case.id] then table.insert(refusing, case) end
+end
+
+--- A message with its numbers set aside: two faults in one file move each other's line numbers.
+local function loose(text: string): string return (string.gsub(text, '%d+', '#')) end
+
+--- Which of the two cases `text` is the first finding of, matched exactly and then loosely; `either`
+--- when the two cases alone said the same thing, so any order is consistent; nil when neither.
+local function named(text: string, alone: { [string]: string }, first: string, second: string): string?
+  if alone[first] == alone[second] or loose(alone[first]) == loose(alone[second]) then
+    if loose(text) == loose(alone[first]) then return 'either' end
+  end
+
+  if text == alone[first] then return first end
+  if text == alone[second] then return second end
+  if loose(text) == loose(alone[first]) then return first end
+  if loose(text) == loose(alone[second]) then return second end
+
+  return nil
 end
 
 for left = 1, #refusing do
@@ -157,23 +213,14 @@ for left = 1, #refusing do
     end
 
     local rustSide, forgeSide = runRust(root :: string), runForge(root :: string)
-    local rustNames = if rustSide.first == rustAlone[first.id] then first.id
-      elseif rustSide.first == rustAlone[second.id] then second.id
-      else nil
-    local forgeNames = if forgeSide.first == forgeAlone[first.id] then first.id
-      elseif forgeSide.first == forgeAlone[second.id] then second.id
-      else nil
-
-    -- The two faults interact, or both sides name the same thing for both: no order to compare.
-    if not rustNames or not forgeNames or rustAlone[first.id] == rustAlone[second.id] or forgeAlone[first.id] == forgeAlone[second.id] then
-      skip('pair')
-      continue
-    end
+    local rustNames = named(rustSide.first, rustAlone, first.id, second.id)
+    local forgeNames = named(forgeSide.first, forgeAlone, first.id, second.id)
+    local sameFault = rustNames ~= nil and forgeNames ~= nil and (rustNames == forgeNames or rustNames == 'either' or forgeNames == 'either')
 
     -- Both refuse; which of 65 and 66 the forge ends with is checked on the singles, since an
     -- unreadable input outranks findings there whichever came first.
     local bothRefuse = rustSide.status ~= 0 and forgeSide.status ~= 0
-    tally('pair', id, rustNames == forgeNames and bothRefuse, `{rustNames}: {rustSide.first}`, `{forgeNames}: {forgeSide.first}`)
+    tally('pair', id, sameFault and bothRefuse, `{rustNames or 'neither'}: {rustSide.first}`, `{forgeNames or 'neither'}: {forgeSide.first}`)
   end
 end
 
@@ -248,6 +295,20 @@ for _, mutation in mutations() do
   local rustSide, forgeSide = runRust(root), runForge(root)
   local agrees = (rustSide.status == 0) == (forgeSide.status == 0) and statusesAgree(rustSide, forgeSide)
   tally('mutation', mutation.id, agrees, `{rustSide.status} {rustSide.first}`, `{forgeSide.status} {forgeSide.first}`)
+  if rustSide.status == 0 then compareInspect(`mutation:{mutation.id}`, root) end
+end
+
+-- YAML values chosen to tell two readers apart, through both inspects.
+do
+  local path = fs.join(support.Fixtures, 'inspect-cases.toml')
+  local document = toml.decode(support.read(path)) :: { case: { Case } }
+  for _, case in document.case do
+    for _, edit in case.edits do
+      if edit.find then edit.find = string.gsub(edit.find, '\\n', '\n') end
+      if edit.replace then edit.replace = string.gsub(edit.replace, '\\n', '\n') end
+    end
+    compareInspect(`case:{case.id}`, support.broken(fs.join(scratch, 'inspect'), case))
+  end
 end
 
 -- The command line, for its real exit status on every single.

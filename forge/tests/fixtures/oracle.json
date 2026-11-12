@@ -1,5 +1,9 @@
 {
   "cases": {
+    "action-folders-in-path-order": {
+      "message": "Error: workflow/action requires a name",
+      "ok": false
+    },
     "action-inputs-as-a-list": {
       "message": "Error: workflow contract must be a mapping Caused by: invalid type: sequence, expected a map",
       "ok": false
@@ -14,6 +18,10 @@
     },
     "active-with-a-blocker": {
       "message": "Error: plan rollout: a plan is blocked exactly when a requirement or prerequisite is blocked",
+      "ok": false
+    },
+    "aliases-past-the-repetition-limit": {
+      "message": "Error: parse workflow <root>/.github/workflows/laughs.yml Caused by: repetition limit exceeded",
       "ok": false
     },
     "blocked-without-a-blocker": {
@@ -162,6 +170,10 @@
     },
     "needs-keyed-by-integer": {
       "message": "Error: unsupported job needs value: Mapping {1: String(\"test\")}",
+      "ok": false
+    },
+    "nesting-past-128": {
+      "message": "Error: parse workflow <root>/.github/workflows/deep.yml Caused by: recursion limit exceeded at line 3 column 131",
       "ok": false
     },
     "no-jobs": {
@@ -324,6 +336,10 @@
       "message": "Error: parse <root>/war-room/ecosystem.toml Caused by: TOML parse error at line 4, column 9 | 4 | scope = | ^ string values must be quoted, expected literal string",
       "ok": false
     },
+    "two-workflows-one-id": {
+      "message": "",
+      "ok": true
+    },
     "unknown-distribution": {
       "message": "Error: parse <root>/war-room/ecosystem.toml Caused by: TOML parse error at line 26, column 17 | 26 | distribution = [\"ftp\"] | ^^^^^ unknown variant `ftp`, expected one of `crates-io`, `github-releases`, `github-pages`, `aur`, `source`",
       "ok": false
@@ -373,6 +389,6 @@
       "ok": false
     }
   },
-  "corpus_sha256": "88c566fdf487044799235fd2accbb6937e1d35293469e16eb587b84bf0c8d2ea",
+  "corpus_sha256": "24b0eb49e577d9b34569b05a828495c594d8206f880681cd5f4061dd991249bc",
   "oracle": "stroggforge-war-room check"
 }

