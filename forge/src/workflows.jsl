@@ -183,11 +183,47 @@ local function read(report: diagnostics.Report, root: string, path: string): Wor
     then assert(string.match(path, '^.*/([^/]+)/action%.yml$'))
     else assert(string.match(path, '([^/]+)%.ya?ml$'))
 
-  local name = untag(layoutOf, document.name)
-  if type(name) ~= 'string' then
-    diagnostics.add(report, 'FORGE-E050', path, 'a workflow or action needs a name')
-    return nil
+  -- In the order the Rust's loader met them: the jobs as serde deserialized them, in the order the
+  -- file wrote them; then each job's needs, in name order; then the name; then the contract.
+  local jobs: { [string]: Job } = {}
+  local jobsValue = untag(layoutOf, document.jobs)
+  if not absent(jobsValue) and not isMapping(layoutOf, jobsValue) then
+    shape(report, path, 'jobs', 'a mapping of job names')
   end
+
+  local documents = mapping(layoutOf, jobsValue) or {}
+  local written = if next(documents) then (layoutOf[documents].keys :: { string }) else {}
+  for _, job in written do
+    local value = untag(layoutOf, documents[job])
+    if not absent(value) and not isMapping(layoutOf, value) then shape(report, path, `jobs.{job}`, 'a mapping') end
+
+    local fields: { [string]: unknown } = mapping(layoutOf, value) or {}
+    local steps = untag(layoutOf, fields.steps)
+    if not absent(steps) and not isSequence(layoutOf, steps) then
+      shape(report, path, `jobs.{job}.steps`, 'a list')
+    end
+
+    jobs[job] = { needs = {}, document = fields }
+  end
+
+  local names = sortedKeys(documents)
+  for _, job in names do
+    local needs = needed(layoutOf, jobs[job].document.needs)
+    if not needs then
+      diagnostics.add(report, 'FORGE-E052', path, 'needs is a job name or a list of them', `jobs.{job}`)
+    end
+    jobs[job].needs = needs or {}
+
+    for _, dependency in jobs[job].needs do
+      if not jobs[dependency] then
+        diagnostics.add(report, 'FORGE-E051', path, `{id}/{job}: missing needed job {dependency}`, `jobs.{job}.needs`)
+      end
+    end
+  end
+
+  local name = untag(layoutOf, document.name)
+  local named = type(name) == 'string'
+  if not named then diagnostics.add(report, 'FORGE-E050', path, 'a workflow or action needs a name') end
 
   -- `on: { workflow_call: }` makes a reusable workflow even with nothing under it. The Rust war room
   -- asked this of actions too, and so does the forge.
@@ -201,38 +237,7 @@ local function read(report: diagnostics.Report, root: string, path: string): Wor
     if not absent(value) and not isMapping(layoutOf, value) then shape(report, path, key, 'a mapping') end
   end
 
-  local jobs: { [string]: Job } = {}
-  local jobsValue = untag(layoutOf, document.jobs)
-  if not absent(jobsValue) and not isMapping(layoutOf, jobsValue) then
-    shape(report, path, 'jobs', 'a mapping of job names')
-  end
-
-  local documents = mapping(layoutOf, jobsValue) or {}
-  local names = sortedKeys(documents)
-  for _, job in names do
-    local value = untag(layoutOf, documents[job])
-    if not absent(value) and not isMapping(layoutOf, value) then shape(report, path, `jobs.{job}`, 'a mapping') end
-
-    local fields: { [string]: unknown } = mapping(layoutOf, value) or {}
-    local steps = untag(layoutOf, fields.steps)
-    if not absent(steps) and not isSequence(layoutOf, steps) then
-      shape(report, path, `jobs.{job}.steps`, 'a list')
-    end
-
-    local needs = needed(layoutOf, fields.needs)
-    if not needs then
-      diagnostics.add(report, 'FORGE-E052', path, 'needs is a job name or a list of them', `jobs.{job}`)
-    end
-    jobs[job] = { needs = needs or {}, document = fields }
-  end
-
-  for _, job in names do
-    for _, dependency in jobs[job].needs do
-      if not jobs[dependency] then
-        diagnostics.add(report, 'FORGE-E051', path, `{id}/{job}: missing needed job {dependency}`, `jobs.{job}.needs`)
-      end
-    end
-  end
+  if not named then return nil end
 
   -- An action's steps, when runs.steps is a list; anything else leaves it none, as in the Rust.
   local steps: { { [string]: unknown } } = {}
@@ -248,7 +253,7 @@ local function read(report: diagnostics.Report, root: string, path: string): Wor
   return {
     id = id,
     path = path,
-    name = name,
+    name = name :: string,
     callable = callable,
     action = action,
     jobs = jobs,

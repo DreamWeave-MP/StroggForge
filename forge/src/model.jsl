@@ -248,8 +248,9 @@ local Files = table.freeze {
 --- matched its records; otherwise nil, with the reasons in `report`.
 local function load(report: diagnostics.Report, root: string): Model?
   local before = #report
-  local ecosystem = schema.load(report, root, Files.ecosystem, EcosystemSpec)
+  -- In the order the Rust read them, so the forge's first finding is the one it stopped at.
   local plans = schema.load(report, root, Files.plans, { records('plans', PlanSpec) })
+  local ecosystem = schema.load(report, root, Files.ecosystem, EcosystemSpec)
   local toolchains = schema.load(report, root, Files.toolchains, ToolchainsSpec)
   local operations = schema.load(report, root, Files.workflows, OperationsSpec)
   if #report > before or not (ecosystem and plans and toolchains and operations) then return nil end
