@@ -227,7 +227,7 @@ SR-07	.github/workflows/war-room.yml	jobs.validate.steps[6]	download without a d
 # SR-01 T-ACT 94: a third-party action or reusable workflow is pinned to a full commit SHA
 # SR-02 T-ACT 25: an own-organization reference names a commit, not a movable tag or branch (advisory: a policy decision)
 # SR-03 T-INJ 0: no attacker-choosable `${{ }}` value is spliced into a run script
-# SR-11 T-INJ 71: no caller input or step output is spliced into a run script (pass it through env)
+# SR-11 T-INJ 71: no ref name, caller input or step output is spliced into a run script (pass it through env)
 # SR-04 T-PRIV 6: a workflow declares top-level permissions, and never write-all
 # SR-05 T-PR 0: no trigger runs with secrets on attacker-supplied content (pull_request_target, workflow_run, issue_comment)
 # SR-06 T-BUILD 6: a job that can sign (id-token: write) or write the repository does not also run dependency code

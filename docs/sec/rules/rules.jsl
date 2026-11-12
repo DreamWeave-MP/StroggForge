@@ -175,9 +175,9 @@ end
 -- comment, a commit message.
 local Untrusted = { 'github%.event%.', 'github%.head_ref' }
 
--- Values a calling workflow or an earlier step chooses: trusted only as far as every caller and
--- every value they derive from (a tag name may hold `$(...)`).
-local Derived = { 'inputs%.', 'steps%.[%w_-]+%.outputs', 'needs%.[%w_-]+%.outputs' }
+-- Values a pusher, a calling workflow or an earlier step chooses: a tag or branch name (git accepts
+-- `v1$(...)`), a caller's input, an output derived from either.
+local Derived = { 'github%.ref_name', 'github%.ref%f[^%w_]', 'inputs%.', 'steps%.[%w_-]+%.outputs', 'needs%.[%w_-]+%.outputs' }
 
 -- Running the repository's own build: what executes dependency code (build.rs, proc macros, npm
 -- install scripts) on the runner.
@@ -240,7 +240,7 @@ local Rules: { Rule } = {
   {
     id = 'SR-11',
     threat = 'T-INJ',
-    summary = 'no caller input or step output is spliced into a run script (pass it through env)',
+    summary = 'no ref name, caller input or step output is spliced into a run script (pass it through env)',
     check = function(document, _, report)
       for _, entry in located(document) do
         local run = entry.step.run

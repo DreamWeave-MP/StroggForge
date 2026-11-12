@@ -215,7 +215,7 @@ add.
 | SR-01 | A third-party action or reusable workflow is pinned to a full commit SHA | T-ACT | static | 94 | 5 | 17 |
 | SR-02 | An own-organization reference names a commit (advisory; see decision 4) | T-TAG | static | 25 | 2 | 0 |
 | SR-03 | No value a PR or issue author chooses is spliced into a `run` script | T-INJ | static | 0 | 0 | 0 |
-| SR-11 | No caller input or step output is spliced into a `run` script | T-INJ | static | 71 | 0 | 0 |
+| SR-11 | No ref name, caller input or step output is spliced into a `run` script | T-INJ | static | 71 | 0 | 0 |
 | SR-04 | Every workflow declares top-level permissions, never `write-all` | T-CRED | static | 6 | 0 | 0 |
 | SR-05 | No `pull_request_target`, `workflow_run` or `issue_comment` trigger | T-PR | static | 0 | 0 | 0 |
 | SR-06 | A job that can sign or write the repository runs no dependency code | T-BUILD | static | 6 | 0 | 1 |

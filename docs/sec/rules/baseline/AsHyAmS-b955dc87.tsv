@@ -21,7 +21,7 @@ SR-09	.github/workflows/network.yml	jobs.refresh.steps[1]	actions/checkout@v7
 # SR-01 T-ACT 17: a third-party action or reusable workflow is pinned to a full commit SHA
 # SR-02 T-ACT 0: an own-organization reference names a commit, not a movable tag or branch (advisory: a policy decision)
 # SR-03 T-INJ 0: no attacker-choosable `${{ }}` value is spliced into a run script
-# SR-11 T-INJ 0: no caller input or step output is spliced into a run script (pass it through env)
+# SR-11 T-INJ 0: no ref name, caller input or step output is spliced into a run script (pass it through env)
 # SR-04 T-PRIV 0: a workflow declares top-level permissions, and never write-all
 # SR-05 T-PR 0: no trigger runs with secrets on attacker-supplied content (pull_request_target, workflow_run, issue_comment)
 # SR-06 T-BUILD 1: a job that can sign (id-token: write) or write the repository does not also run dependency code

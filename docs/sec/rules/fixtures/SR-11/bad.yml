@@ -1,5 +1,7 @@
 name: Bad
 on:
+  push:
+    tags: ['*']
   workflow_call:
     inputs:
       release_name:
@@ -10,3 +12,4 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - run: gh release create "${{ inputs.release_name }}"
+      - run: echo "Tagged ${{ github.ref_name }}"
