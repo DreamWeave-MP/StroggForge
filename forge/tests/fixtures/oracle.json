@@ -1,5 +1,13 @@
 {
   "cases": {
+    "action-inputs-as-a-list": {
+      "message": "Error: workflow contract must be a mapping Caused by: invalid type: sequence, expected a map",
+      "ok": false
+    },
+    "action-steps-as-a-mapping": {
+      "message": "Error: stage compile Caused by: \"setup/Install the toolchain\": setup has no step named \"Install the toolchain\"",
+      "ok": false
+    },
     "active-with-a-blocker": {
       "message": "Error: plan rollout: a plan is blocked exactly when a requirement or prerequisite is blocked",
       "ok": false
@@ -36,17 +44,65 @@
       "message": "Error: plan rollout Caused by: duplicate requirement ID proof",
       "ok": false
     },
+    "empty-mapping-for-needs": {
+      "message": "Error: unsupported job needs value: Mapping {}",
+      "ok": false
+    },
+    "empty-needs": {
+      "message": "",
+      "ok": true
+    },
+    "empty-table-for-list": {
+      "message": "Error: parse <root>/war-room/ecosystem.toml Caused by: TOML parse error at line 10, column 11 | 10 | commits = {} | ^^ invalid type: map, expected a sequence",
+      "ok": false
+    },
+    "empty-table-for-requirements": {
+      "message": "Error: parse <root>/war-room/plans.toml Caused by: TOML parse error at line 44, column 16 | 44 | requirements = {} | ^^ invalid type: map, expected a sequence",
+      "ok": false
+    },
     "float-for-integer": {
       "message": "Error: parse <root>/war-room/ecosystem.toml Caused by: TOML parse error at line 2, column 10 | 2 | schema = 1.0 | ^^^ invalid type: floating point `1.0`, expected u32",
       "ok": false
+    },
+    "folder-named-like-a-workflow": {
+      "message": "Error: Is a directory (os error 21)",
+      "ok": false
+    },
+    "hex-schema": {
+      "message": "",
+      "ok": true
     },
     "impossible-target-date": {
       "message": "Error: plan release-1 Caused by: invalid date \"2027-02-30\"; expected YYYY-MM-DD",
       "ok": false
     },
+    "inputs-as-a-string": {
+      "message": "Error: workflow contract must be a mapping Caused by: invalid type: string \"hello\", expected a map",
+      "ok": false
+    },
     "integer-for-string": {
       "message": "Error: parse <root>/war-room/ecosystem.toml Caused by: TOML parse error at line 4, column 9 | 4 | scope = 3 | ^ invalid type: integer `3`, expected a string",
       "ok": false
+    },
+    "job-as-a-number": {
+      "message": "Error: invalid type: integer `5`, expected struct Job",
+      "ok": false
+    },
+    "job-named-by-a-number": {
+      "message": "Error: invalid type: integer `1`, expected a string",
+      "ok": false
+    },
+    "jobs-as-a-list": {
+      "message": "Error: invalid type: sequence, expected a map",
+      "ok": false
+    },
+    "jobs-as-a-string": {
+      "message": "Error: invalid type: string \"hello\", expected a map",
+      "ok": false
+    },
+    "lone-actions-file": {
+      "message": "",
+      "ok": true
     },
     "missing-field": {
       "message": "Error: parse <root>/war-room/ecosystem.toml Caused by: TOML parse error at line 13, column 1 | 13 | [[projects]] | ^^^^^^^^^^^^ missing field `summary`",
@@ -64,13 +120,29 @@
       "message": "Error: build/release: missing needed job tset",
       "ok": false
     },
+    "needs-keyed-by-integer": {
+      "message": "Error: unsupported job needs value: Mapping {1: String(\"test\")}",
+      "ok": false
+    },
+    "no-jobs": {
+      "message": "",
+      "ok": true
+    },
     "not-a-leap-year": {
       "message": "Error: invalid date \"2026-02-29\"; expected YYYY-MM-DD",
+      "ok": false
+    },
+    "notes-as-a-list": {
+      "message": "Error: parse <root>/war-room/workflows.toml Caused by: TOML parse error at line 1, column 12 | 1 | workflow = [] | ^^ invalid type: sequence, expected a map",
       "ok": false
     },
     "notes-for-a-missing-workflow": {
       "message": "Error: war-room/workflows.toml: notes for unknown workflow deploy",
       "ok": false
+    },
+    "null-contract": {
+      "message": "",
+      "ok": true
     },
     "plan-on-an-unknown-platform": {
       "message": "Error: plan rollout: unknown platform amiga",
@@ -100,9 +172,17 @@
       "message": "Error: retired old-image: unknown platform amiga",
       "ok": false
     },
+    "reusable-action": {
+      "message": "",
+      "ok": true
+    },
     "signed-date": {
       "message": "",
       "ok": true
+    },
+    "stage-as-a-table": {
+      "message": "Error: parse <root>/war-room/workflows.toml Caused by: TOML parse error at line 10, column 1 | 10 | [stage] | ^^^^^^^ invalid type: map, expected a sequence",
+      "ok": false
     },
     "stage-on-a-missing-job": {
       "message": "Error: stage compile Caused by: \"build/ship\": build has no job named \"ship\"",
@@ -115,6 +195,14 @@
     "stage-reference-without-a-slash": {
       "message": "Error: stage compile Caused by: \"build\": expected <workflow>/<job> or <action>/<step>",
       "ok": false
+    },
+    "steps-as-a-mapping": {
+      "message": "Error: invalid type: map, expected a sequence",
+      "ok": false
+    },
+    "steps-of-anything": {
+      "message": "",
+      "ok": true
     },
     "string-for-list": {
       "message": "Error: parse <root>/war-room/ecosystem.toml Caused by: TOML parse error at line 10, column 11 | 10 | commits = \"abc1234\" | ^^^^^^^^^ invalid type: string \"abc1234\", expected a sequence",
@@ -181,6 +269,6 @@
       "ok": false
     }
   },
-  "corpus_sha256": "feff7def8a6512699ec80ed01f1d5886a9c82b28a2773b8d553fcc0bae484582",
+  "corpus_sha256": "78619ac2e14255f2d60d367f77bdc56a83b2986f105c010d22ed873ca2b2ed6f",
   "oracle": "stroggforge-war-room check"
 }

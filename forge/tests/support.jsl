@@ -6,9 +6,12 @@ local bytes = require '@dream/bytes'
 local fs = require '@dream/fs'
 local toml = require '@jess/data/toml'
 
-export type Edit = { file: string, find: string?, replace: string?, delete: boolean? }
+export type Edit = { file: string, find: string?, replace: string?, delete: boolean?, mkdir: boolean? }
 
-export type Case = { id: string, code: string, divergence: string?, edits: { Edit } }
+-- A case refuses with `code`; an accept (no code) passes.
+export type Case = { id: string, code: string?, rust: string?, divergence: string?, edits: { Edit } }
+
+export type Corpus = { case: { Case }, accept: { Case } }
 
 --- `value`, or an error with the problem a @dream/fs call returned beside it (and its kind, ignored).
 local function must<T>(value: T?, problem: string?, ...: unknown): T
@@ -64,17 +67,22 @@ local function copyTree(from: string, to: string)
 end
 
 --- The corpus, in file order, with \n turned into line breaks.
-local function cases(): { Case }
-  local document = toml.decode(read(fs.join(Fixtures, 'cases.toml'))) :: { case: { Case } }
-  for _, case in document.case do
-    for _, edit in case.edits do
-      if edit.find then edit.find = string.gsub(edit.find, '\\n', '\n') end
-      if edit.replace then edit.replace = string.gsub(edit.replace, '\\n', '\n') end
+local function corpus(): Corpus
+  local document = toml.decode(read(fs.join(Fixtures, 'cases.toml'))) :: Corpus
+  for _, group in { document.case, document.accept } do
+    for _, case in group do
+      for _, edit in case.edits do
+        if edit.find then edit.find = string.gsub(edit.find, '\\n', '\n') end
+        if edit.replace then edit.replace = string.gsub(edit.replace, '\\n', '\n') end
+      end
     end
   end
 
-  return document.case
+  return document
 end
+
+--- The refusing cases.
+local function cases(): { Case } return corpus().case end
 
 --- The number of times `needle` occurs in `text`, taken literally.
 local function occurrences(text: string, needle: string): number
@@ -101,6 +109,16 @@ local function broken(scratch: string, case: Case): string
       continue
     end
 
+    if edit.mkdir then
+      must(fs.mkdir(path, { recursive = true }))
+      continue
+    end
+
+    if edit.find == '' then
+      write(path, edit.replace :: string)
+      continue
+    end
+
     local find, replace = edit.find :: string, edit.replace :: string
     local text = read(path)
     local count = occurrences(text, find)
@@ -123,6 +141,7 @@ return table.freeze {
   must = must,
   read = read,
   write = write,
+  corpus = corpus,
   cases = cases,
   broken = broken,
   corpusDigest = corpusDigest,

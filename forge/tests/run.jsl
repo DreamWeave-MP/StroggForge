@@ -64,8 +64,8 @@ suite.describe('inspect', function()
       return
     end
 
-    -- With the defect, a line may differ from the golden only by the escaped line breaks a block
-    -- scalar lost, and only on the one line that has such a scalar.
+    -- With the defect, only the line holding such a scalar may differ, and only by the one escaped
+    -- line break that ended that string: one of the golden's `\n"` read as `"`.
     local expected, actual = lines(golden), lines(written)
     expect(#actual).toBe(#expected)
     local differing = 0
@@ -73,8 +73,16 @@ suite.describe('inspect', function()
       if actual[index] == line then continue end
 
       differing += 1
-      local withoutBreaks = string.gsub(line, '\\n', '')
-      expect((string.gsub(actual[index], '\\n', ''))).toBe(withoutBreaks)
+      local explained = false
+      local start = 1
+      while not explained do
+        local found = string.find(line, '\\n"', start, true)
+        if not found then break end
+
+        explained = actual[index] == string.sub(line, 1, found - 1) .. string.sub(line, found + 2)
+        start = found + 1
+      end
+      expect(explained).toBe(true)
     end
     expect(differing <= 1).toBeTruthy()
   end)
@@ -95,6 +103,28 @@ suite.describe('inspect', function()
     expect(inspect.events { 'push', 'pull_request' }).toEqual { 'pull_request', 'push' }
     expect(inspect.events { workflow_call = jess.null, push = jess.null }).toEqual { 'push', 'workflow_call' }
     expect(inspect.events(nil)).toEqual {}
+  end)
+
+  local function withEnv(name: string, entries: string): string
+    return support.broken(fs.join(scratchRoot, 'inspect'), {
+      id = name,
+      edits = { { file = '.github/workflows/notify.yaml', find = 'jobs:\n', replace = `env:\n{entries}jobs:\n` } },
+    })
+  end
+
+  suite.it('writes what serde_json writes for infinities and scalar keys', function()
+    local root = withEnv('scalars', '  INF: .inf\n  NAN: .nan\n  KEYS: {1.5: a, true: b, x: c}\n')
+    local written = inspected(root)
+    expect(written).toContain '"env":{"INF":null,"KEYS":{"1.5":"a","true":"b","x":"c"},"NAN":null}'
+  end)
+
+  suite.it('reports what JSON cannot hold exactly instead of crashing', function()
+    for _, entry in { { 'huge', '  BIG: 9007199254740993\n' }, { 'complex', '  ? [a, b]\n  : c\n' } } do
+      local result = commands.inspect { root = withEnv(entry[1], entry[2]) }
+      expect(result.ok).toBe(false)
+      expect(result.text).toBeNil()
+      expect(codes(result.report)).toContain 'FORGE-E057'
+    end
   end)
 
   suite.it('keeps a step contract but never its script', function()
@@ -129,7 +159,9 @@ suite.describe('check', function()
     expect(oracle.corpus_sha256).toBe(support.corpusDigest())
   end)
 
-  for _, case in support.cases() do
+  local corpus = support.corpus()
+
+  for _, case in corpus.case do
     suite.it(`refuses {case.id} with {case.code}`, function()
       local root = support.broken(scratch, case)
       local result = commands.check { root = root }
@@ -139,17 +171,39 @@ suite.describe('check', function()
         expect(diagnostics.Codes[diagnostic.code]).toBeTruthy()
       end
 
+      -- Agreement is the default, for the reason the case is about; a divergence is a decision the
+      -- corpus records with its own reason.
       local verdict = oracle.cases[case.id]
       expect(verdict).toBeTruthy()
-      -- Agreement is the default; a divergence is a decision the corpus records with its reason.
       expect(verdict.ok).toBe(case.divergence ~= nil)
+      if not case.divergence then expect(verdict.message).toContain(case.rust) end
     end)
   end
 
-  suite.it('exercises every diagnostic code in the corpus', function()
-    local used: { [string]: boolean } = {}
-    for _, case in support.cases() do
-      used[case.code] = true
+  for _, case in corpus.accept do
+    suite.it(`accepts {case.id}`, function()
+      local root = support.broken(scratch, case)
+      local result = commands.check { root = root }
+      expect(diagnostics.text(result.report)).toBe('')
+
+      local verdict = oracle.cases[case.id]
+      expect(verdict).toBeTruthy()
+      expect(verdict.ok).toBe(case.divergence == nil)
+      if case.divergence then expect(verdict.message).toContain(case.rust) end
+    end)
+  end
+
+  suite.it('gives every corpus case a reason the Rust shares, unless it diverges', function()
+    for _, case in corpus.case do
+      expect(`{case.id}: {tostring(case.divergence ~= nil or case.rust ~= nil)}`).toBe(`{case.id}: true`)
+    end
+  end)
+
+  suite.it('exercises every diagnostic code', function()
+    -- FORGE-E057 is inspect's; its cases are under inspect.
+    local used: { [string]: boolean } = { ['FORGE-E057'] = true }
+    for _, case in corpus.case do
+      used[case.code :: string] = true
     end
 
     for code in diagnostics.Codes do
@@ -157,11 +211,22 @@ suite.describe('check', function()
     end
   end)
 
-  suite.it('reports the same diagnostics in the same order every run', function()
-    local case = support.cases()[1]
-    local root = support.broken(fs.join(scratchRoot, 'twice'), case)
-    expect(diagnostics.text(commands.check({ root = root }).report))
-      .toBe(diagnostics.text(commands.check({ root = root }).report))
+  suite.it('reports findings in one fixed order', function()
+    local root = support.broken(fs.join(scratchRoot, 'order'), {
+      id = 'order',
+      edits = {
+        { file = 'war-room/ecosystem.toml', find = 'scope = "Fixture."', replace = 'scope = "Fixture."\nzebra = 1\nantelope = 2' },
+        { file = '.github/workflows/build.yml', find = 'needs: test', replace = 'needs: zz' },
+        { file = '.github/workflows/build.yml', find = 'needs: [test, release]', replace = 'needs: [aa, release]' },
+      },
+    })
+
+    expect(diagnostics.text(commands.check({ root = root }).report)).toBe(table.concat({
+      'error[FORGE-E010]: war-room/ecosystem.toml (antelope): unknown field antelope',
+      'error[FORGE-E010]: war-room/ecosystem.toml (zebra): unknown field zebra',
+      'error[FORGE-E051]: .github/workflows/build.yml (jobs.publish.needs): build/publish: missing needed job aa',
+      'error[FORGE-E051]: .github/workflows/build.yml (jobs.release.needs): build/release: missing needed job zz',
+    }, '\n'))
   end)
 
   suite.it('reports every violation, not only the first', function()

@@ -1,5 +1,5 @@
 --!strict
--- Records the Rust war room's verdict on every case of the negative corpus in
+-- Records the Rust war room's verdict on every case and accept of the corpus in
 -- fixtures/oracle.json, which the suite holds the forge to. Run it from the checkout's root after
 -- changing cases.toml or the Rust validator:
 --
@@ -22,7 +22,10 @@ end
 
 local scratch = fs.join(support.Repository, 'target', 'forge-oracle')
 local verdicts: { [string]: { ok: boolean, message: string } } = {}
-for _, case in support.cases() do
+local corpus = support.corpus()
+local all = table.clone(corpus.case)
+table.move(corpus.accept, 1, #corpus.accept, #all + 1, all)
+for _, case in all do
   local root = support.broken(scratch, case)
   local result, problem = process.run(binary, { 'check', root }, { stdout = 'capture', stderr = 'capture' })
   if not result then error(`cannot run {binary}: {problem}`, 0) end
@@ -45,6 +48,6 @@ support.write(
   }, { indent = 2 }) .. '\n'
 )
 
-print(`recorded {#support.cases()} verdicts`)
+print(`recorded {#all} verdicts`)
 
 return 0
