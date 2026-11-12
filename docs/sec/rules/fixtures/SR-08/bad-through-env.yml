@@ -1,0 +1,12 @@
+name: Bad
+on: push
+permissions: {}
+jobs:
+  notify:
+    runs-on: ubuntu-24.04
+    env:
+      WEBHOOK_URL: ${{ secrets.DISCORD_CHANNEL_WEBHOOK }}
+    steps:
+      - uses: tsickert/discord-webhook@v7.0.0
+        with:
+          webhook-url: ${{ env.WEBHOOK_URL }}

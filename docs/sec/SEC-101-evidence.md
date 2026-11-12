@@ -7,7 +7,9 @@ headline claims were re-checked at source before the RFC relied on them (see "Re
 - **V** means verified in source or settings.
 - **I** means inferred from documented platform behavior.
 
-Paths are relative to each repository.
+Paths are relative to each repository. AsHyAmS's crawler is under `tools/dreamweave-network/src/`.
+The first draft cited AsHyAmS line numbers that don't exist; they're corrected below and in the
+RFC.
 
 ## Re-checked by the RFC's author
 
@@ -238,7 +240,7 @@ signed.
 **Sigstore:**
 - the bundle covers the binary inside the zip;
 - nothing in jess verifies it;
-- `install.md:35-37` documents `--certificate-identity-regexp '^https://github.com/DreamWeave-MP/'`,
+- `site/content/docs/getting-started/install.md:35-37` documents `--certificate-identity-regexp '^https://github.com/DreamWeave-MP/'`,
   which accepts any workflow in the org.
 
 **Consumers get jess** through `jess-setup` (no check) or the image by digest (`modGlobalBuild.yml:56`).
@@ -338,20 +340,20 @@ which publisher an unpinned id resolves to.
 
 **SSRF:** global unicast only. Every private, loopback, link-local, CGNAT, documentation and
 multicast range is refused, IPv4-mapped and NAT64 addresses are judged as IPv4, and tests cover the
-metadata endpoints (`src/address.rs:23-160`).
+metadata endpoints (`tools/dreamweave-network/src/address.rs:24-174`).
 
 **DNS:**
 - a name is refused if any address it resolves to is refused;
 - connections go only to the checked addresses;
-- no proxy (`src/fetch.rs:335-371`).
+- no proxy (`tools/dreamweave-network/src/fetch.rs:146-186`).
 
-**Redirects:** manual, at most five, and each hop re-checked (`:392-414`).
+**Redirects:** manual, at most five, and each hop re-checked (`fetch.rs`, after `check_url` at 193; `policy.rs:25`).
 
 **Gaps:**
-- plain `http://` is allowed, including https-to-http redirects (`:482-485`);
+- plain `http://` is allowed, including https-to-http redirects (`fetch.rs` `check_url`, 193);
 - no port restriction.
 
-**Limits:** sizes, time and concurrency are capped; there is no decompression (`src/policy.rs:565-604`).
+**Limits:** sizes, time and concurrency are capped; there is no decompression (`tools/dreamweave-network/src/policy.rs:20-54`).
 
 **Media:** the declared type must match the sniffed type, from an allowlist without SVG.
 

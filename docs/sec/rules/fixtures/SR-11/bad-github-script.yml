@@ -1,0 +1,14 @@
+name: Bad
+on:
+  workflow_call:
+    inputs:
+      title:
+        type: string
+permissions: {}
+jobs:
+  comment:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: core.info("${{ inputs.title }}")

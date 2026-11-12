@@ -1,0 +1,10 @@
+name: Good
+on: push
+permissions: {}
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/dreamweave-mp/jess@sha256:e0c5f2b8a1d3c4e5f60718293a4b5c6d7e8f90123456789abcdef0123456789a
+    steps:
+      - run: echo built

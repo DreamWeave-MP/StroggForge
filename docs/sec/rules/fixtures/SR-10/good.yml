@@ -9,3 +9,4 @@ jobs:
           cosign verify-blob jess --bundle jess.bundle
           --certificate-identity https://github.com/DreamWeave-MP/StroggForge/.github/workflows/rustGlobalBuild.yml@refs/tags/v70
           --certificate-oidc-issuer https://token.actions.githubusercontent.com
+          --certificate-github-workflow-repository DreamWeave-MP/jess

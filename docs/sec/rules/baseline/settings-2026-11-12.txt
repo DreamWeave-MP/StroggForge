@@ -1,0 +1,27 @@
+== StroggForge
+FAIL  ST-01 T-TAG a tag ruleset exists (is no, wants yes)
+FAIL  ST-02 T-REL releases are immutable (is false, wants true)
+FAIL  ST-03 T-ACT actions must be pinned by full SHA (is false, wants true)
+FAIL  ST-04 T-CRED the workflow token defaults to read (is write, wants read)
+FAIL  ST-05 T-CRED secret scanning is on (is disabled, wants enabled)
+FAIL  ST-06 T-CRED push protection is on (is disabled, wants enabled)
+FAIL  ST-07 T-TAG the default branch (main) has rules (is no, wants yes)
+exit 1
+== jess
+FAIL  ST-01 T-TAG a tag ruleset exists (is no, wants yes)
+FAIL  ST-02 T-REL releases are immutable (is false, wants true)
+FAIL  ST-03 T-ACT actions must be pinned by full SHA (is false, wants true)
+ok    ST-04 T-CRED the workflow token defaults to read
+FAIL  ST-05 T-CRED secret scanning is on (is disabled, wants enabled)
+FAIL  ST-06 T-CRED push protection is on (is disabled, wants enabled)
+ok    ST-07 T-TAG the default branch (main) has rules
+exit 1
+== AsHyAmS
+FAIL  ST-01 T-TAG a tag ruleset exists (is no, wants yes)
+FAIL  ST-02 T-REL releases are immutable (is false, wants true)
+FAIL  ST-03 T-ACT actions must be pinned by full SHA (is false, wants true)
+FAIL  ST-04 T-CRED the workflow token defaults to read (is write, wants read)
+FAIL  ST-05 T-CRED secret scanning is on (is disabled, wants enabled)
+FAIL  ST-06 T-CRED push protection is on (is disabled, wants enabled)
+FAIL  ST-07 T-TAG the default branch (main) has rules (is no, wants yes)
+exit 1

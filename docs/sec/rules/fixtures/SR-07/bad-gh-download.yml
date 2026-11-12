@@ -1,0 +1,8 @@
+name: Bad
+on: push
+permissions: {}
+jobs:
+  setup:
+    runs-on: ubuntu-24.04
+    steps:
+      - run: gh release download v1 --repo someone/tool --pattern tool.zip
