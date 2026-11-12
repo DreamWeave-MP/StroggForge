@@ -17,7 +17,7 @@ one that doesn't the forge stops with that message, exit 1):
 ```sh
 jess workspace run --trusted forge-check                  # validate war-room/ against .github/
 jess workspace run --trusted forge-check -- --format json # stroggforge.diagnostics/1 on stdout
-jess workspace run --trusted forge-inspect                # stroggforge.inspect/1 JSON Lines
+jess workspace run --trusted forge-inspect                # stroggforge.inspect/2 JSON Lines
 ```
 
 Both take an optional root as their first argument and default to the working folder. `--trusted`
@@ -54,6 +54,13 @@ Where it decides differently, `tests/fixtures/cases.toml` says so with a `diverg
 a date is exactly `YYYY-MM-DD` in digits. Rust checked the length and parsed each part as an
 integer, so it also took `2026-+1-03` and `2024-2-029`.
 
+`inspect` (`stroggforge.inspect/2`) is the golden a migration's review diffs. Beside each
+workflow's contract it keeps the whole `on` (every branch, path and tag filter, schedule and
+dispatch input), `defaults`, every job's fields including `permissions`, each step's
+`continue-on-error` and `timeout-minutes`, and `sha256:<hex>` of each step's `run` script; then one
+line per file under `scripts/`, `.github/scripts/`, `.github/container-images/` and
+`bump-version.sh` with its SHA-256. A changed trigger, permission, step or helper is a changed line.
+
 `inspect` writes JSON as serde_json wrote it: floats as floats (`1.0`, `1e+300`), integers past 2^53
 exactly, a tag `!t` as `{"!t": value}`. Two differences remain, both pinned by the suite: `010` is
 the integer 10, as YAML 1.2 reads it, where serde_yaml read a string; and a key written `1.0` is
@@ -68,7 +75,7 @@ src/diagnostics.jsl   codes, exit statuses, text and JSON reports
 src/schema.jsl        closed TOML records
 src/model.jsl         the war-room files as records
 src/workflows.jsl     the workflow and action YAML
-src/inspect.jsl       the stroggforge.inspect/1 contract
+src/inspect.jsl       the stroggforge.inspect/2 contract
 src/check.jsl         the structural rules
 src/commands.jsl      typed requests and results: what another tool calls
 src/cli/              argv, printing and exit statuses
