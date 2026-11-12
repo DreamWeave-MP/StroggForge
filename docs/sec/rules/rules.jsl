@@ -414,7 +414,10 @@ end
 --- Each rule's fixtures: bad.yml must trip exactly that rule at least once, good.yml must not.
 local function test(): number
   -- Run from the checkout's root, as the usage above says.
-  local here = fs.join((assert(fs.cwd())), 'docs/sec/rules')
+  local cwd, problem = fs.cwd()
+  if not cwd then error(`no working folder: {problem}`, 0) end
+
+  local here = fs.join(cwd, 'docs/sec/rules')
   local failures = 0
   for _, rule in Rules do
     for _, kind in { 'bad', 'good' } do
