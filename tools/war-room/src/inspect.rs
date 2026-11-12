@@ -36,13 +36,19 @@ const STEP_KEYS: [&str; 10] = [
     "timeout-minutes",
 ];
 
-/// The folders and files whose contents run in CI or a release: the helpers the workflows call
-/// and the images they build in. Each file under them is one `executable` line.
-const EXECUTABLES: [&str; 4] = [
+/// The folders and files whose contents run in CI or a release, or are copied into consumers: the
+/// helpers the workflows call, the images they build in, the actions and everything beside them,
+/// the consumer templates, and the Node manifest the site build installs from. Each file under
+/// them is one `executable` line.
+const EXECUTABLES: [&str; 8] = [
     "scripts",
     ".github/scripts",
     ".github/container-images",
+    ".github/actions",
+    ".github/action_templates",
     "bump-version.sh",
+    "package.json",
+    "package-lock.json",
 ];
 
 fn sha256(bytes: &[u8]) -> String {
@@ -119,6 +125,12 @@ fn file(workflow: &Workflow, document: &Value) -> Result<Json> {
 
     if workflow.action {
         let runs = document.get("runs");
+        // Everything `runs` says besides its steps (`main`, `pre`, `post-if`, `image`, ...).
+        let mut rest = runs.cloned().unwrap_or(Value::Null);
+        if let Value::Mapping(mapping) = &mut rest {
+            mapping.remove("steps");
+        }
+        out.insert("runs".into(), raw(runs.map(|_| &rest))?);
         out.insert("inputs".into(), raw(document.get("inputs"))?);
         out.insert("outputs".into(), raw(document.get("outputs"))?);
         out.insert(
@@ -137,6 +149,7 @@ fn file(workflow: &Workflow, document: &Value) -> Result<Json> {
     out.insert("events".into(), events(on));
     out.insert("on".into(), raw(on)?);
     out.insert("defaults".into(), raw(document.get("defaults"))?);
+    out.insert("run-name".into(), raw(document.get("run-name"))?);
     out.insert(
         "inputs".into(),
         raw(call.and_then(|call| call.get("inputs")))?,

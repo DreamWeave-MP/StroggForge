@@ -43,9 +43,20 @@ local StepKeys = table.freeze {
   'timeout-minutes',
 }
 
--- The folders and files whose contents run in CI or a release: the helpers the workflows call and
--- the images they build in. Each file under them is one `executable` line.
-local Executables = table.freeze { 'scripts', '.github/scripts', '.github/container-images', 'bump-version.sh' }
+-- The folders and files whose contents run in CI or a release, or are copied into consumers: the
+-- helpers the workflows call, the images they build in, the actions and everything beside them,
+-- the consumer templates, and the Node manifest the site build installs from. Each file under them
+-- is one `executable` line.
+local Executables = table.freeze {
+  'scripts',
+  '.github/scripts',
+  '.github/container-images',
+  '.github/actions',
+  '.github/action_templates',
+  'bump-version.sh',
+  'package.json',
+  'package-lock.json',
+}
 
 local function unrepresentable(report: diagnostics.Report, path: string, where: string, what: string)
   diagnostics.add(report, 'FORGE-E057', path, `{what} has no JSON key`, if where == '' then nil else where)
@@ -214,6 +225,30 @@ local function line(workflow: workflows.Workflow, report: diagnostics.Report): s
     out.inputs = field(workflow, document, 'inputs', report, 'inputs')
     out.outputs = field(workflow, document, 'outputs', report, 'outputs')
     out.using = field(workflow, document.runs, 'using', report, 'runs.using')
+    -- Everything `runs` says besides its steps (`main`, `pre`, `post-if`, `image`, ...). Only an
+    -- untagged mapping loses its steps here, as only one did in the Rust.
+    local runsValue = document.runs
+    if runsValue == nil then
+      out.runs = value.Null
+    elseif workflows.kind(layout, runsValue) == 'mapping' then
+      local entry = layout[runsValue]
+      local rest: { [string]: Value } = {}
+      for _, key in entry.keys :: { unknown } do
+        if key == 'steps' then continue end
+
+        local name = keyName(key)
+        if not name then
+          unrepresentable(report, workflow.path, 'runs', `a mapping key that is {describe(key)}`)
+          continue
+        end
+
+        local child = (runsValue :: { [unknown]: unknown })[key]
+        rest[name] = canonical(layout, child, entry.floats[key] == true, report, workflow.path, `runs.{name}`)
+      end
+      out.runs = object(rest)
+    else
+      out.runs = canonical(layout, runsValue, false, report, workflow.path, 'runs')
+    end
     local runs = workflows.lookup(layout, document.runs)
     out.steps = steps(workflow, runs and runs.steps, report, 'runs.steps')
 
@@ -225,6 +260,7 @@ local function line(workflow: workflows.Workflow, report: diagnostics.Report): s
   out.events = events(layout, document.on)
   out.on = field(workflow, document, 'on', report, 'on')
   out.defaults = field(workflow, document, 'defaults', report, 'defaults')
+  out['run-name'] = field(workflow, document, 'run-name', report, 'run-name')
   out.inputs = field(workflow, call, 'inputs', report, 'on.workflow_call.inputs')
   out.secrets = field(workflow, call, 'secrets', report, 'on.workflow_call.secrets')
   out.outputs = field(workflow, call, 'outputs', report, 'on.workflow_call.outputs')
@@ -291,7 +327,10 @@ end
 local function render(root: string, loaded: { workflows.Workflow }, report: diagnostics.Report): string
   local helpers = executables(report, root)
   local lines = { json.encode(object { schema = Schema, files = #loaded, executables = #helpers }) }
-  for _, workflow in loaded do
+  -- By path as a string, as the Rust's inspect sorted them, not in load order.
+  local ordered = table.clone(loaded)
+  table.sort(ordered, function(left: workflows.Workflow, right: workflows.Workflow): boolean return left.path < right.path end)
+  for _, workflow in ordered do
     table.insert(lines, line(workflow, report))
   end
 
