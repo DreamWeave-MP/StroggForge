@@ -205,10 +205,11 @@ around it moves.
 | --- | --- | --- |
 | N1 | no process timeout in jess 0.3.0 | job `timeout-minutes`; ship spawn-using commands only on a jess with bounded runs |
 | N2 | no signature verification in JSL | native verifier (`cosign verify-blob`, `ssh-keygen -Y verify` or SEC's choice) in the bootstrap shell |
-| N3 | `@jess/yaml` drops a final line break (FOR-101) | fix in jess; until then `inspect` omits `run` bodies, and the parity test names the one known byte |
+| N3 | `@jess/yaml` drops a final line break (FOR-101), and mishandles some `>+` keep chomping mid-document | fixed on a local jess branch (`fix/yaml-clip-eof`, unpushed, awaiting the maintainer); until a release carries it, `inspect` omits `run` bodies and the parity test tolerates exactly the one known byte |
 | N4 | `@dreamweave/site` expands shortcodes inside inline code | fix in the generator or escape in `forge build`; decided in FOR-103 |
 | N5 | no Mermaid renderer in JSL | FOR-103: schematic JSON, reviewed SVG, or build-only Node |
 | N6 | Mach-O/ELF load-command reading | `otool -L`/`readelf -d` from `forge verify` |
+| N7 | `@jess/yaml` has no layout: an empty `{}` and `[]`, `{1: a}` and `[a]`, `30.0` and `30`, and a tag are indistinguishable once decoded | the forge records each such divergence from the Rust; a `positions`/layout option like `@jess/data/toml`'s would close it, in jess |
 
 ## Coordination with EP-DOC, JECP and DWWP
 
