@@ -1,0 +1,1776 @@
+{
+  "audited_at": "2026-11-12T17:41:17Z",
+  "code_search_repos": [
+    "DreamWeave-MP/DreamWeave-Mod-Template",
+    "DreamWeave-MP/Morrobroom",
+    "DreamWeave-MP/Openmw_Config",
+    "DreamWeave-MP/S3LightFixes",
+    "DreamWeave-MP/StroggForge",
+    "DreamWeave-MP/dream_archive",
+    "DreamWeave-MP/dream_archivetool",
+    "DreamWeave-MP/greenmote",
+    "DreamWeave-MP/vfstool",
+    "(3 unlisted)"
+  ],
+  "commands": [
+    "gh search code DreamWeave-MP/StroggForge --owner DreamWeave-MP --limit 100 --json repository,path",
+    "gh api search/code?q=StroggForge+org:DreamWeave-MP+path:.github&per_page=100 --jq [.total_count, .incomplete_results, [.items[] | [.repository.full_name, .path]]]",
+    "gh api repos/DreamWeave-MP/StroggForge --jq [.default_branch, .private, .archived, .full_name]",
+    "gh api repos/DreamWeave-MP/StroggForge/commits/HEAD --jq .sha",
+    "gh api repos/DreamWeave-MP/StroggForge/contents/.github/workflows?ref=72c3050685e8c76f3670eb3a74d1b4966338ce75 --jq [.[] | select(.type==\"file\") | .path]",
+    "gh api repos/DreamWeave-MP/StroggForge/contents/.github/workflows/benchmarks.yml?ref=72c3050685e8c76f3670eb3a74d1b4966338ce75 --jq .content",
+    "gh api repos/DreamWeave-MP/StroggForge/contents/.github/workflows/createRelease.yml?ref=72c3050685e8c76f3670eb3a74d1b4966338ce75 --jq .content",
+    "gh api repos/DreamWeave-MP/StroggForge/contents/.github/workflows/dependent.yml?ref=72c3050685e8c76f3670eb3a74d1b4966338ce75 --jq .content",
+    "gh api repos/DreamWeave-MP/StroggForge/contents/.github/workflows/discord.yml?ref=72c3050685e8c76f3670eb3a74d1b4966338ce75 --jq .content",
+    "gh api repos/DreamWeave-MP/StroggForge/contents/.github/workflows/libGlobalBuild.yml?ref=72c3050685e8c76f3670eb3a74d1b4966338ce75 --jq .content",
+    "gh api repos/DreamWeave-MP/StroggForge/contents/.github/workflows/modGlobalBuild.yml?ref=72c3050685e8c76f3670eb3a74d1b4966338ce75 --jq .content",
+    "gh api repos/DreamWeave-MP/StroggForge/contents/.github/workflows/publish-linux-x86_64-el9-builder.yml?ref=72c3050685e8c76f3670eb3a74d1b4966338ce75 --jq .content",
+    "gh api repos/DreamWeave-MP/StroggForge/contents/.github/workflows/publish-portmaster-aarch64-el9-builder.yml?ref=72c3050685e8c76f3670eb3a74d1b4966338ce75 --jq .content",
+    "gh api repos/DreamWeave-MP/StroggForge/contents/.github/workflows/publishJessImage.yml?ref=72c3050685e8c76f3670eb3a74d1b4966338ce75 --jq .content",
+    "gh api repos/DreamWeave-MP/StroggForge/contents/.github/workflows/rustGlobalBuild.yml?ref=72c3050685e8c76f3670eb3a74d1b4966338ce75 --jq .content",
+    "gh api repos/DreamWeave-MP/StroggForge/contents/.github/workflows/toolchain.yml?ref=72c3050685e8c76f3670eb3a74d1b4966338ce75 --jq .content",
+    "gh api repos/DreamWeave-MP/StroggForge/contents/.github/workflows/war-room.yml?ref=72c3050685e8c76f3670eb3a74d1b4966338ce75 --jq .content",
+    "gh api repos/DreamWeave-MP/DreamWeave-Mod-Template --jq [.default_branch, .private, .archived, .full_name]",
+    "gh api repos/DreamWeave-MP/DreamWeave-Mod-Template/commits/HEAD --jq .sha",
+    "gh api repos/DreamWeave-MP/DreamWeave-Mod-Template/contents/.github/workflows?ref=1d66843860baceed0408d4b0874d64ffc9316bac --jq [.[] | select(.type==\"file\") | .path]",
+    "gh api repos/DreamWeave-MP/DreamWeave-Mod-Template/contents/.github/workflows/build_site.yml?ref=1d66843860baceed0408d4b0874d64ffc9316bac --jq .content",
+    "gh api repos/DreamWeave-MP/AsHyAmS --jq [.default_branch, .private, .archived, .full_name]",
+    "gh api repos/DreamWeave-MP/AsHyAmS/commits/HEAD --jq .sha",
+    "gh api repos/DreamWeave-MP/AsHyAmS/contents/.github/workflows?ref=b955dc879cb07c3bf6607bdcc70b7a3346382b96 --jq [.[] | select(.type==\"file\") | .path]",
+    "gh api repos/DreamWeave-MP/AsHyAmS/contents/.github/workflows/check.yml?ref=b955dc879cb07c3bf6607bdcc70b7a3346382b96 --jq .content",
+    "gh api repos/DreamWeave-MP/AsHyAmS/contents/.github/workflows/network.yml?ref=b955dc879cb07c3bf6607bdcc70b7a3346382b96 --jq .content",
+    "gh api repos/DreamWeave-MP/S3ctors-S3cret-St4sh --jq [.default_branch, .private, .archived, .full_name]",
+    "gh api repos/DreamWeave-MP/S3ctors-S3cret-St4sh/commits/HEAD --jq .sha",
+    "gh api repos/DreamWeave-MP/S3ctors-S3cret-St4sh/contents/.github/workflows?ref=8b1f6a008c5957d2a2af7c46c8786bb1507f420e --jq [.[] | select(.type==\"file\") | .path]",
+    "gh api repos/DreamWeave-MP/S3ctors-S3cret-St4sh/contents/.github/workflows/build_site.yml?ref=8b1f6a008c5957d2a2af7c46c8786bb1507f420e --jq .content",
+    "gh api repos/DreamWeave-MP/dream_path --jq [.default_branch, .private, .archived, .full_name]",
+    "gh api repos/DreamWeave-MP/dream_path/commits/HEAD --jq .sha",
+    "gh api repos/DreamWeave-MP/dream_path/contents/.github/workflows?ref=ce72bb956883ce7114ace9df32c7d51248bd1ddb --jq [.[] | select(.type==\"file\") | .path]",
+    "gh api repos/DreamWeave-MP/dream_path/contents/.github/workflows/ci.yml?ref=ce72bb956883ce7114ace9df32c7d51248bd1ddb --jq .content",
+    "gh api repos/DreamWeave-MP/dream_archive --jq [.default_branch, .private, .archived, .full_name]",
+    "gh api repos/DreamWeave-MP/dream_archive/commits/HEAD --jq .sha",
+    "gh api repos/DreamWeave-MP/dream_archive/contents/.github/workflows?ref=f7aefa4861b1f664d7680013a95db4429daf1968 --jq [.[] | select(.type==\"file\") | .path]",
+    "gh api repos/DreamWeave-MP/dream_archive/contents/.github/workflows/build_site.yml?ref=f7aefa4861b1f664d7680013a95db4429daf1968 --jq .content",
+    "gh api repos/DreamWeave-MP/vfstool --jq [.default_branch, .private, .archived, .full_name]",
+    "gh api repos/DreamWeave-MP/vfstool/commits/HEAD --jq .sha",
+    "gh api repos/DreamWeave-MP/vfstool/contents/.github/workflows?ref=6229e3dd113798edc84c8724a8ac242b77d077ca --jq [.[] | select(.type==\"file\") | .path]",
+    "gh api repos/DreamWeave-MP/vfstool/contents/.github/workflows/build_site.yml?ref=6229e3dd113798edc84c8724a8ac242b77d077ca --jq .content",
+    "gh api repos/DreamWeave-MP/Openmw_Config --jq [.default_branch, .private, .archived, .full_name]",
+    "gh api repos/DreamWeave-MP/Openmw_Config/commits/HEAD --jq .sha",
+    "gh api repos/DreamWeave-MP/Openmw_Config/contents/.github/workflows?ref=ffa444cdf3d8abee5c7aafd55c0bba2a2222223d --jq [.[] | select(.type==\"file\") | .path]",
+    "gh api repos/DreamWeave-MP/Openmw_Config/contents/.github/workflows/build_site.yml?ref=ffa444cdf3d8abee5c7aafd55c0bba2a2222223d --jq .content",
+    "gh api repos/DreamWeave-MP/S3LightFixes --jq [.default_branch, .private, .archived, .full_name]",
+    "gh api repos/DreamWeave-MP/S3LightFixes/commits/HEAD --jq .sha",
+    "gh api repos/DreamWeave-MP/S3LightFixes/contents/.github/workflows?ref=5fdc5f947aeec318db8df32b738312d6c90e8c67 --jq [.[] | select(.type==\"file\") | .path]",
+    "gh api repos/DreamWeave-MP/S3LightFixes/contents/.github/workflows/build_site.yml?ref=5fdc5f947aeec318db8df32b738312d6c90e8c67 --jq .content",
+    "gh api repos/DreamWeave-MP/Morrobroom --jq [.default_branch, .private, .archived, .full_name]",
+    "gh api repos/DreamWeave-MP/Morrobroom/commits/HEAD --jq .sha",
+    "gh api repos/DreamWeave-MP/Morrobroom/contents/.github/workflows?ref=d89dd4c654756e8f3a8de9edc99fe12290de5a97 --jq [.[] | select(.type==\"file\") | .path]",
+    "gh api repos/DreamWeave-MP/Morrobroom/contents/.github/workflows/release.yaml?ref=d89dd4c654756e8f3a8de9edc99fe12290de5a97 --jq .content",
+    "gh api repos/DreamWeave-MP/greenmote --jq [.default_branch, .private, .archived, .full_name]",
+    "gh api repos/DreamWeave-MP/greenmote/commits/HEAD --jq .sha",
+    "gh api repos/DreamWeave-MP/greenmote/contents/.github/workflows?ref=8bf8743953ec81677dcfc3b93c59254e5c875615 --jq [.[] | select(.type==\"file\") | .path]",
+    "gh api repos/DreamWeave-MP/greenmote/contents/.github/workflows/build.yml?ref=8bf8743953ec81677dcfc3b93c59254e5c875615 --jq .content",
+    "gh api repos/DreamWeave-MP/greenmote/contents/.github/workflows/daily.yml?ref=8bf8743953ec81677dcfc3b93c59254e5c875615 --jq .content",
+    "gh api repos/DreamWeave-MP/dream-ini --jq [.default_branch, .private, .archived, .full_name]",
+    "gh api repos/DreamWeave-MP/dream-ini/commits/HEAD --jq .sha",
+    "gh api repos/DreamWeave-MP/dream-ini/contents/.github/workflows?ref=f159674613ddcba0ac6c8f504f2c82f0452188eb --jq [.[] | select(.type==\"file\") | .path]",
+    "gh api repos/DreamWeave-MP/dream-ini/contents/.github/workflows/build_site.yml?ref=f159674613ddcba0ac6c8f504f2c82f0452188eb --jq .content",
+    "gh api repos/DreamWeave-MP/dream_archivetool --jq [.default_branch, .private, .archived, .full_name]",
+    "gh api repos/DreamWeave-MP/dream_archivetool/commits/HEAD --jq .sha",
+    "gh api repos/DreamWeave-MP/dream_archivetool/contents/.github/workflows?ref=71754ff62b86802936d9ef0e8dbc9f70fd93a0b5 --jq [.[] | select(.type==\"file\") | .path]",
+    "gh api repos/DreamWeave-MP/dream_archivetool/contents/.github/workflows/build_site.yml?ref=71754ff62b86802936d9ef0e8dbc9f70fd93a0b5 --jq .content",
+    "gh api repos/DreamWeave-MP/dreamweave-web --jq [.default_branch, .private, .archived, .full_name]",
+    "gh api repos/DreamWeave-MP/dreamweave-web/commits/HEAD --jq .sha",
+    "gh api repos/DreamWeave-MP/dreamweave-web/contents/.github/workflows?ref=f6f68ab6466b57515b8aed87dd47391127a0e85d --jq [.[] | select(.type==\"file\") | .path]",
+    "gh api repos/DreamWeave-MP/l3i --jq [.default_branch, .private, .archived, .full_name]",
+    "gh api repos/DreamWeave-MP/l3i/commits/HEAD --jq .sha",
+    "gh api repos/DreamWeave-MP/l3i/contents/.github/workflows?ref=fe88c506051967fe11b945ee758debf9c3215f6b --jq [.[] | select(.type==\"file\") | .path]",
+    "gh api repos/DreamWeave-MP/l3i/contents/.github/workflows/benchmarks.yml?ref=fe88c506051967fe11b945ee758debf9c3215f6b --jq .content",
+    "gh api repos/DreamWeave-MP/l3i/contents/.github/workflows/build.yml?ref=fe88c506051967fe11b945ee758debf9c3215f6b --jq .content",
+    "gh api repos/DreamWeave-MP/l3i/contents/.github/workflows/daily-quality.yml?ref=fe88c506051967fe11b945ee758debf9c3215f6b --jq .content",
+    "gh api repos/DreamWeave-MP/dream-net --jq [.default_branch, .private, .archived, .full_name]",
+    "gh api repos/DreamWeave-MP/dream-net/commits/HEAD --jq .sha",
+    "gh api repos/DreamWeave-MP/dream-net/contents/.github/workflows?ref=d6a81f543f30a83e62a5d33e9e6f26ec29cff46a --jq [.[] | select(.type==\"file\") | .path]",
+    "gh api repos/DreamWeave-MP/dream-net/contents/.github/workflows/ci.yml?ref=d6a81f543f30a83e62a5d33e9e6f26ec29cff46a --jq .content",
+    "gh api repos/DreamWeave-MP/dream-soft-render --jq [.default_branch, .private, .archived, .full_name]",
+    "gh api repos/DreamWeave-MP/dream-soft-render/commits/HEAD --jq .sha",
+    "gh api repos/DreamWeave-MP/dream-soft-render/contents/.github/workflows?ref=a7b2ac061ecb8f3d57a28affb54a941f7636ace9 --jq [.[] | select(.type==\"file\") | .path]",
+    "gh api repos/DreamWeave-MP/dream-soft-render/contents/.github/workflows/build.yml?ref=a7b2ac061ecb8f3d57a28affb54a941f7636ace9 --jq .content",
+    "gh api repos/DreamWeave-MP/dream-soft-render/contents/.github/workflows/quality.yml?ref=a7b2ac061ecb8f3d57a28affb54a941f7636ace9 --jq .content"
+  ],
+  "consumers": [
+    {
+      "archived": false,
+      "calls": [
+        {
+          "file": ".github/workflows/benchmarks.yml",
+          "job": "benchmarks",
+          "kind": "checkout",
+          "ref": "v72",
+          "uses": "actions/checkout@v6",
+          "with_keys": [
+            "path",
+            "ref",
+            "repository"
+          ]
+        },
+        {
+          "file": ".github/workflows/benchmarks.yml",
+          "job": "benchmarks",
+          "kind": "step",
+          "permissions": {
+            "job": null,
+            "workflow": null
+          },
+          "ref": "v72",
+          "uses": "DreamWeave-MP/StroggForge/.github/actions/rust-setup",
+          "with_keys": [
+            "cache"
+          ]
+        },
+        {
+          "file": ".github/workflows/createRelease.yml",
+          "job": "ensure-fresh-release",
+          "kind": "checkout",
+          "ref": "v72",
+          "uses": "actions/checkout@v6",
+          "with_keys": [
+            "path",
+            "ref",
+            "repository"
+          ]
+        },
+        {
+          "file": ".github/workflows/dependent.yml",
+          "job": "notify-dependents",
+          "kind": "checkout",
+          "ref": "v72",
+          "uses": "actions/checkout@v6",
+          "with_keys": [
+            "path",
+            "ref",
+            "repository"
+          ]
+        },
+        {
+          "file": ".github/workflows/libGlobalBuild.yml",
+          "job": "lint",
+          "kind": "checkout",
+          "ref": "v72",
+          "uses": "actions/checkout@v6",
+          "with_keys": [
+            "path",
+            "ref",
+            "repository"
+          ]
+        },
+        {
+          "file": ".github/workflows/libGlobalBuild.yml",
+          "job": "lint",
+          "kind": "step",
+          "permissions": {
+            "job": null,
+            "workflow": null
+          },
+          "ref": "v72",
+          "uses": "DreamWeave-MP/StroggForge/.github/actions/rust-setup",
+          "with_keys": [
+            "cache",
+            "components",
+            "llvm"
+          ]
+        },
+        {
+          "file": ".github/workflows/libGlobalBuild.yml",
+          "job": "lint",
+          "kind": "step",
+          "permissions": {
+            "job": null,
+            "workflow": null
+          },
+          "ref": "v72",
+          "uses": "DreamWeave-MP/StroggForge/.github/actions/rust-setup",
+          "with_keys": [
+            "cache",
+            "target-dir",
+            "toolchain"
+          ]
+        },
+        {
+          "file": ".github/workflows/libGlobalBuild.yml",
+          "job": "test",
+          "kind": "step",
+          "permissions": {
+            "job": null,
+            "workflow": null
+          },
+          "ref": "v72",
+          "uses": "DreamWeave-MP/StroggForge/.github/actions/rust-setup",
+          "with_keys": [
+            "cache",
+            "components"
+          ]
+        },
+        {
+          "file": ".github/workflows/libGlobalBuild.yml",
+          "job": "publish",
+          "kind": "checkout",
+          "ref": "v72",
+          "uses": "actions/checkout@v6",
+          "with_keys": [
+            "path",
+            "ref",
+            "repository"
+          ]
+        },
+        {
+          "file": ".github/workflows/libGlobalBuild.yml",
+          "job": "crates",
+          "kind": "checkout",
+          "ref": "v72",
+          "uses": "actions/checkout@v6",
+          "with_keys": [
+            "path",
+            "ref",
+            "repository"
+          ]
+        },
+        {
+          "file": ".github/workflows/libGlobalBuild.yml",
+          "job": "crates",
+          "kind": "step",
+          "permissions": {
+            "job": null,
+            "workflow": null
+          },
+          "ref": "v72",
+          "uses": "DreamWeave-MP/StroggForge/.github/actions/rust-setup",
+          "with_keys": [
+            "cache"
+          ]
+        },
+        {
+          "file": ".github/workflows/libGlobalBuild.yml",
+          "job": "docs",
+          "kind": "checkout",
+          "ref": "v72",
+          "uses": "actions/checkout@v6",
+          "with_keys": [
+            "path",
+            "ref",
+            "repository"
+          ]
+        },
+        {
+          "file": ".github/workflows/libGlobalBuild.yml",
+          "job": "docs",
+          "kind": "step",
+          "permissions": {
+            "job": {
+              "contents": "read",
+              "id-token": "write",
+              "pages": "write"
+            },
+            "workflow": null
+          },
+          "ref": "v72",
+          "uses": "DreamWeave-MP/StroggForge/.github/actions/rust-setup",
+          "with_keys": [
+            "cache"
+          ]
+        },
+        {
+          "file": ".github/workflows/libGlobalBuild.yml",
+          "job": "benchmarks",
+          "kind": "job",
+          "permissions": {
+            "job": {
+              "contents": "write"
+            },
+            "workflow": null
+          },
+          "ref": "v72",
+          "secrets": null,
+          "uses": "DreamWeave-MP/StroggForge/.github/workflows/benchmarks.yml",
+          "with_keys": [
+            "release_name"
+          ]
+        },
+        {
+          "file": ".github/workflows/libGlobalBuild.yml",
+          "job": "mod-template",
+          "kind": "job",
+          "permissions": {
+            "job": {
+              "actions": "write",
+              "contents": "write",
+              "id-token": "write",
+              "pages": "write"
+            },
+            "workflow": null
+          },
+          "ref": "v72",
+          "secrets": "inherit",
+          "selected_inputs": {
+            "rust_release": true
+          },
+          "uses": "DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml",
+          "with_keys": [
+            "rust_release"
+          ]
+        },
+        {
+          "file": ".github/workflows/libGlobalBuild.yml",
+          "job": "site-check",
+          "kind": "job",
+          "permissions": {
+            "job": {
+              "actions": "write",
+              "contents": "write",
+              "id-token": "write",
+              "pages": "write"
+            },
+            "workflow": null
+          },
+          "ref": "v72",
+          "secrets": null,
+          "selected_inputs": {
+            "rust_release": true
+          },
+          "uses": "DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml",
+          "with_keys": [
+            "rust_release"
+          ]
+        },
+        {
+          "file": ".github/workflows/libGlobalBuild.yml",
+          "job": "notify",
+          "kind": "job",
+          "permissions": {
+            "job": null,
+            "workflow": null
+          },
+          "ref": "v72",
+          "secrets": [
+            "WEBHOOK_URL"
+          ],
+          "uses": "DreamWeave-MP/StroggForge/.github/workflows/discord.yml",
+          "with_keys": [
+            "description",
+            "title"
+          ]
+        },
+        {
+          "file": ".github/workflows/modGlobalBuild.yml",
+          "job": "site",
+          "kind": "checkout",
+          "ref": "v72",
+          "uses": "actions/checkout@v7",
+          "with_keys": [
+            "path",
+            "ref",
+            "repository"
+          ]
+        },
+        {
+          "file": ".github/workflows/modGlobalBuild.yml",
+          "job": "site",
+          "kind": "step",
+          "permissions": {
+            "job": {
+              "contents": "write",
+              "id-token": "write",
+              "pages": "read"
+            },
+            "workflow": {
+              "contents": "read"
+            }
+          },
+          "ref": "v72",
+          "uses": "DreamWeave-MP/StroggForge/.github/actions/jess-setup",
+          "with_keys": [
+            "jess-version"
+          ]
+        },
+        {
+          "file": ".github/workflows/modGlobalBuild.yml",
+          "job": "release",
+          "kind": "checkout",
+          "ref": "v72",
+          "uses": "actions/checkout@v7",
+          "with_keys": [
+            "path",
+            "ref",
+            "repository"
+          ]
+        },
+        {
+          "file": ".github/workflows/modGlobalBuild.yml",
+          "job": "release",
+          "kind": "step",
+          "permissions": {
+            "job": {
+              "actions": "write",
+              "contents": "write",
+              "id-token": "write"
+            },
+            "workflow": {
+              "contents": "read"
+            }
+          },
+          "ref": "v72",
+          "uses": "DreamWeave-MP/StroggForge/.github/actions/jess-setup",
+          "with_keys": [
+            "jess-version"
+          ]
+        },
+        {
+          "file": ".github/workflows/publishJessImage.yml",
+          "job": "publish",
+          "kind": "checkout",
+          "ref": "v72",
+          "uses": "actions/checkout@v6",
+          "with_keys": [
+            "path",
+            "ref",
+            "repository"
+          ]
+        },
+        {
+          "file": ".github/workflows/rustGlobalBuild.yml",
+          "job": "lint",
+          "kind": "checkout",
+          "ref": "v72",
+          "uses": "actions/checkout@v6",
+          "with_keys": [
+            "path",
+            "ref",
+            "repository"
+          ]
+        },
+        {
+          "file": ".github/workflows/rustGlobalBuild.yml",
+          "job": "lint",
+          "kind": "step",
+          "permissions": {
+            "job": null,
+            "workflow": null
+          },
+          "ref": "v72",
+          "uses": "DreamWeave-MP/StroggForge/.github/actions/rust-setup",
+          "with_keys": [
+            "cache",
+            "components",
+            "llvm"
+          ]
+        },
+        {
+          "file": ".github/workflows/rustGlobalBuild.yml",
+          "job": "lint",
+          "kind": "step",
+          "permissions": {
+            "job": null,
+            "workflow": null
+          },
+          "ref": "v72",
+          "uses": "DreamWeave-MP/StroggForge/.github/actions/rust-setup",
+          "with_keys": [
+            "cache",
+            "target-dir",
+            "toolchain"
+          ]
+        },
+        {
+          "file": ".github/workflows/rustGlobalBuild.yml",
+          "job": "test",
+          "kind": "checkout",
+          "ref": "v72",
+          "uses": "actions/checkout@v6",
+          "with_keys": [
+            "path",
+            "ref",
+            "repository"
+          ]
+        },
+        {
+          "file": ".github/workflows/rustGlobalBuild.yml",
+          "job": "test",
+          "kind": "step",
+          "permissions": {
+            "job": null,
+            "workflow": null
+          },
+          "ref": "v72",
+          "uses": "DreamWeave-MP/StroggForge/.github/actions/rust-setup",
+          "with_keys": [
+            "cache",
+            "components"
+          ]
+        },
+        {
+          "file": ".github/workflows/rustGlobalBuild.yml",
+          "job": "release",
+          "kind": "step",
+          "permissions": {
+            "job": {
+              "contents": "write",
+              "id-token": "write"
+            },
+            "workflow": null
+          },
+          "ref": "v72",
+          "uses": "DreamWeave-MP/StroggForge/.github/actions/corprus-crucible",
+          "with_keys": [
+            "binary_name",
+            "cargo_package",
+            "development_release",
+            "include_files",
+            "nexus_api_key",
+            "nexus_group_ids",
+            "release_name",
+            "vt_api_key"
+          ]
+        },
+        {
+          "file": ".github/workflows/rustGlobalBuild.yml",
+          "job": "release-linux",
+          "kind": "step",
+          "permissions": {
+            "job": {
+              "contents": "write",
+              "id-token": "write"
+            },
+            "workflow": null
+          },
+          "ref": "v72",
+          "uses": "DreamWeave-MP/StroggForge/.github/actions/corprus-crucible",
+          "with_keys": [
+            "binary_name",
+            "cargo_package",
+            "development_release",
+            "include_files",
+            "nexus_api_key",
+            "nexus_group_ids",
+            "release_name",
+            "vt_api_key"
+          ]
+        },
+        {
+          "file": ".github/workflows/rustGlobalBuild.yml",
+          "job": "release-android",
+          "kind": "step",
+          "permissions": {
+            "job": {
+              "contents": "write",
+              "id-token": "write"
+            },
+            "workflow": null
+          },
+          "ref": "v72",
+          "uses": "DreamWeave-MP/StroggForge/.github/actions/corprus-crucible",
+          "with_keys": [
+            "binary_name",
+            "cargo_package",
+            "development_release",
+            "include_files",
+            "lint",
+            "nexus_api_key",
+            "nexus_group_ids",
+            "platform_arch",
+            "platform_os",
+            "release_name",
+            "rust_target",
+            "vt_api_key"
+          ]
+        },
+        {
+          "file": ".github/workflows/rustGlobalBuild.yml",
+          "job": "release-portmaster",
+          "kind": "step",
+          "permissions": {
+            "job": {
+              "contents": "write",
+              "id-token": "write"
+            },
+            "workflow": null
+          },
+          "ref": "v72",
+          "uses": "DreamWeave-MP/StroggForge/.github/actions/corprus-crucible",
+          "with_keys": [
+            "binary_name",
+            "cargo_package",
+            "development_release",
+            "include_files",
+            "lint",
+            "nexus_api_key",
+            "nexus_group_ids",
+            "platform_arch",
+            "platform_os",
+            "release_name",
+            "rust_target",
+            "vt_api_key"
+          ]
+        },
+        {
+          "file": ".github/workflows/rustGlobalBuild.yml",
+          "job": "publish",
+          "kind": "checkout",
+          "ref": "v72",
+          "uses": "actions/checkout@v6",
+          "with_keys": [
+            "path",
+            "ref",
+            "repository"
+          ]
+        },
+        {
+          "file": ".github/workflows/rustGlobalBuild.yml",
+          "job": "nexus",
+          "kind": "checkout",
+          "ref": "v72",
+          "uses": "actions/checkout@v6",
+          "with_keys": [
+            "path",
+            "ref",
+            "repository"
+          ]
+        },
+        {
+          "file": ".github/workflows/rustGlobalBuild.yml",
+          "job": "crates",
+          "kind": "checkout",
+          "ref": "v72",
+          "uses": "actions/checkout@v6",
+          "with_keys": [
+            "path",
+            "ref",
+            "repository"
+          ]
+        },
+        {
+          "file": ".github/workflows/rustGlobalBuild.yml",
+          "job": "crates",
+          "kind": "step",
+          "permissions": {
+            "job": null,
+            "workflow": null
+          },
+          "ref": "v72",
+          "uses": "DreamWeave-MP/StroggForge/.github/actions/rust-setup",
+          "with_keys": [
+            "cache"
+          ]
+        },
+        {
+          "file": ".github/workflows/rustGlobalBuild.yml",
+          "job": "docs",
+          "kind": "checkout",
+          "ref": "v72",
+          "uses": "actions/checkout@v6",
+          "with_keys": [
+            "path",
+            "ref",
+            "repository"
+          ]
+        },
+        {
+          "file": ".github/workflows/rustGlobalBuild.yml",
+          "job": "docs",
+          "kind": "step",
+          "permissions": {
+            "job": {
+              "contents": "read",
+              "id-token": "write",
+              "pages": "write"
+            },
+            "workflow": null
+          },
+          "ref": "v72",
+          "uses": "DreamWeave-MP/StroggForge/.github/actions/rust-setup",
+          "with_keys": [
+            "cache"
+          ]
+        },
+        {
+          "file": ".github/workflows/rustGlobalBuild.yml",
+          "job": "benchmarks",
+          "kind": "job",
+          "permissions": {
+            "job": {
+              "contents": "write"
+            },
+            "workflow": null
+          },
+          "ref": "v72",
+          "secrets": null,
+          "uses": "DreamWeave-MP/StroggForge/.github/workflows/benchmarks.yml",
+          "with_keys": [
+            "release_name"
+          ]
+        },
+        {
+          "file": ".github/workflows/rustGlobalBuild.yml",
+          "job": "mod-template",
+          "kind": "job",
+          "permissions": {
+            "job": {
+              "actions": "write",
+              "contents": "write",
+              "id-token": "write",
+              "pages": "write"
+            },
+            "workflow": null
+          },
+          "ref": "v72",
+          "secrets": "inherit",
+          "selected_inputs": {
+            "rust_release": true
+          },
+          "uses": "DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml",
+          "with_keys": [
+            "rust_archives",
+            "rust_release"
+          ]
+        },
+        {
+          "file": ".github/workflows/rustGlobalBuild.yml",
+          "job": "site-check",
+          "kind": "job",
+          "permissions": {
+            "job": {
+              "actions": "write",
+              "contents": "write",
+              "id-token": "write",
+              "pages": "write"
+            },
+            "workflow": null
+          },
+          "ref": "v72",
+          "secrets": null,
+          "selected_inputs": {
+            "rust_release": true
+          },
+          "uses": "DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml",
+          "with_keys": [
+            "rust_release"
+          ]
+        },
+        {
+          "file": ".github/workflows/rustGlobalBuild.yml",
+          "job": "notify",
+          "kind": "job",
+          "permissions": {
+            "job": null,
+            "workflow": null
+          },
+          "ref": "v72",
+          "secrets": [
+            "WEBHOOK_URL"
+          ],
+          "uses": "DreamWeave-MP/StroggForge/.github/workflows/discord.yml",
+          "with_keys": [
+            "description",
+            "title"
+          ]
+        }
+      ],
+      "default_branch": "main",
+      "ecosystem_claims": {
+        "stroggforge": {
+          "domain": "rust",
+          "stroggforge": []
+        }
+      },
+      "head_sha": "72c3050685e8c76f3670eb3a74d1b4966338ce75",
+      "listed_in_ecosystem": true,
+      "private": false,
+      "project": "stroggforge",
+      "repository": "DreamWeave-MP/StroggForge",
+      "workflow_files": [
+        ".github/workflows/benchmarks.yml",
+        ".github/workflows/createRelease.yml",
+        ".github/workflows/dependent.yml",
+        ".github/workflows/discord.yml",
+        ".github/workflows/libGlobalBuild.yml",
+        ".github/workflows/modGlobalBuild.yml",
+        ".github/workflows/publish-linux-x86_64-el9-builder.yml",
+        ".github/workflows/publish-portmaster-aarch64-el9-builder.yml",
+        ".github/workflows/publishJessImage.yml",
+        ".github/workflows/rustGlobalBuild.yml",
+        ".github/workflows/toolchain.yml",
+        ".github/workflows/war-room.yml"
+      ]
+    },
+    {
+      "archived": false,
+      "calls": [
+        {
+          "file": ".github/workflows/build_site.yml",
+          "job": "site",
+          "kind": "job",
+          "permissions": {
+            "job": {
+              "actions": "write",
+              "contents": "write",
+              "id-token": "write",
+              "pages": "write"
+            },
+            "workflow": {
+              "contents": "read"
+            }
+          },
+          "ref": "v68",
+          "secrets": "inherit",
+          "uses": "DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml",
+          "with_keys": []
+        }
+      ],
+      "default_branch": "V6",
+      "ecosystem_claims": {
+        "mod-template": {
+          "domain": "web",
+          "stroggforge": [
+            "modGlobalBuild"
+          ]
+        }
+      },
+      "head_sha": "1d66843860baceed0408d4b0874d64ffc9316bac",
+      "listed_in_ecosystem": true,
+      "private": false,
+      "project": "mod-template",
+      "repository": "DreamWeave-MP/DreamWeave-Mod-Template",
+      "workflow_files": [
+        ".github/workflows/build_site.yml"
+      ]
+    },
+    {
+      "archived": false,
+      "calls": [],
+      "default_branch": "main",
+      "ecosystem_claims": {
+        "ashyams": {
+          "domain": "web",
+          "stroggforge": []
+        }
+      },
+      "head_sha": "b955dc879cb07c3bf6607bdcc70b7a3346382b96",
+      "listed_in_ecosystem": true,
+      "private": false,
+      "project": "ashyams",
+      "repository": "DreamWeave-MP/AsHyAmS",
+      "workflow_files": [
+        ".github/workflows/check.yml",
+        ".github/workflows/network.yml"
+      ]
+    },
+    {
+      "archived": false,
+      "calls": [
+        {
+          "file": ".github/workflows/build_site.yml",
+          "job": "site",
+          "kind": "job",
+          "permissions": {
+            "job": {
+              "actions": "write",
+              "contents": "write",
+              "id-token": "write",
+              "pages": "write"
+            },
+            "workflow": {
+              "contents": "read"
+            }
+          },
+          "ref": "v53",
+          "secrets": "inherit",
+          "uses": "DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml",
+          "with_keys": []
+        }
+      ],
+      "default_branch": "main",
+      "ecosystem_claims": {
+        "cod3x": {
+          "domain": "openmw-lua",
+          "stroggforge": []
+        },
+        "stash": {
+          "domain": "openmw-lua",
+          "stroggforge": [
+            "modGlobalBuild"
+          ]
+        }
+      },
+      "head_sha": "8b1f6a008c5957d2a2af7c46c8786bb1507f420e",
+      "listed_in_ecosystem": true,
+      "private": false,
+      "project": [
+        "stash",
+        "cod3x"
+      ],
+      "repository": "DreamWeave-MP/S3ctors-S3cret-St4sh",
+      "workflow_files": [
+        ".github/workflows/build_site.yml"
+      ]
+    },
+    {
+      "archived": false,
+      "calls": [
+        {
+          "file": ".github/workflows/ci.yml",
+          "job": "build",
+          "kind": "job",
+          "permissions": {
+            "job": {
+              "actions": "write",
+              "contents": "write",
+              "id-token": "write",
+              "pages": "write"
+            },
+            "workflow": null
+          },
+          "ref": "v53",
+          "secrets": "inherit",
+          "selected_inputs": {
+            "crate_names": "[\"dream_path\"]",
+            "mod_template": true
+          },
+          "uses": "DreamWeave-MP/StroggForge/.github/workflows/libGlobalBuild.yml",
+          "with_keys": [
+            "crate_names",
+            "dependent_repo_names",
+            "generate_benchmarks",
+            "mod_template"
+          ]
+        }
+      ],
+      "default_branch": "main",
+      "ecosystem_claims": {
+        "dream-path": {
+          "domain": "rust",
+          "stroggforge": [
+            "libGlobalBuild"
+          ]
+        }
+      },
+      "head_sha": "ce72bb956883ce7114ace9df32c7d51248bd1ddb",
+      "listed_in_ecosystem": true,
+      "private": false,
+      "project": "dream-path",
+      "repository": "DreamWeave-MP/dream_path",
+      "workflow_files": [
+        ".github/workflows/ci.yml"
+      ]
+    },
+    {
+      "archived": false,
+      "calls": [
+        {
+          "file": ".github/workflows/build_site.yml",
+          "job": "site",
+          "kind": "job",
+          "permissions": {
+            "job": {
+              "actions": "write",
+              "contents": "write",
+              "id-token": "write",
+              "pages": "write"
+            },
+            "workflow": {
+              "contents": "read"
+            }
+          },
+          "ref": "v69",
+          "secrets": "inherit",
+          "uses": "DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml",
+          "with_keys": []
+        }
+      ],
+      "default_branch": "main",
+      "ecosystem_claims": {
+        "dream-archive": {
+          "domain": "rust",
+          "stroggforge": [
+            "libGlobalBuild"
+          ]
+        }
+      },
+      "head_sha": "f7aefa4861b1f664d7680013a95db4429daf1968",
+      "listed_in_ecosystem": true,
+      "private": false,
+      "project": "dream-archive",
+      "repository": "DreamWeave-MP/dream_archive",
+      "workflow_files": [
+        ".github/workflows/build_site.yml"
+      ]
+    },
+    {
+      "archived": false,
+      "calls": [
+        {
+          "file": ".github/workflows/build_site.yml",
+          "job": "site",
+          "kind": "job",
+          "permissions": {
+            "job": {
+              "actions": "write",
+              "contents": "write",
+              "id-token": "write",
+              "pages": "write"
+            },
+            "workflow": {
+              "contents": "read"
+            }
+          },
+          "ref": "v69",
+          "secrets": "inherit",
+          "uses": "DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml",
+          "with_keys": [
+            "jess_application"
+          ]
+        }
+      ],
+      "default_branch": "main",
+      "ecosystem_claims": {
+        "vfstool": {
+          "domain": "rust",
+          "stroggforge": [
+            "rustGlobalBuild"
+          ]
+        },
+        "vfstool-lib": {
+          "domain": "rust",
+          "stroggforge": [
+            "libGlobalBuild"
+          ]
+        }
+      },
+      "head_sha": "6229e3dd113798edc84c8724a8ac242b77d077ca",
+      "listed_in_ecosystem": true,
+      "private": false,
+      "project": [
+        "vfstool-lib",
+        "vfstool"
+      ],
+      "repository": "DreamWeave-MP/vfstool",
+      "workflow_files": [
+        ".github/workflows/build_site.yml"
+      ]
+    },
+    {
+      "archived": false,
+      "calls": [
+        {
+          "file": ".github/workflows/build_site.yml",
+          "job": "site",
+          "kind": "job",
+          "permissions": {
+            "job": {
+              "actions": "write",
+              "contents": "write",
+              "id-token": "write",
+              "pages": "write"
+            },
+            "workflow": {
+              "contents": "read"
+            }
+          },
+          "ref": "v69",
+          "secrets": "inherit",
+          "uses": "DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml",
+          "with_keys": []
+        }
+      ],
+      "default_branch": "main",
+      "ecosystem_claims": {
+        "openmw-config": {
+          "domain": "rust",
+          "stroggforge": [
+            "libGlobalBuild"
+          ]
+        }
+      },
+      "head_sha": "ffa444cdf3d8abee5c7aafd55c0bba2a2222223d",
+      "listed_in_ecosystem": true,
+      "private": false,
+      "project": "openmw-config",
+      "repository": "DreamWeave-MP/Openmw_Config",
+      "workflow_files": [
+        ".github/workflows/build_site.yml"
+      ]
+    },
+    {
+      "archived": false,
+      "calls": [
+        {
+          "file": ".github/workflows/build_site.yml",
+          "job": "site",
+          "kind": "job",
+          "permissions": {
+            "job": {
+              "actions": "write",
+              "contents": "write",
+              "id-token": "write",
+              "pages": "write"
+            },
+            "workflow": {
+              "contents": "read"
+            }
+          },
+          "ref": "v69",
+          "secrets": "inherit",
+          "uses": "DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml",
+          "with_keys": []
+        }
+      ],
+      "default_branch": "main",
+      "ecosystem_claims": {
+        "s3lightfixes": {
+          "domain": "rust",
+          "stroggforge": [
+            "rustGlobalBuild"
+          ]
+        }
+      },
+      "head_sha": "5fdc5f947aeec318db8df32b738312d6c90e8c67",
+      "listed_in_ecosystem": true,
+      "private": false,
+      "project": "s3lightfixes",
+      "repository": "DreamWeave-MP/S3LightFixes",
+      "workflow_files": [
+        ".github/workflows/build_site.yml"
+      ]
+    },
+    {
+      "archived": false,
+      "calls": [
+        {
+          "file": ".github/workflows/release.yaml",
+          "job": "build",
+          "kind": "job",
+          "permissions": {
+            "job": {
+              "actions": "write",
+              "contents": "write",
+              "id-token": "write",
+              "pages": "write"
+            },
+            "workflow": null
+          },
+          "ref": "v53",
+          "secrets": "inherit",
+          "selected_inputs": {
+            "binary_names": "[\"morrobroom\"]",
+            "mod_template": true
+          },
+          "uses": "DreamWeave-MP/StroggForge/.github/workflows/rustGlobalBuild.yml",
+          "with_keys": [
+            "binary_names",
+            "cargo_publish",
+            "include_files",
+            "mod_template"
+          ]
+        }
+      ],
+      "default_branch": "main",
+      "ecosystem_claims": {
+        "morrobroom": {
+          "domain": "rust",
+          "stroggforge": [
+            "rustGlobalBuild"
+          ]
+        }
+      },
+      "head_sha": "d89dd4c654756e8f3a8de9edc99fe12290de5a97",
+      "listed_in_ecosystem": true,
+      "private": false,
+      "project": "morrobroom",
+      "repository": "DreamWeave-MP/Morrobroom",
+      "workflow_files": [
+        ".github/workflows/release.yaml"
+      ]
+    },
+    {
+      "archived": false,
+      "calls": [
+        {
+          "file": ".github/workflows/build.yml",
+          "job": "build",
+          "kind": "job",
+          "permissions": {
+            "job": {
+              "actions": "write",
+              "contents": "write",
+              "id-token": "write",
+              "pages": "write"
+            },
+            "workflow": null
+          },
+          "ref": "v53",
+          "secrets": "inherit",
+          "selected_inputs": {
+            "binary_names": "[\"greenmote\"]",
+            "mod_template": true
+          },
+          "uses": "DreamWeave-MP/StroggForge/.github/workflows/rustGlobalBuild.yml",
+          "with_keys": [
+            "binary_names",
+            "cargo_publish",
+            "enable_android",
+            "enable_portmaster",
+            "mod_template"
+          ]
+        }
+      ],
+      "default_branch": "main",
+      "ecosystem_claims": {
+        "greenmote": {
+          "domain": "rust",
+          "stroggforge": [
+            "rustGlobalBuild"
+          ]
+        }
+      },
+      "head_sha": "8bf8743953ec81677dcfc3b93c59254e5c875615",
+      "listed_in_ecosystem": true,
+      "private": false,
+      "project": "greenmote",
+      "repository": "DreamWeave-MP/greenmote",
+      "workflow_files": [
+        ".github/workflows/build.yml",
+        ".github/workflows/daily.yml"
+      ]
+    },
+    {
+      "archived": false,
+      "calls": [
+        {
+          "file": ".github/workflows/build_site.yml",
+          "job": "site",
+          "kind": "job",
+          "permissions": {
+            "job": {
+              "actions": "write",
+              "contents": "write",
+              "id-token": "write",
+              "pages": "write"
+            },
+            "workflow": {
+              "contents": "read"
+            }
+          },
+          "ref": "v69",
+          "secrets": "inherit",
+          "uses": "DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml",
+          "with_keys": []
+        }
+      ],
+      "default_branch": "main",
+      "ecosystem_claims": {
+        "dream-ini": {
+          "domain": "rust",
+          "stroggforge": [
+            "rustGlobalBuild"
+          ]
+        }
+      },
+      "head_sha": "f159674613ddcba0ac6c8f504f2c82f0452188eb",
+      "listed_in_ecosystem": true,
+      "private": false,
+      "project": "dream-ini",
+      "repository": "DreamWeave-MP/dream-ini",
+      "workflow_files": [
+        ".github/workflows/build_site.yml"
+      ]
+    },
+    {
+      "archived": false,
+      "calls": [
+        {
+          "file": ".github/workflows/build_site.yml",
+          "job": "site",
+          "kind": "job",
+          "permissions": {
+            "job": {
+              "actions": "write",
+              "contents": "write",
+              "id-token": "write",
+              "pages": "write"
+            },
+            "workflow": {
+              "contents": "read"
+            }
+          },
+          "ref": "v69",
+          "secrets": "inherit",
+          "uses": "DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml",
+          "with_keys": []
+        }
+      ],
+      "default_branch": "main",
+      "ecosystem_claims": {
+        "archive-tool": {
+          "domain": "rust",
+          "stroggforge": [
+            "rustGlobalBuild"
+          ]
+        }
+      },
+      "head_sha": "71754ff62b86802936d9ef0e8dbc9f70fd93a0b5",
+      "listed_in_ecosystem": true,
+      "private": false,
+      "project": "archive-tool",
+      "repository": "DreamWeave-MP/dream_archivetool",
+      "workflow_files": [
+        ".github/workflows/build_site.yml"
+      ]
+    },
+    {
+      "archived": false,
+      "calls": [],
+      "default_branch": "main",
+      "ecosystem_claims": {
+        "chimera": {
+          "domain": "rust",
+          "stroggforge": []
+        },
+        "dream-web": {
+          "domain": "web",
+          "stroggforge": []
+        },
+        "dreamweave-core": {
+          "domain": "rust",
+          "stroggforge": []
+        }
+      },
+      "head_sha": "f6f68ab6466b57515b8aed87dd47391127a0e85d",
+      "listed_in_ecosystem": true,
+      "private": false,
+      "project": [
+        "dream-web",
+        "chimera",
+        "dreamweave-core"
+      ],
+      "repository": "DreamWeave-MP/dreamweave-web"
+    },
+    {
+      "archived": false,
+      "calls": [
+        {
+          "file": ".github/workflows/benchmarks.yml",
+          "job": "benchmarks",
+          "kind": "job",
+          "permissions": {
+            "job": null,
+            "workflow": {
+              "contents": "read"
+            }
+          },
+          "ref": "v72",
+          "secrets": null,
+          "uses": "DreamWeave-MP/StroggForge/.github/workflows/benchmarks.yml",
+          "with_keys": [
+            "all_features",
+            "filter",
+            "os"
+          ]
+        },
+        {
+          "file": ".github/workflows/build.yml",
+          "job": "build",
+          "kind": "job",
+          "permissions": {
+            "job": {
+              "actions": "write",
+              "contents": "write",
+              "id-token": "write",
+              "pages": "write"
+            },
+            "workflow": null
+          },
+          "ref": "v72",
+          "secrets": "inherit",
+          "selected_inputs": {
+            "crate_names": "[\"l3i\"]",
+            "mod_template": true
+          },
+          "uses": "DreamWeave-MP/StroggForge/.github/workflows/libGlobalBuild.yml",
+          "with_keys": [
+            "cargo_publish",
+            "crate_names",
+            "generate_benchmarks",
+            "mod_template",
+            "msrv"
+          ]
+        },
+        {
+          "file": ".github/workflows/daily-quality.yml",
+          "job": "clippy",
+          "kind": "step",
+          "permissions": {
+            "job": null,
+            "workflow": {
+              "contents": "read"
+            }
+          },
+          "ref": "v72",
+          "uses": "DreamWeave-MP/StroggForge/.github/actions/setup-llvm",
+          "with_keys": []
+        }
+      ],
+      "default_branch": "main",
+      "ecosystem_claims": {
+        "l3i": {
+          "domain": "rust",
+          "stroggforge": [
+            "libGlobalBuild"
+          ]
+        }
+      },
+      "head_sha": "fe88c506051967fe11b945ee758debf9c3215f6b",
+      "listed_in_ecosystem": true,
+      "private": false,
+      "project": "l3i",
+      "repository": "DreamWeave-MP/l3i",
+      "workflow_files": [
+        ".github/workflows/benchmarks.yml",
+        ".github/workflows/build.yml",
+        ".github/workflows/daily-quality.yml"
+      ]
+    },
+    {
+      "archived": false,
+      "calls": [
+        {
+          "file": ".github/workflows/ci.yml",
+          "job": "build",
+          "kind": "job",
+          "permissions": {
+            "job": {
+              "actions": "write",
+              "contents": "write",
+              "id-token": "write",
+              "pages": "write"
+            },
+            "workflow": null
+          },
+          "ref": "v55",
+          "secrets": "inherit",
+          "selected_inputs": {
+            "crate_names": "[\"dream-net\"]",
+            "mod_template": true
+          },
+          "uses": "DreamWeave-MP/StroggForge/.github/workflows/libGlobalBuild.yml",
+          "with_keys": [
+            "crate_names",
+            "generate_benchmarks",
+            "mod_template",
+            "msrv"
+          ]
+        }
+      ],
+      "default_branch": "main",
+      "ecosystem_claims": {
+        "dream-net": {
+          "domain": "rust",
+          "stroggforge": [
+            "libGlobalBuild"
+          ]
+        }
+      },
+      "head_sha": "d6a81f543f30a83e62a5d33e9e6f26ec29cff46a",
+      "listed_in_ecosystem": true,
+      "private": false,
+      "project": "dream-net",
+      "repository": "DreamWeave-MP/dream-net",
+      "workflow_files": [
+        ".github/workflows/ci.yml"
+      ]
+    },
+    {
+      "archived": false,
+      "calls": [
+        {
+          "file": ".github/workflows/build.yml",
+          "job": "build",
+          "kind": "job",
+          "permissions": {
+            "job": {
+              "actions": "write",
+              "contents": "write",
+              "id-token": "write",
+              "pages": "write"
+            },
+            "workflow": null
+          },
+          "ref": "v70",
+          "secrets": "inherit",
+          "selected_inputs": {
+            "crate_names": "[\"dream-soft-render\"]"
+          },
+          "uses": "DreamWeave-MP/StroggForge/.github/workflows/libGlobalBuild.yml",
+          "with_keys": [
+            "crate_names",
+            "dependent_repo_names",
+            "generate_benchmarks",
+            "msrv",
+            "publish_docs"
+          ]
+        },
+        {
+          "file": ".github/workflows/build.yml",
+          "job": "site",
+          "kind": "job",
+          "permissions": {
+            "job": {
+              "actions": "write",
+              "contents": "write",
+              "id-token": "write",
+              "pages": "write"
+            },
+            "workflow": null
+          },
+          "ref": "v53",
+          "secrets": "inherit",
+          "selected_inputs": {
+            "rust_release": true
+          },
+          "uses": "DreamWeave-MP/StroggForge/.github/workflows/modGlobalBuild.yml",
+          "with_keys": [
+            "rust_release"
+          ]
+        },
+        {
+          "file": ".github/workflows/quality.yml",
+          "job": "clippy",
+          "kind": "step",
+          "permissions": {
+            "job": null,
+            "workflow": {
+              "contents": "read"
+            }
+          },
+          "ref": "v70",
+          "uses": "DreamWeave-MP/StroggForge/.github/actions/setup-llvm",
+          "with_keys": []
+        }
+      ],
+      "default_branch": "main",
+      "ecosystem_claims": {
+        "soft-render": {
+          "domain": "rust",
+          "stroggforge": [
+            "libGlobalBuild"
+          ]
+        }
+      },
+      "head_sha": "a7b2ac061ecb8f3d57a28affb54a941f7636ace9",
+      "listed_in_ecosystem": true,
+      "private": false,
+      "project": "soft-render",
+      "repository": "DreamWeave-MP/dream-soft-render",
+      "workflow_files": [
+        ".github/workflows/build.yml",
+        ".github/workflows/quality.yml"
+      ]
+    },
+    {
+      "archived": false,
+      "calls": [
+        {
+          "job": "call-discord-webhook",
+          "kind": "job",
+          "permissions": {
+            "job": null,
+            "workflow": null
+          },
+          "ref": "v6",
+          "secrets": [
+            "WEBHOOK_URL"
+          ],
+          "uses": "DreamWeave-MP/StroggForge/.github/workflows/discord.yml",
+          "with_keys": [
+            "description",
+            "title"
+          ]
+        }
+      ],
+      "default_branch": "master",
+      "head_sha": null,
+      "listed_in_ecosystem": false,
+      "private": false,
+      "project": null,
+      "repository": "unlisted-1",
+      "unlisted": true,
+      "workflow_files": null
+    },
+    {
+      "archived": false,
+      "calls": [
+        {
+          "job": "build",
+          "kind": "job",
+          "permissions": {
+            "job": {
+              "actions": "write",
+              "contents": "write",
+              "id-token": "write",
+              "pages": "write"
+            },
+            "workflow": {
+              "contents": "read"
+            }
+          },
+          "ref": "v70",
+          "secrets": "inherit",
+          "selected_inputs": {
+            "binary_names": "[\"jess\"]"
+          },
+          "uses": "DreamWeave-MP/StroggForge/.github/workflows/rustGlobalBuild.yml",
+          "with_keys": [
+            "binary_names",
+            "binary_package",
+            "cargo_publish",
+            "development_release",
+            "enable_portmaster",
+            "gpu_tests",
+            "include_files",
+            "msrv",
+            "publish_docs"
+          ]
+        },
+        {
+          "job": "image",
+          "kind": "job",
+          "permissions": {
+            "job": {
+              "contents": "read",
+              "packages": "write"
+            },
+            "workflow": {
+              "contents": "read"
+            }
+          },
+          "ref": "v70",
+          "secrets": null,
+          "uses": "DreamWeave-MP/StroggForge/.github/workflows/publishJessImage.yml",
+          "with_keys": [
+            "version"
+          ]
+        }
+      ],
+      "default_branch": "main",
+      "head_sha": null,
+      "listed_in_ecosystem": false,
+      "private": false,
+      "project": null,
+      "repository": "unlisted-2",
+      "unlisted": true,
+      "workflow_files": null
+    },
+    {
+      "archived": false,
+      "calls": [
+        {
+          "job": "release_cleanup",
+          "kind": "job",
+          "permissions": {
+            "job": null,
+            "workflow": null
+          },
+          "ref": "v6",
+          "secrets": "inherit",
+          "uses": "DreamWeave-MP/StroggForge/.github/workflows/createRelease.yml",
+          "with_keys": []
+        },
+        {
+          "job": "release",
+          "kind": "step",
+          "permissions": {
+            "job": {
+              "contents": "write",
+              "id-token": "write"
+            },
+            "workflow": null
+          },
+          "ref": "v6",
+          "uses": "DreamWeave-MP/StroggForge/.github/actions/corprus-crucible",
+          "with_keys": [
+            "binary_name",
+            "github_token",
+            "include_files",
+            "release_name",
+            "vt_api_key"
+          ]
+        },
+        {
+          "job": "call-discord-webhook",
+          "kind": "job",
+          "permissions": {
+            "job": null,
+            "workflow": null
+          },
+          "ref": "v6",
+          "secrets": [
+            "WEBHOOK_URL"
+          ],
+          "uses": "DreamWeave-MP/StroggForge/.github/workflows/discord.yml",
+          "with_keys": [
+            "description",
+            "title"
+          ]
+        },
+        {
+          "job": "nag-dependents",
+          "kind": "job",
+          "permissions": {
+            "job": null,
+            "workflow": null
+          },
+          "ref": "v6",
+          "secrets": [
+            "DW_BOT_PAT"
+          ],
+          "uses": "DreamWeave-MP/StroggForge/.github/workflows/dependent.yml",
+          "with_keys": [
+            "aur_package_name",
+            "target_repo"
+          ]
+        }
+      ],
+      "default_branch": "main",
+      "head_sha": null,
+      "listed_in_ecosystem": false,
+      "private": false,
+      "project": null,
+      "repository": "unlisted-3",
+      "unlisted": true,
+      "workflow_files": null
+    }
+  ],
+  "errors": [
+    {
+      "error": "no repository field in ecosystem.toml; inferred DreamWeave-MP/l3i from docs URL dreamweave-mp.github.io/l3i",
+      "project": "l3i"
+    },
+    {
+      "error": "no repository field in ecosystem.toml; not audited",
+      "project": "dream-binder"
+    },
+    {
+      "error": "file mentions StroggForge but no parsed uses/checkout matched",
+      "file": ".github/workflows/check.yml",
+      "raw_lines": [
+        "# pinned to a release, as StroggForge does."
+      ],
+      "repository": "DreamWeave-MP/AsHyAmS"
+    },
+    {
+      "error": "gh: Not Found (HTTP 404)",
+      "repository": "DreamWeave-MP/dreamweave-web",
+      "step": "list workflows"
+    }
+  ],
+  "redaction": "Callers not in war-room/ecosystem.toml are numbered, not named: the maintainer decides which organization repositories may be listed (AGENTS.md).",
+  "stroggforge_head": "72c3050"
+}
