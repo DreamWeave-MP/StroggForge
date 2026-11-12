@@ -22,10 +22,6 @@ local Repo = fs.join(support.Fixtures, 'repo')
 
 type Oracle = { corpus_sha256: string, cases: { [string]: { ok: boolean, message: string } } }
 
--- jess 0.3.0's @jess/yaml drops the last line break of a clip-chomped block scalar that ends the
--- document (docs/vnext/FOR-101-audit.md). The checkout's rust-setup action ends in one.
-local YamlDropsFinalBreak = (yaml.decode('a: |\n  x\n') :: { a: string }).a == 'x'
-
 local function inspected(root: string): string
   local result = commands.inspect { root = root }
   expect(diagnostics.text(result.report)).toBe('')
@@ -58,33 +54,7 @@ suite.describe('inspect', function()
 
   suite.it('writes this checkout as the FOR-101 golden records it', function()
     local golden = support.read(fs.join(support.Repository, 'docs/vnext/golden/workflow-contracts.jsonl'))
-    local written = inspected(support.Repository)
-    if not YamlDropsFinalBreak then
-      expect(written).toBe(golden)
-      return
-    end
-
-    -- With the defect, only the line holding such a scalar may differ, and only by the one escaped
-    -- line break that ended that string: one of the golden's `\n"` read as `"`.
-    local expected, actual = lines(golden), lines(written)
-    expect(#actual).toBe(#expected)
-    local differing = 0
-    for index, line in expected do
-      if actual[index] == line then continue end
-
-      differing += 1
-      local explained = false
-      local start = 1
-      while not explained do
-        local found = string.find(line, '\\n"', start, true)
-        if not found then break end
-
-        explained = actual[index] == string.sub(line, 1, found - 1) .. string.sub(line, found + 2)
-        start = found + 1
-      end
-      expect(explained).toBe(true)
-    end
-    expect(differing <= 1).toBeTruthy()
+    expect(inspected(support.Repository)).toBe(golden)
   end)
 
   suite.it('is the same document every time', function()
@@ -98,11 +68,17 @@ suite.describe('inspect', function()
     expect(header.files).toBe(3)
   end)
 
-  suite.it('reads every spelling of on', function()
-    expect(inspect.events 'push').toEqual { 'push' }
-    expect(inspect.events { 'push', 'pull_request' }).toEqual { 'pull_request', 'push' }
-    expect(inspect.events { workflow_call = jess.null, push = jess.null }).toEqual { 'push', 'workflow_call' }
-    expect(inspect.events(nil)).toEqual {}
+  suite.it('reads every spelling of on, and none through a tag, as the Rust matched it', function()
+    local function events(text: string): unknown
+      local document, layout = yaml.decodeWithLayout(text)
+      return inspect.events(layout, (document :: { on: unknown }).on)
+    end
+
+    expect(events 'on: push').toEqual { 'push' }
+    expect(events 'on: [push, pull_request]').toEqual { 'pull_request', 'push' }
+    expect(events 'on: {workflow_call: ~, push: ~}').toEqual { 'push', 'workflow_call' }
+    expect(events 'on: !t {push: ~}').toEqual {}
+    expect(events 'name: x').toEqual {}
   end)
 
   local function withEnv(name: string, entries: string): string
@@ -129,19 +105,34 @@ suite.describe('inspect', function()
     expect(written).toContain '"steps":[],"using":"composite"'
   end)
 
-  -- Where a Lua table forgets what the YAML said, the forge writes what it has, and inspect.jsl's
-  -- header lists the cases. Pinned, so a change on either side is a decision, not an accident. The
-  -- Rust wrote 1.0, "010", {"1":"a"} and {"!foo":"bar"}.
-  suite.it('writes what the decoded table holds where serde kept more', function()
-    local written = inspected(withEnv('forgotten', '  FLOAT: 1.0\n  OCTAL: 010\n  KEYED: {1: a}\n  TAGGED: !foo bar\n'))
-    expect(written).toContain '"FLOAT":1,'
-    expect(written).toContain '"KEYED":["a"],'
-    expect(written).toContain '"OCTAL":10,'
-    expect(written).toContain '"TAGGED":{"tag":"!foo","value":"bar"}'
+  -- What the Rust wrote for each, recorded from its inspect on the same YAML. The layout tells
+  -- 1.0 from 1 and {1: a} from [a], and @jess/data/value writes JSON as serde_json does.
+  suite.it('writes what serde_json wrote for floats, keys, tags and large integers', function()
+    local written = inspected(withEnv('serde', table.concat({
+      '  FLOAT: 1.0\n  EXP: 1e3\n  BIGF: 1e300\n  SMALL: 0.000001\n  NEG0: -0.0\n  FLOATTAG: !!float 1\n',
+      '  KEYED: {1: a, 2: b}\n  EMPTYM: {}\n  EMPTYL: []\n  FKEY: {1.5: a, true: b}\n',
+      '  TAGGED: !foo bar\n  TAGMAP: !foo {a: 1}\n  GLOBAL: !<tag:example.com,2026:x> y\n  STRTAG: !!str 5\n',
+      '  BIG: 9007199254740993\n  NEGBIG: -9223372036854775808\n  HEX: 0x1F\n  OCT2: 0o17\n  NUL: ~\n',
+    })))
+
+    expect(written).toContain(table.concat {
+      '"env":{"BIG":9007199254740993,"BIGF":1e+300,"EMPTYL":[],"EMPTYM":[],"EXP":1000.0,',
+      '"FKEY":{"1.5":"a","true":"b"},"FLOAT":1.0,"FLOATTAG":1.0,"GLOBAL":"y","HEX":31,',
+      '"KEYED":{"1":"a","2":"b"},"NEG0":-0.0,"NEGBIG":-9223372036854775808,"NUL":null,"OCT2":15,',
+      '"SMALL":1e-6,"STRTAG":"5","TAGGED":{"!foo":"bar"},"TAGMAP":{"!foo":{"a":1}}}',
+    })
   end)
 
-  suite.it('reports what JSON cannot hold exactly instead of crashing', function()
-    for _, entry in { { 'huge', '  BIG: 9007199254740993\n' }, { 'complex', '  ? [a, b]\n  : c\n' } } do
+  -- Where the forge still writes something else, inspect.jsl's header says why. Pinned, so a
+  -- change on either side is a decision, not an accident. The Rust wrote "010" and {"1.0":"c"}.
+  suite.it('writes 010 as YAML 1.2 reads it and a float key without its fraction', function()
+    local written = inspected(withEnv('spec', '  OCTAL: 010\n  FLOATKEY: {1.0: c}\n'))
+    expect(written).toContain '"OCTAL":10'
+    expect(written).toContain '"FLOATKEY":{"1":"c"}'
+  end)
+
+  suite.it('reports a key JSON cannot hold instead of crashing, as the Rust stopped on it', function()
+    for _, entry in { { 'complex', '  ? [a, b]\n  : c\n' }, { 'null', '  ~: c\n' } } do
       local result = commands.inspect { root = withEnv(entry[1], entry[2]) }
       expect(result.ok).toBe(false)
       expect(result.text).toBeNil()
@@ -150,11 +141,7 @@ suite.describe('inspect', function()
   end)
 
   suite.it('keeps a step contract but never its script', function()
-    local steps = inspect.steps { { name = 'Build', id = 'build', run = 'echo secret' }, { uses = 'actions/checkout@v6' } }
-    expect(steps).toEqual {
-      { id = 'build', name = 'Build', run = true },
-      { uses = 'actions/checkout@v6', run = false },
-    }
+    expect(inspected(Repo)).toContain '"id":"version","name":"Version","run":true,"shell":"bash"'
     expect((string.find(inspected(Repo), 'GITHUB_OUTPUT', 1, true))).toBeNil()
   end)
 end)

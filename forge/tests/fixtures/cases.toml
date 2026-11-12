@@ -369,6 +369,64 @@ rust = 'Is a directory (os error 21)'
 code = "FORGE-E001"
 edits = [{ file = ".github/workflows/folder.yml", mkdir = true }]
 
+# An empty YAML {} where a list belongs or [] where a mapping does, and a mapping keyed 1 to n where
+# a list belongs. Lua tables can't tell these from their opposites; @jess/yaml's layout can, so the
+# forge refuses them as serde did.
+
+[[case]]
+id = "empty-mapping-for-needs"
+rust = 'unsupported job needs value: Mapping {}'
+code = "FORGE-E052"
+edits = [{ file = ".github/workflows/build.yml", find = 'needs: test', replace = 'needs: {}' }]
+
+[[case]]
+id = "needs-keyed-by-integer"
+rust = 'unsupported job needs value: Mapping {1: String("test")}'
+code = "FORGE-E052"
+edits = [{ file = ".github/workflows/build.yml", find = 'needs: test', replace = 'needs: {1: test}' }]
+
+[[case]]
+id = "empty-list-for-jobs"
+rust = 'invalid type: sequence, expected a map'
+code = "FORGE-E056"
+edits = [{ file = ".github/workflows/notify.yaml", find = 'jobs:\n  say:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo said\n', replace = 'jobs: []\n' }]
+
+[[case]]
+id = "empty-list-for-a-job"
+rust = 'invalid type: sequence, expected struct Job'
+code = "FORGE-E056"
+edits = [{ file = ".github/workflows/notify.yaml", find = '  say:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo said\n', replace = '  say: []\n' }]
+
+[[case]]
+id = "empty-mapping-for-steps"
+rust = 'invalid type: map, expected a sequence'
+code = "FORGE-E056"
+edits = [{ file = ".github/workflows/notify.yaml", find = '    steps:\n      - run: echo said\n', replace = '    steps: {}\n' }]
+
+[[case]]
+id = "steps-keyed-by-integer"
+rust = 'invalid type: map, expected a sequence'
+code = "FORGE-E056"
+edits = [{ file = ".github/workflows/notify.yaml", find = '    steps:\n      - run: echo said\n', replace = '    steps: {1: {run: x}}\n' }]
+
+[[case]]
+id = "empty-list-for-secrets"
+rust = 'workflow contract must be a mapping'
+code = "FORGE-E056"
+edits = [{ file = ".github/workflows/build.yml", find = '    secrets:\n      TOKEN:\n        required: false\n', replace = '    secrets: []\n' }]
+
+[[case]]
+id = "empty-list-for-action-outputs"
+rust = 'workflow contract must be a mapping'
+code = "FORGE-E056"
+edits = [{ file = ".github/actions/setup/action.yml", find = 'outputs:\n  path:\n    description: Where\n    value: ${{ steps.install.outputs.path }}\n', replace = 'outputs: []\n' }]
+
+[[case]]
+id = "action-steps-keyed-by-integer"
+rust = 'setup has no step named "Install the toolchain"'
+code = "FORGE-E055"
+edits = [{ file = ".github/actions/setup/action.yml", find = '  steps:\n    - name: Install the toolchain\n      id: install\n      shell: bash\n      run: |\n        echo "path=/opt" >> "$GITHUB_OUTPUT"\n    - name: Report\n      shell: bash\n      run: echo done\n', replace = '  steps:\n    1: {name: Install the toolchain}\n' }]
+
 # Trees the Rust war room accepts, which the forge must accept too. A `divergence` here is a tree
 # the Rust refused and the forge accepts, with the reason it can't or shouldn't refuse it.
 
@@ -400,18 +458,6 @@ id = "hex-schema"
 edits = [{ file = "war-room/ecosystem.toml", find = 'schema = 1', replace = 'schema = 0x1' }]
 
 [[accept]]
-id = "empty-mapping-for-needs"
-rust = 'unsupported job needs value: Mapping {}'
-divergence = "@jess/yaml decodes {} and [] to the same empty Lua table; the forge reads it as no needs."
-edits = [{ file = ".github/workflows/build.yml", find = 'needs: test', replace = 'needs: {}' }]
-
-[[accept]]
-id = "needs-keyed-by-integer"
-rust = 'unsupported job needs value: Mapping {1: String("test")}'
-divergence = "@jess/yaml decodes {1: test} to the Lua table the sequence [test] decodes to; the forge reads it as that sequence."
-edits = [{ file = ".github/workflows/build.yml", find = 'needs: test', replace = 'needs: {1: test}' }]
-
-[[accept]]
 id = "lone-actions-file"
 edits = [{ file = ".github/actions/README.md", find = '', replace = 'Not an action.\n' }]
 
@@ -430,47 +476,75 @@ edits = [{ file = ".github/workflows/build.yml", find = 'on:\n  workflow_call:',
 id = "runs-with-an-integer-key"
 edits = [{ file = ".github/actions/setup/action.yml", find = 'runs:\n  using: composite', replace = 'runs:\n  1: x\n  using: composite' }]
 
-# The rest of the family behind the needs divergences: an empty YAML {} or [], and a mapping keyed
-# 1 to n, are the same Lua tables as their opposites, so the forge can't refuse what serde refused.
+# serde_yaml read through a tag everywhere the Rust looked except `needs`, which it matched raw.
+# Recorded from the Rust on 2026-11-12; so does the forge.
 
 [[accept]]
-id = "empty-list-for-jobs"
-rust = 'invalid type: sequence, expected a map'
-divergence = "@jess/yaml decodes [] to the empty Lua table {} decodes to; the forge reads no jobs."
-edits = [{ file = ".github/workflows/notify.yaml", find = 'jobs:\n  say:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo said\n', replace = 'jobs: []\n' }]
+id = "tagged-on"
+edits = [{ file = ".github/workflows/build.yml", find = 'on:\n  workflow_call:', replace = 'on: !t\n  workflow_call:' }]
 
 [[accept]]
-id = "empty-list-for-a-job"
-rust = 'invalid type: sequence, expected struct Job'
-divergence = "@jess/yaml decodes [] to the empty Lua table {} decodes to; the forge reads an empty job."
-edits = [{ file = ".github/workflows/notify.yaml", find = '  say:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo said\n', replace = '  say: []\n' }]
+id = "tagged-jobs"
+edits = [{ file = ".github/workflows/notify.yaml", find = 'jobs:\n', replace = 'jobs: !t\n' }]
 
 [[accept]]
-id = "empty-mapping-for-steps"
-rust = 'invalid type: map, expected a sequence'
-divergence = "@jess/yaml decodes {} to the empty Lua table [] decodes to; the forge reads no steps."
-edits = [{ file = ".github/workflows/notify.yaml", find = '    steps:\n      - run: echo said\n', replace = '    steps: {}\n' }]
+id = "tagged-job"
+edits = [{ file = ".github/workflows/notify.yaml", find = '  say:\n', replace = '  say: !t\n' }]
 
 [[accept]]
-id = "steps-keyed-by-integer"
-rust = 'invalid type: map, expected a sequence'
-divergence = "@jess/yaml decodes {1: step} to the Lua table [step] decodes to; the forge reads that list."
-edits = [{ file = ".github/workflows/notify.yaml", find = '    steps:\n      - run: echo said\n', replace = '    steps: {1: {run: x}}\n' }]
+id = "tagged-steps"
+edits = [{ file = ".github/workflows/notify.yaml", find = '    steps:\n', replace = '    steps: !t\n' }]
 
 [[accept]]
-id = "empty-list-for-secrets"
-rust = 'workflow contract must be a mapping'
-divergence = "@jess/yaml decodes [] to the empty Lua table {} decodes to; the forge reads no secrets."
-edits = [{ file = ".github/workflows/build.yml", find = '    secrets:\n      TOKEN:\n        required: false\n', replace = '    secrets: []\n' }]
+id = "tagged-name"
+edits = [{ file = ".github/workflows/notify.yaml", find = 'name: Notify', replace = 'name: !t Notify' }]
 
 [[accept]]
-id = "empty-list-for-action-outputs"
-rust = 'workflow contract must be a mapping'
-divergence = "@jess/yaml decodes [] to the empty Lua table {} decodes to; the forge reads no outputs."
-edits = [{ file = ".github/actions/setup/action.yml", find = 'outputs:\n  path:\n    description: Where\n    value: ${{ steps.install.outputs.path }}\n', replace = 'outputs: []\n' }]
+id = "tagged-secrets"
+edits = [{ file = ".github/workflows/build.yml", find = '    secrets:\n      TOKEN:', replace = '    secrets: !t\n      TOKEN:' }]
 
 [[accept]]
-id = "action-steps-keyed-by-integer"
-rust = 'setup has no step named "Install the toolchain"'
-divergence = "@jess/yaml decodes {1: step} to the Lua table [step] decodes to; the forge finds the step there."
-edits = [{ file = ".github/actions/setup/action.yml", find = '  steps:\n    - name: Install the toolchain\n      id: install\n      shell: bash\n      run: |\n        echo "path=/opt" >> "$GITHUB_OUTPUT"\n    - name: Report\n      shell: bash\n      run: echo done\n', replace = '  steps:\n    1: {name: Install the toolchain}\n' }]
+id = "tagged-runs"
+edits = [{ file = ".github/actions/setup/action.yml", find = 'runs:\n', replace = 'runs: !t\n' }]
+
+[[accept]]
+id = "tagged-action-steps"
+edits = [{ file = ".github/actions/setup/action.yml", find = '  steps:\n', replace = '  steps: !t\n' }]
+
+[[accept]]
+id = "tagged-step"
+edits = [{ file = ".github/actions/setup/action.yml", find = '    - name: Install the toolchain', replace = '    - !t\n      name: Install the toolchain' }]
+
+[[accept]]
+id = "tagged-root"
+edits = [{ file = ".github/workflows/notify.yaml", find = 'name: Notify', replace = '!t\nname: Notify' }]
+
+[[accept]]
+id = "tagged-root-on-the-marker"
+edits = [{ file = ".github/workflows/notify.yaml", find = 'name: Notify', replace = '--- !t\nname: Notify' }]
+
+[[accept]]
+id = "comment-on-the-marker"
+edits = [{ file = ".github/workflows/notify.yaml", find = 'name: Notify', replace = '--- # the notifier\nname: Notify' }]
+
+[[accept]]
+id = "merge-key"
+edits = [{ file = ".github/workflows/notify.yaml", find = 'jobs:\n  say:\n    runs-on: ubuntu-latest', replace = 'x: &base\n  runs-on: ubuntu-latest\njobs:\n  say:\n    <<: *base' }]
+
+[[case]]
+id = "tagged-needs"
+rust = 'unsupported job needs value: TaggedValue'
+code = "FORGE-E052"
+edits = [{ file = ".github/workflows/build.yml", find = 'needs: test', replace = 'needs: !t test' }]
+
+[[case]]
+id = "tagged-needs-list"
+rust = 'unsupported job needs value: TaggedValue'
+code = "FORGE-E052"
+edits = [{ file = ".github/workflows/build.yml", find = 'needs: test', replace = 'needs: !t [test]' }]
+
+[[case]]
+id = "float-in-needs"
+rust = 'needs must contain job names'
+code = "FORGE-E052"
+edits = [{ file = ".github/workflows/build.yml", find = 'needs: test', replace = 'needs: [test, 1.0]' }]

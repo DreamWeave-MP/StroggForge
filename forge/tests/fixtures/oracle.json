@@ -28,6 +28,10 @@
       "message": "Error: project tool: notify is not a reusable StroggForge workflow",
       "ok": false
     },
+    "comment-on-the-marker": {
+      "message": "",
+      "ok": true
+    },
     "datetime-for-string": {
       "message": "Error: parse <root>/war-room/ecosystem.toml Caused by: TOML parse error at line 3, column 12 | 3 | reviewed = 2026-11-12 | ^^^^^^^^^^ invalid type: map, expected a string",
       "ok": false
@@ -92,6 +96,10 @@
       "message": "Error: parse <root>/war-room/ecosystem.toml Caused by: TOML parse error at line 2, column 10 | 2 | schema = 1.0 | ^^^ invalid type: floating point `1.0`, expected u32",
       "ok": false
     },
+    "float-in-needs": {
+      "message": "Error: needs must contain job names",
+      "ok": false
+    },
     "folder-named-like-a-workflow": {
       "message": "Error: Is a directory (os error 21)",
       "ok": false
@@ -129,6 +137,10 @@
       "ok": false
     },
     "lone-actions-file": {
+      "message": "",
+      "ok": true
+    },
+    "merge-key": {
       "message": "",
       "ok": true
     },
@@ -256,6 +268,58 @@
       "message": "Error: old-tool has a successor but is not superseded or archived",
       "ok": false
     },
+    "tagged-action-steps": {
+      "message": "",
+      "ok": true
+    },
+    "tagged-job": {
+      "message": "",
+      "ok": true
+    },
+    "tagged-jobs": {
+      "message": "",
+      "ok": true
+    },
+    "tagged-name": {
+      "message": "",
+      "ok": true
+    },
+    "tagged-needs": {
+      "message": "Error: unsupported job needs value: TaggedValue { tag: !t, value: String(\"test\") }",
+      "ok": false
+    },
+    "tagged-needs-list": {
+      "message": "Error: unsupported job needs value: TaggedValue { tag: !t, value: Sequence [String(\"test\")] }",
+      "ok": false
+    },
+    "tagged-on": {
+      "message": "",
+      "ok": true
+    },
+    "tagged-root": {
+      "message": "",
+      "ok": true
+    },
+    "tagged-root-on-the-marker": {
+      "message": "",
+      "ok": true
+    },
+    "tagged-runs": {
+      "message": "",
+      "ok": true
+    },
+    "tagged-secrets": {
+      "message": "",
+      "ok": true
+    },
+    "tagged-step": {
+      "message": "",
+      "ok": true
+    },
+    "tagged-steps": {
+      "message": "",
+      "ok": true
+    },
     "toml-syntax": {
       "message": "Error: parse <root>/war-room/ecosystem.toml Caused by: TOML parse error at line 4, column 9 | 4 | scope = | ^ string values must be quoted, expected literal string",
       "ok": false
@@ -309,6 +373,6 @@
       "ok": false
     }
   },
-  "corpus_sha256": "d35d6e6458572a855981b4750e15c305678bc8632fa23fc029258e0ef32fc15e",
+  "corpus_sha256": "88c566fdf487044799235fd2accbb6937e1d35293469e16eb587b84bf0c8d2ea",
   "oracle": "stroggforge-war-room check"
 }
