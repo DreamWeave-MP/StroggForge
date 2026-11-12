@@ -48,10 +48,10 @@ CI job reads them. The JSL forge's tests (FOR-201) compare against them.
 
 | Intended owner | Components |
 | --- | --- |
-| YAML entrypoint (events, runners, permissions, environments) | 13, plus `createRelease` and `dependent` kept for an external caller |
+| YAML entrypoint (events, runners, permissions, environments) | 13 |
 | JSL forge modules | 33: release 10, nexus 6, check 4, archive 3, mod-template 3, war room 3, benchmarks 2, changelog 1, docs 1 |
 | Native boundary | 15: Docker images 6, LLVM install 2, `gh release` 2, rustup 1, jess install 1, cargo build 1, Cosign 1, cargo publish 1 |
-| Retire | `scripts/cargo-build-args.example.sh` (superseded by the template's documentation) |
+| Retire | `scripts/cargo-build-args.example.sh` (superseded by the template's documentation); `createRelease` and `dependent` after FOR-104 notice, since their only caller is deprecated |
 | Undecided | `render-diagrams.mjs`: there is no JSL Mermaid renderer (FOR-103) |
 
 23 components are privileged: they can mutate a release, tag, registry, Pages, a default branch or
@@ -70,9 +70,17 @@ Callers named in `war-room/ecosystem.toml`, by the ref they pin:
 | v55 | dream-net → `libGlobalBuild` |
 | v53 | Morrobroom, greenmote → `rustGlobalBuild`; dream_path → `libGlobalBuild`; S3ctors-S3cret-St4sh and dream-soft-render → `modGlobalBuild` |
 
-Three more callers are not in `ecosystem.toml` (`unlisted-1..3`, pinning v6, v70 and v6). Their
-names are withheld until the maintainer says which organization repositories may be listed.
-One of them still calls `createRelease` and `dependent` at v6.
+Two more callers are not in `ecosystem.toml`, and the maintainer wants both listed:
+
+| Ref | Caller → workflow |
+| --- | --- |
+| v70 | jess → `rustGlobalBuild`, `publishJessImage` |
+| v6 | Starwind-Builder → `discord` |
+
+jess is missing from `ecosystem.toml` altogether, which the war room's scope (every modern
+DreamWeave component) needs fixed; FOR-103 owns that. A third caller, a repository the maintainer
+has deprecated, is left out; it was the only caller of `createRelease` and `dependent`, so both
+are now retirement candidates through FOR-104.
 
 Uncertainty: GitHub code search missed five callers we already knew, so it cannot prove there are
 no others. Only enumerating every organization repository would.
