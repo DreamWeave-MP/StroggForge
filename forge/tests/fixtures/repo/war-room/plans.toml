@@ -1,0 +1,44 @@
+[[plans]]
+id = "rollout"
+kind = "campaign"
+name = "Rollout"
+projects = ["forge", "tool"]
+state = "blocked"
+reviewed = "2026-11-01"
+depends_on = []
+platforms = ["linux-x64"]
+distribution = ["github-releases"]
+notes = "Waiting."
+links = []
+
+[[plans.requirements]]
+id = "proof"
+kind = "artifact"
+label = "Prove it"
+state = "blocked"
+detail = "Nobody has."
+evidence = []
+
+[[plans.requirements]]
+id = "config"
+kind = "task"
+label = "Configure it"
+state = "done"
+detail = "Done."
+evidence = ["a commit"]
+
+[[plans]]
+id = "release-1"
+kind = "release"
+name = "Release 1"
+projects = ["tool"]
+version = "1.0.0"
+state = "active"
+reviewed = "2026-11-02"
+target_date = "2027-02-28"
+depends_on = []
+platforms = []
+distribution = []
+notes = "Coming."
+links = []
+requirements = []

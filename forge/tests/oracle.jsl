@@ -1,0 +1,50 @@
+--!strict
+-- Records the Rust war room's verdict on every case of the negative corpus in
+-- fixtures/oracle.json, which the suite holds the forge to. Run it from the checkout's root after
+-- changing cases.toml or the Rust validator:
+--
+--   cargo build --locked -p stroggforge-war-room
+--   jess run --trusted forge/tests/oracle.jsl target/debug/stroggforge-war-room
+--
+-- It writes broken trees under target/forge-oracle and removes them afterwards. The suite itself
+-- never runs the Rust: it reads what this recorded.
+local fs = require '@dream/fs'
+local json = require '@jess/json'
+local process = require '@dream/process'
+local support = require './support'
+
+local binary = ...
+if type(binary) ~= 'string' then
+  print('usage: jess run --trusted forge/tests/oracle.jsl <stroggforge-war-room binary>')
+
+  return 64
+end
+
+local scratch = fs.join(support.Repository, 'target', 'forge-oracle')
+local verdicts: { [string]: { ok: boolean, message: string } } = {}
+for _, case in support.cases() do
+  local root = support.broken(scratch, case)
+  local result, problem = process.run(binary, { 'check', root }, { stdout = 'capture', stderr = 'capture' })
+  if not result then error(`cannot run {binary}: {problem}`, 0) end
+
+  -- anyhow prints `Error: <outermost context>` then a `Caused by:` chain; keep all of it, one line,
+  -- without the scratch path, so the record is the same on every machine.
+  local stderr = string.gsub(result.stderr or '', string.gsub(root, '%p', '%%%0'), '<root>')
+  local message = string.gsub(string.gsub(stderr, '%s+', ' '), '^%s*(.-)%s*$', '%1')
+  verdicts[case.id] = { ok = result.success, message = message }
+end
+
+support.must(fs.remove(scratch, { recursive = true }))
+
+support.write(
+  fs.join(support.Fixtures, 'oracle.json'),
+  json.encodeTable({
+    oracle = 'stroggforge-war-room check',
+    corpus_sha256 = support.corpusDigest(),
+    cases = verdicts,
+  }, { indent = 2 }) .. '\n'
+)
+
+print(`recorded {#support.cases()} verdicts`)
+
+return 0

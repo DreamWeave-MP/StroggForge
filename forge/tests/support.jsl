@@ -1,0 +1,129 @@
+--!strict
+-- What the suite and the oracle refresher share: where the fixtures are, the negative corpus, and
+-- trees copied and broken under a scratch folder. Nothing here goes through the forge's own
+-- modules, so a defect in one of them cannot hide in its own check.
+local bytes = require '@dream/bytes'
+local fs = require '@dream/fs'
+local toml = require '@jess/data/toml'
+
+export type Edit = { file: string, find: string?, replace: string?, delete: boolean? }
+
+export type Case = { id: string, code: string, divergence: string?, edits: { Edit } }
+
+--- `value`, or an error with the problem a @dream/fs call returned beside it (and its kind, ignored).
+local function must<T>(value: T?, problem: string?, ...: unknown): T
+  if value == nil then error(problem or 'the suite hit a failure with no message', 0) end
+
+  return value :: T
+end
+
+--- This folder, from the chunk name jess gives the file: absolute, whatever the working folder.
+local function here(): string
+  local source = debug.info(1, 's')
+  local first = string.sub(source, 1, 1)
+  local path = if first == '@' or first == '=' then string.sub(source, 2) else source
+  local folder = assert(fs.parent(path), 'the suite needs a folder')
+  local absolute = must(fs.absolute(if folder == '' then '.' else folder))
+
+  return absolute
+end
+
+local Tests = here()
+local Fixtures = fs.join(Tests, 'fixtures')
+
+-- The checkout the package lives in: forge/tests/../..
+local Repository = assert(fs.parent(assert(fs.parent(Tests))))
+
+local function read(path: string): string
+  local text, problem = fs.readFileString(path)
+  if not text then error(`the suite cannot read {path}: {problem}`, 0) end
+
+  return text
+end
+
+local function write(path: string, text: string)
+  local written, problem = fs.writeFile(path, text, { createParents = true })
+  if not written then error(`the suite cannot write {path}: {problem}`, 0) end
+end
+
+--- Copies the tree at `from` to `to`, files and folders only.
+local function copyTree(from: string, to: string)
+  local made, problem = fs.mkdir(to, { recursive = true })
+  if not made then error(`the suite cannot make {to}: {problem}`, 0) end
+
+  local names = must(fs.list(from))
+  for _, name in names do
+    local source, target = fs.join(from, name), fs.join(to, name)
+    if fs.isDir(source) then
+      copyTree(source, target)
+    else
+      local copied, copyProblem = fs.copy(source, target)
+      if not copied then error(`the suite cannot copy {source}: {copyProblem}`, 0) end
+    end
+  end
+end
+
+--- The corpus, in file order, with \n turned into line breaks.
+local function cases(): { Case }
+  local document = toml.decode(read(fs.join(Fixtures, 'cases.toml'))) :: { case: { Case } }
+  for _, case in document.case do
+    for _, edit in case.edits do
+      if edit.find then edit.find = string.gsub(edit.find, '\\n', '\n') end
+      if edit.replace then edit.replace = string.gsub(edit.replace, '\\n', '\n') end
+    end
+  end
+
+  return document.case
+end
+
+--- The number of times `needle` occurs in `text`, taken literally.
+local function occurrences(text: string, needle: string): number
+  local count, start = 0, 1
+  while true do
+    local found = string.find(text, needle, start, true)
+    if not found then return count end
+
+    count += 1
+    start = found + 1
+  end
+end
+
+--- A fresh copy of fixtures/repo under `scratch`, with `case`'s edits made.
+local function broken(scratch: string, case: Case): string
+  local root = fs.join(scratch, case.id)
+  if fs.isDir(root) then must(fs.remove(root, { recursive = true })) end
+  copyTree(fs.join(Fixtures, 'repo'), root)
+
+  for _, edit in case.edits do
+    local path = fs.join(root, edit.file)
+    if edit.delete then
+      must(fs.remove(path))
+      continue
+    end
+
+    local find, replace = edit.find :: string, edit.replace :: string
+    local text = read(path)
+    local count = occurrences(text, find)
+    if count ~= 1 then error(`case {case.id}: {edit.file} has {count} of the text to replace`, 0) end
+
+    local at = string.find(text, find, 1, true) :: number
+    write(path, string.sub(text, 1, at - 1) .. replace .. string.sub(text, at + #find))
+  end
+
+  return root
+end
+
+--- The SHA-256 of the corpus, which the oracle records so a stale oracle is noticed.
+local function corpusDigest(): string return bytes.sha256(read(fs.join(Fixtures, 'cases.toml'))) end
+
+return table.freeze {
+  Tests = Tests,
+  Fixtures = Fixtures,
+  Repository = Repository,
+  must = must,
+  read = read,
+  write = write,
+  cases = cases,
+  broken = broken,
+  corpusDigest = corpusDigest,
+}

@@ -1,0 +1,21 @@
+name: Setup
+description: Install the toolchain.
+inputs:
+  toolchain:
+    description: Which one
+    default: stable
+outputs:
+  path:
+    description: Where
+    value: ${{ steps.install.outputs.path }}
+runs:
+  using: composite
+  steps:
+    - name: Install the toolchain
+      id: install
+      shell: bash
+      run: |
+        echo "path=/opt" >> "$GITHUB_OUTPUT"
+    - name: Report
+      shell: bash
+      run: echo done

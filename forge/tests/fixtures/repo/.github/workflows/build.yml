@@ -1,0 +1,54 @@
+name: Build
+
+on:
+  workflow_call:
+    inputs:
+      names:
+        description: "A JSON array: `[\"a\", \"b\"]`."
+        required: true
+        type: string
+      publish:
+        type: boolean
+        default: true
+    secrets:
+      TOKEN:
+        required: false
+    outputs:
+      version:
+        description: The version built
+        value: ${{ jobs.release.outputs.version }}
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: [ubuntu-24.04]
+    steps:
+      - uses: actions/checkout@v6
+      - name: Test
+        run: |
+          cargo test
+  release:
+    needs: test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-latest]
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.version.outputs.value }}
+    steps:
+      - id: version
+        name: Version
+        shell: bash
+        env:
+          NAMES: ${{ inputs.names }}
+        run: echo "value=1" >> "$GITHUB_OUTPUT"
+  publish:
+    needs: [test, release]
+    if: inputs.publish
+    uses: ./.github/workflows/notify.yaml
+    secrets: inherit

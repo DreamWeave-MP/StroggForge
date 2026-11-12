@@ -1,0 +1,15 @@
+reviewed = "2026-11-03"
+rust_policy = "Stable."
+llvm_policy = "Matching."
+reference = "None."
+
+[[platforms]]
+id = "linux-x64"
+name = "Linux x86_64"
+target = "x86_64-unknown-linux-gnu"
+workflow = "build"
+job = "release"
+baseline = "EL9"
+compiler = "clang"
+validation = "unknown"
+notes = "Fixture."
