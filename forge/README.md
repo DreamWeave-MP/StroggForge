@@ -50,16 +50,38 @@ is an unreadable workflow, as it was. `@jess/yaml`'s layout says whether the fil
 or a sequence, so `jobs: []`, `steps: {}` and `needs: {1: test}` are refused as serde refused them,
 and a tag is read through everywhere serde read through it, and nowhere else (`needs`).
 
-Where it decides differently, `tests/fixtures/cases.toml` says so with a `divergence`. One is left:
-a date is exactly `YYYY-MM-DD` in digits. Rust checked the length and parsed each part as an
-integer, so it also took `2026-+1-03` and `2024-2-029`.
+It reads YAML within serde_yaml_ng's limits: 128 nested collections, and alias jumps over the
+expanded document of at most 100 per parser event (a billion-laughs file is refused, as the Rust
+refused it). An alias to a scalar decodes to a plain value, so it counts as an event but not a jump;
+that can move the repetition threshold, never past a document the Rust refused by a wide margin.
+
+Its first finding is the error the Rust stopped on: TOML tables are walked in sorted key order, as
+toml 0.9 visited them, with missing fields after; the files in the order the Rust read them; actions
+in Rust's path order (`a/` before `a-b/`); a workflow's jobs, needs, name and contract in its
+loader's order. `tests/differential.jsl` holds it to that on every pair of corpus faults.
+
+Where it decides differently, it says so: `tests/fixtures/cases.toml` with a `divergence`, and
+`tests/fixtures/differential.toml` for the differential's trees.
+
+- A date is exactly `YYYY-MM-DD` in digits. Rust checked the length and parsed each part as an
+  integer, so it also took `2026-+1-03` and `2024-2-029`.
+- YAML scalars resolve by YAML 1.2's core schema, where serde_yaml_ng kept YAML 1.1 habits: `0b101`
+  and `-0x1` are strings, `007` is 7, `!t 12` holds the string `12`, `!!null ""` is null. Where such a
+  value is a name, a job key or a needs entry, the verdict changes with it.
+- An integer from 2^63 to 2^64-1, or `.nan` as a key, can't be held in Luau and is refused.
+- A byte order mark at the start of a file is allowed, as YAML 1.2 allows it.
+- Four `@jess/yaml` defects the differential found are fixed in
+  [jess#31](https://github.com/DreamWeave-MP/jess/pull/31) and recorded until the forge runs on it.
 
 `inspect` (`stroggforge.inspect/2`) is the golden a migration's review diffs. Beside each
 workflow's contract it keeps the whole `on` (every branch, path and tag filter, schedule and
 dispatch input), `defaults`, every job's fields including `permissions`, each step's
 `continue-on-error` and `timeout-minutes`, and `sha256:<hex>` of each step's `run` script; then one
 line per file under `scripts/`, `.github/scripts/`, `.github/container-images/` and
-`bump-version.sh` with its SHA-256. A changed trigger, permission, step or helper is a changed line.
+`bump-version.sh` with its SHA-256, and likewise every file under `.github/actions/` and
+`.github/action_templates/`, `package.json` and `package-lock.json`; and `run-name`, and an action's
+whole `runs` besides its steps. A changed trigger, permission, step or helper is a changed line.
+File modes aren't recorded: `@dream/fs` doesn't expose them, and git shows a mode change in review.
 
 `inspect` writes JSON as serde_json wrote it: floats as floats (`1.0`, `1e+300`), integers past 2^53
 exactly, a tag `!t` as `{"!t": value}`. Two differences remain, both pinned by the suite: `010` is
