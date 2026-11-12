@@ -1,0 +1,25 @@
+--!strict
+-- `forge-check [root] [--format json]`: validate the war room against the workflows, writing
+-- nothing. Exits 0 when valid, 65 with findings, 66 when an input can't be read.
+local commands = require '../commands'
+local common = require './common'
+local diagnostics = require '../diagnostics'
+
+local request, problem = common.arguments({ ... })
+if not request then return common.usage('forge-check', problem :: string) end
+
+local result = commands.check { root = request.root }
+local summary = { projects = result.projects, plans = result.plans, workflows = result.workflows }
+
+if request.json then
+  print(diagnostics.document('check', result.report, summary))
+else
+  common.stderr(diagnostics.text(result.report))
+  if result.ok then
+    print(`Validated {result.projects} projects, {result.plans} plans and {result.workflows} workflows.`)
+  else
+    common.stderr(`{#result.report} problem(s).`)
+  end
+end
+
+return common.status(result.report)

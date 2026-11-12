@@ -1,0 +1,335 @@
+--!strict
+-- The forge's suite. fixtures/repo is a small war room that passes every rule; cases.toml breaks it
+-- one rule per case, and oracle.json is the Rust war room's verdict on each broken copy. The
+-- checkout's own workflows are held to docs/vnext/golden/workflow-contracts.jsonl, which the Rust
+-- war room wrote. Run from the checkout's root: `jess package test forge`.
+local check = require '@dreamweave/forge/check'
+local commands = require '@dreamweave/forge/commands'
+local common = require '../src/cli/common'
+local diagnostics = require '@dreamweave/forge/diagnostics'
+local fs = require '@dream/fs'
+local inspect = require '@dreamweave/forge/inspect'
+local json = require '@jess/json'
+local style = require '@jess/style'
+local support = require './support'
+local test = require '@jess/test'
+local yaml = require '@jess/yaml'
+local expect = test.expect
+local suite = test.new()
+
+local scratchRoot = assert(rawget(_G :: any, 'scratchRoot') :: string?, 'the suite needs a scratchRoot')
+local Repo = fs.join(support.Fixtures, 'repo')
+
+type Oracle = { corpus_sha256: string, cases: { [string]: { ok: boolean, message: string } } }
+
+-- jess 0.3.0's @jess/yaml drops the last line break of a clip-chomped block scalar that ends the
+-- document (docs/vnext/FOR-101-audit.md). The checkout's rust-setup action ends in one.
+local YamlDropsFinalBreak = (yaml.decode('a: |\n  x\n') :: { a: string }).a == 'x'
+
+local function inspected(root: string): string
+  local result = commands.inspect { root = root }
+  expect(diagnostics.text(result.report)).toBe('')
+
+  return result.text :: string
+end
+
+local function lines(text: string): { string }
+  local out = {}
+  for line in string.gmatch(text, '([^\n]*)\n') do
+    table.insert(out, line)
+  end
+
+  return out
+end
+
+local function codes(report: diagnostics.Report): { string }
+  local out = {}
+  for _, diagnostic in report do
+    table.insert(out, diagnostic.code)
+  end
+
+  return out
+end
+
+suite.describe('inspect', function()
+  suite.it('writes the fixture checkout exactly as the Rust war room does', function()
+    expect(inspected(Repo)).toBe(support.read(fs.join(support.Fixtures, 'repo.inspect.jsonl')))
+  end)
+
+  suite.it('writes this checkout as the FOR-101 golden records it', function()
+    local golden = support.read(fs.join(support.Repository, 'docs/vnext/golden/workflow-contracts.jsonl'))
+    local written = inspected(support.Repository)
+    if not YamlDropsFinalBreak then
+      expect(written).toBe(golden)
+      return
+    end
+
+    -- With the defect, only the line holding such a scalar may differ, and only by the one escaped
+    -- line break that ended that string: one of the golden's `\n"` read as `"`.
+    local expected, actual = lines(golden), lines(written)
+    expect(#actual).toBe(#expected)
+    local differing = 0
+    for index, line in expected do
+      if actual[index] == line then continue end
+
+      differing += 1
+      local explained = false
+      local start = 1
+      while not explained do
+        local found = string.find(line, '\\n"', start, true)
+        if not found then break end
+
+        explained = actual[index] == string.sub(line, 1, found - 1) .. string.sub(line, found + 2)
+        start = found + 1
+      end
+      expect(explained).toBe(true)
+    end
+    expect(differing <= 1).toBeTruthy()
+  end)
+
+  suite.it('is the same document every time', function()
+    expect(inspected(support.Repository)).toBe(inspected(support.Repository))
+  end)
+
+  suite.it('starts with a header naming the schema and the file count', function()
+    local first = lines(inspected(Repo))[1]
+    local header = json.decode(first) :: { schema: string, files: number }
+    expect(header.schema).toBe(inspect.Schema)
+    expect(header.files).toBe(3)
+  end)
+
+  suite.it('reads every spelling of on', function()
+    expect(inspect.events 'push').toEqual { 'push' }
+    expect(inspect.events { 'push', 'pull_request' }).toEqual { 'pull_request', 'push' }
+    expect(inspect.events { workflow_call = jess.null, push = jess.null }).toEqual { 'push', 'workflow_call' }
+    expect(inspect.events(nil)).toEqual {}
+  end)
+
+  local function withEnv(name: string, entries: string): string
+    return support.broken(fs.join(scratchRoot, 'inspect'), {
+      id = name,
+      edits = { { file = '.github/workflows/notify.yaml', find = 'jobs:\n', replace = `env:\n{entries}jobs:\n` } },
+    })
+  end
+
+  suite.it('writes what serde_json writes for infinities and scalar keys', function()
+    local root = withEnv('scalars', '  INF: .inf\n  NAN: .nan\n  KEYS: {1.5: a, true: b, x: c}\n')
+    local written = inspected(root)
+    expect(written).toContain '"env":{"INF":null,"KEYS":{"1.5":"a","true":"b","x":"c"},"NAN":null}'
+  end)
+
+  suite.it('reads events and steps as the Rust did when keys are not strings', function()
+    local root = withEnv('keyed', '  E: 1\n')
+    local notify = fs.join(root, '.github/workflows/notify.yaml')
+    support.write(notify, (string.gsub(support.read(notify), 'on: %[push, workflow_dispatch%]', 'on: {1: push, workflow_dispatch: ~}')))
+    local action = fs.join(root, '.github/actions/setup/action.yml')
+    support.write(action, (string.gsub(support.read(action), '  steps:\n.*$', '  steps:\n    a: {name: one}\n')))
+    local written = inspected(root)
+    expect(written).toContain '"events":["workflow_dispatch"]'
+    expect(written).toContain '"steps":[],"using":"composite"'
+  end)
+
+  -- Where a Lua table forgets what the YAML said, the forge writes what it has, and inspect.jsl's
+  -- header lists the cases. Pinned, so a change on either side is a decision, not an accident. The
+  -- Rust wrote 1.0, "010", {"1":"a"} and {"!foo":"bar"}.
+  suite.it('writes what the decoded table holds where serde kept more', function()
+    local written = inspected(withEnv('forgotten', '  FLOAT: 1.0\n  OCTAL: 010\n  KEYED: {1: a}\n  TAGGED: !foo bar\n'))
+    expect(written).toContain '"FLOAT":1,'
+    expect(written).toContain '"KEYED":["a"],'
+    expect(written).toContain '"OCTAL":10,'
+    expect(written).toContain '"TAGGED":{"tag":"!foo","value":"bar"}'
+  end)
+
+  suite.it('reports what JSON cannot hold exactly instead of crashing', function()
+    for _, entry in { { 'huge', '  BIG: 9007199254740993\n' }, { 'complex', '  ? [a, b]\n  : c\n' } } do
+      local result = commands.inspect { root = withEnv(entry[1], entry[2]) }
+      expect(result.ok).toBe(false)
+      expect(result.text).toBeNil()
+      expect(codes(result.report)).toContain 'FORGE-E057'
+    end
+  end)
+
+  suite.it('keeps a step contract but never its script', function()
+    local steps = inspect.steps { { name = 'Build', id = 'build', run = 'echo secret' }, { uses = 'actions/checkout@v6' } }
+    expect(steps).toEqual {
+      { id = 'build', name = 'Build', run = true },
+      { uses = 'actions/checkout@v6', run = false },
+    }
+    expect((string.find(inspected(Repo), 'GITHUB_OUTPUT', 1, true))).toBeNil()
+  end)
+end)
+
+suite.describe('check', function()
+  suite.it('accepts the fixture checkout', function()
+    local result = commands.check { root = Repo }
+    expect(diagnostics.text(result.report)).toBe('')
+    expect(result.ok).toBe(true)
+    expect({ result.projects, result.plans, result.workflows }).toEqual { 3, 2, 3 }
+  end)
+
+  suite.it('accepts this checkout', function()
+    local result = commands.check { root = support.Repository }
+    expect(diagnostics.text(result.report)).toBe('')
+    expect(result.ok).toBe(true)
+  end)
+
+  local oracle = json.decode(support.read(fs.join(support.Fixtures, 'oracle.json'))) :: Oracle
+  local scratch = fs.join(scratchRoot, 'cases')
+
+  suite.it('holds an oracle recorded for this corpus', function()
+    -- Stale means cases.toml changed after tests/oracle.jsl last ran.
+    expect(oracle.corpus_sha256).toBe(support.corpusDigest())
+  end)
+
+  local corpus = support.corpus()
+
+  for _, case in corpus.case do
+    suite.it(`refuses {case.id} with {case.code}`, function()
+      local root = support.broken(scratch, case)
+      local result = commands.check { root = root }
+      expect(result.ok).toBe(false)
+      expect(codes(result.report)).toContain(case.code)
+      for _, diagnostic in result.report do
+        expect(diagnostics.Codes[diagnostic.code]).toBeTruthy()
+      end
+
+      -- Agreement is the default, for the reason the case is about; a divergence is a decision the
+      -- corpus records with its own reason.
+      local verdict = oracle.cases[case.id]
+      expect(verdict).toBeTruthy()
+      expect(verdict.ok).toBe(case.divergence ~= nil)
+      if not case.divergence then expect(verdict.message).toContain(case.rust) end
+    end)
+  end
+
+  for _, case in corpus.accept do
+    suite.it(`accepts {case.id}`, function()
+      local root = support.broken(scratch, case)
+      local result = commands.check { root = root }
+      expect(diagnostics.text(result.report)).toBe('')
+
+      local verdict = oracle.cases[case.id]
+      expect(verdict).toBeTruthy()
+      expect(verdict.ok).toBe(case.divergence == nil)
+      if case.divergence then expect(verdict.message).toContain(case.rust) end
+    end)
+  end
+
+  suite.it('gives every corpus case a reason the Rust shares, unless it diverges', function()
+    for _, case in corpus.case do
+      expect(`{case.id}: {tostring(case.divergence ~= nil or case.rust ~= nil)}`).toBe(`{case.id}: true`)
+    end
+  end)
+
+  suite.it('exercises every diagnostic code', function()
+    -- FORGE-E057 is inspect's; its cases are under inspect.
+    local used: { [string]: boolean } = { ['FORGE-E057'] = true }
+    for _, case in corpus.case do
+      used[case.code :: string] = true
+    end
+
+    for code in diagnostics.Codes do
+      expect(`{code}: {tostring(used[code] == true)}`).toBe(`{code}: true`)
+    end
+  end)
+
+  suite.it('reports findings in one fixed order', function()
+    local root = support.broken(fs.join(scratchRoot, 'order'), {
+      id = 'order',
+      edits = {
+        { file = 'war-room/ecosystem.toml', find = 'scope = "Fixture."', replace = 'scope = "Fixture."\nzebra = 1\nantelope = 2' },
+        { file = '.github/workflows/build.yml', find = 'needs: test', replace = 'needs: zz' },
+        { file = '.github/workflows/build.yml', find = 'needs: [test, release]', replace = 'needs: [aa, release]' },
+      },
+    })
+
+    expect(diagnostics.text(commands.check({ root = root }).report)).toBe(table.concat({
+      'error[FORGE-E010]: war-room/ecosystem.toml (antelope): unknown field antelope',
+      'error[FORGE-E010]: war-room/ecosystem.toml (zebra): unknown field zebra',
+      'error[FORGE-E051]: .github/workflows/build.yml (jobs.publish.needs): build/publish: missing needed job aa',
+      'error[FORGE-E051]: .github/workflows/build.yml (jobs.release.needs): build/release: missing needed job zz',
+    }, '\n'))
+  end)
+
+  suite.it('reports every violation, not only the first', function()
+    local root = support.broken(fs.join(scratchRoot, 'several'), {
+      id = 'several',
+      code = 'FORGE-E021',
+      edits = {
+        { file = 'war-room/plans.toml', find = 'reviewed = "2026-11-01"', replace = 'reviewed = "2026-11-1"' },
+        { file = 'war-room/toolchains.toml', find = 'job = "release"', replace = 'job = "ship"' },
+      },
+    })
+    local found = codes(commands.check({ root = root }).report)
+    expect(found).toContain 'FORGE-E021'
+    expect(found).toContain 'FORGE-E053'
+  end)
+
+  suite.it('knows a calendar date', function()
+    expect(check.isDate '2024-02-29').toBe(true)
+    expect(check.isDate '2026-02-29').toBe(false)
+    expect(check.isDate '2026-9-28').toBe(false)
+    expect(check.isDate '2026-00-10').toBe(false)
+    expect(check.isDate '2026-12-31').toBe(true)
+    expect(check.isDate '2026-+9-28').toBe(false)
+  end)
+end)
+
+suite.describe('diagnostics', function()
+  suite.it('writes stroggforge.diagnostics/1', function()
+    local report = diagnostics.new()
+    diagnostics.add(report, 'FORGE-E021', 'war-room/plans.toml', 'invalid date', 'plans[1].reviewed')
+    local document = json.decode(diagnostics.document('check', report, { projects = 1 })) :: any
+    expect(document.schema).toBe 'stroggforge.diagnostics/1'
+    expect(document.command).toBe 'check'
+    expect(document.ok).toBe(false)
+    expect(document.diagnostics[1].code).toBe 'FORGE-E021'
+    expect(document.diagnostics[1].where).toBe 'plans[1].reviewed'
+    expect(document.summary.projects).toBe(1)
+  end)
+
+  suite.it('refuses a code nobody declared', function()
+    expect(function() diagnostics.add(diagnostics.new(), 'FORGE-E999', 'x', 'y') end).toThrow()
+  end)
+end)
+
+suite.describe('command line', function()
+  suite.it('reads a root and a format', function()
+    local parsed = common.arguments { 'some/root', '--format', 'json' }
+    expect(parsed).toEqual { root = 'some/root', json = true }
+    local _, problem = common.arguments { '--format', 'xml' }
+    expect(problem).toBe '--format takes json or text'
+    local _, extra = common.arguments { 'a', 'b' }
+    expect(extra).toBe 'unexpected argument b'
+  end)
+
+  suite.it('ends a report with the sysexits status for it', function()
+    local report = diagnostics.new()
+    expect(common.status(report)).toBe(0)
+    diagnostics.add(report, 'FORGE-E021', 'x', 'y')
+    expect(common.status(report)).toBe(65)
+    diagnostics.add(report, 'FORGE-E001', 'x', 'y')
+    expect(common.status(report)).toBe(66)
+  end)
+end)
+
+suite.describe('style', function()
+  suite.it('holds every source to @jess/style', function()
+    local forge = assert(fs.parent(support.Tests))
+    local walked = support.must(fs.walk(forge))
+    local findings = {}
+    for _, walkedPath in walked.paths do
+      if fs.extension(walkedPath) ~= 'jsl' then continue end
+
+      local path = if fs.isFile(walkedPath) then walkedPath else fs.join(forge, walkedPath)
+
+      for _, finding in style.check(support.read(path)) do
+        table.insert(findings, style.format(finding, path))
+      end
+    end
+
+    expect(table.concat(findings, '\n')).toBe('')
+  end)
+end)
+
+return suite

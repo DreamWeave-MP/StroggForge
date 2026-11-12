@@ -1,0 +1,15 @@
+[workflow.build]
+purpose = "Build."
+intended_for = "Tools."
+release_behavior = "Releases."
+artifacts = ["archives"]
+assumptions = []
+failures = []
+example = "See the template."
+
+[[stage]]
+id = "compile"
+name = "Compile"
+kind = "tool"
+summary = "Compiles."
+jobs = ["build/release", "setup/Install the toolchain"]

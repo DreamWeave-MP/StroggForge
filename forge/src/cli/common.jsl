@@ -1,0 +1,67 @@
+--!strict
+-- What every forge command line shares: its arguments, the root it works on, and how a report
+-- reaches the terminal.
+local diagnostics = require '../diagnostics'
+local fs = require '@dream/fs'
+local process = require '@dream/process'
+
+export type Arguments = { root: string, json: boolean }
+
+--- Reads `[root] [--format json|text]`. nil and a message on anything else.
+local function arguments(argv: { string }): (Arguments?, string?)
+  local root: string? = nil
+  local json = false
+  local index = 1
+  while index <= #argv do
+    local argument = argv[index]
+    if argument == '--format' then
+      local format = argv[index + 1]
+      if format ~= 'json' and format ~= 'text' then return nil, '--format takes json or text' end
+
+      json = format == 'json'
+      index += 2
+      continue
+    end
+
+    if string.sub(argument, 1, 1) == '-' or root then return nil, `unexpected argument {argument}` end
+
+    root = argument
+    index += 1
+  end
+
+  if root then return { root = root, json = json }, nil end
+
+  local cwd, problem = fs.cwd()
+  if not cwd then return nil, `no working folder: {problem}` end
+
+  return { root = cwd, json = json }, nil
+end
+
+local function stderr(text: string)
+  if text == '' then return end
+
+  process.write('stderr', text .. '\n')
+end
+
+--- Prints a usage error and gives the status for it.
+local function usage(command: string, problem: string): number
+  stderr(`{command}: {problem}`)
+  stderr(`usage: {command} [root] [--format json|text]`)
+
+  return diagnostics.Status.usage
+end
+
+--- The status a report ends with: missing input over invalid input over success.
+local function status(report: diagnostics.Report): number
+  if diagnostics.has(report, 'FORGE-E001') then return diagnostics.Status.missing end
+  if diagnostics.hasErrors(report) then return diagnostics.Status.invalid end
+
+  return diagnostics.Status.ok
+end
+
+return table.freeze {
+  arguments = arguments,
+  stderr = stderr,
+  usage = usage,
+  status = status,
+}

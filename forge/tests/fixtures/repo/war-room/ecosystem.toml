@@ -1,0 +1,84 @@
+# A small war room that passes every rule. tests/fixtures/cases.toml breaks it one way per case.
+schema = 1
+reviewed = "2026-11-12"
+scope = "Fixture."
+
+[[updates]]
+date = "2026-11-11"
+title = "Builds move"
+detail = "Something consumers notice."
+commits = ["abc1234"]
+plan = "rollout"
+
+[[projects]]
+id = "forge"
+name = "Forge"
+kind = "infrastructure"
+domain = "rust"
+summary = "Builds things."
+repository = "https://example.test/forge"
+languages = ["YAML"]
+lifecycle = "active"
+maturity = "established"
+owners = ["maintainers"]
+docs = []
+packages = []
+distribution = ["github-pages"]
+stroggforge = []
+approach = "specialist"
+contribution_areas = []
+
+[[projects]]
+id = "tool"
+name = "Tool"
+kind = "application"
+domain = "rust"
+summary = "Uses the forge."
+languages = ["Rust"]
+lifecycle = "active"
+maturity = "evolving"
+owners = ["maintainers"]
+docs = []
+packages = ["tool"]
+distribution = ["github-releases", "crates-io"]
+stroggforge = ["build"]
+approach = "introductory"
+contribution_areas = ["tests"]
+
+[[projects]]
+id = "old-tool"
+name = "Old Tool"
+kind = "application"
+domain = "rust"
+summary = "Replaced."
+languages = ["Rust"]
+lifecycle = "superseded"
+maturity = "historical"
+owners = []
+docs = []
+packages = []
+distribution = ["source"]
+stroggforge = []
+approach = "specialist"
+contribution_areas = []
+
+[[relationships]]
+from = "tool"
+to = "forge"
+kind = "documentation"
+label = "built by"
+
+[[relationships]]
+from = "old-tool"
+to = "tool"
+kind = "successor"
+label = "replaced by"
+
+[[retired]]
+id = "old-image"
+name = "Old image"
+kind = "build-environment"
+summary = "An old builder."
+location = "nowhere"
+successor = { platform = "linux-x64" }
+reason = "Too old."

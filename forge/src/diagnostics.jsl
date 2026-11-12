@@ -1,0 +1,134 @@
+--!strict
+-- What the forge reports and how it ends. A diagnostic's code is the contract: tests and CI match
+-- codes, people read messages, and a message may be reworded without notice. Exit statuses follow
+-- sysexits so a findings failure (65) is never confused with the forge crashing (jess's own 1).
+local json = require '@jess/json'
+
+export type Severity = 'error' | 'warning'
+
+export type Diagnostic = {
+  code: string,
+  severity: Severity,
+  path: string,
+  where: string?,
+  message: string,
+}
+
+export type Report = { Diagnostic }
+
+local Status = table.freeze {
+  ok = 0,
+  usage = 64,
+  invalid = 65,
+  missing = 66,
+  unwritable = 74,
+  refused = 77,
+}
+
+-- Every code the forge emits, with what it means. Adding one is a contract change.
+local Codes = table.freeze({
+  ['FORGE-E001'] = 'a file could not be read',
+  ['FORGE-E002'] = 'a file is not valid TOML or YAML',
+  ['FORGE-E010'] = 'a field this record does not have',
+  ['FORGE-E011'] = 'a required field is missing',
+  ['FORGE-E012'] = 'a field has the wrong type',
+  ['FORGE-E013'] = 'a value outside its closed set',
+  ['FORGE-E020'] = 'an unsupported schema version',
+  ['FORGE-E021'] = 'not a calendar date written YYYY-MM-DD',
+  ['FORGE-E022'] = 'an ID that is not lowercase letters, digits and hyphens',
+  ['FORGE-E023'] = 'a duplicate ID',
+  ['FORGE-E030'] = 'a project names a workflow that is not reusable',
+  ['FORGE-E031'] = 'a reference to an unknown project',
+  ['FORGE-E032'] = 'a relationship that points at itself',
+  ['FORGE-E033'] = 'a duplicate relationship',
+  ['FORGE-E034'] = 'a successor relationship from a project that is still current',
+  ['FORGE-E035'] = 'a cycle',
+  ['FORGE-E040'] = 'a plan names an unknown prerequisite',
+  ['FORGE-E041'] = 'a plan claims done before its prerequisites are',
+  ['FORGE-E042'] = 'a plan is blocked exactly when a requirement or prerequisite is blocked',
+  ['FORGE-E043'] = 'a plan claims done with unfinished requirements',
+  ['FORGE-E044'] = 'a reference to an unknown platform',
+  ['FORGE-E045'] = 'an update names an unknown plan',
+  ['FORGE-E050'] = 'a workflow or action without a name',
+  ['FORGE-E051'] = 'a job needs a job that does not exist',
+  ['FORGE-E052'] = 'a needs value that is not a job name or a list of them',
+  ['FORGE-E053'] = 'a platform names a job its workflow does not have',
+  ['FORGE-E054'] = 'notes for a workflow that does not exist',
+  ['FORGE-E055'] = 'a stage reference that does not resolve',
+  ['FORGE-E056'] = 'a workflow or action not shaped as GitHub Actions reads it',
+  ['FORGE-E057'] = 'a workflow value inspect cannot write as JSON exactly',
+} :: { [string]: string })
+
+--- A new, empty report.
+local function new(): Report return {} end
+
+--- Records an error under `code`, which must be one of `Codes`.
+local function add(report: Report, code: string, path: string, message: string, where: string?)
+  assert(Codes[code], `unknown diagnostic code {code}`)
+  local diagnostic: Diagnostic = { code = code, severity = 'error', path = path, where = where, message = message }
+  table.insert(report, diagnostic)
+end
+
+local function hasErrors(report: Report): boolean
+  for _, diagnostic in report do
+    if diagnostic.severity == 'error' then return true end
+  end
+
+  return false
+end
+
+--- Whether `report` holds a diagnostic with `code`.
+local function has(report: Report, code: string): boolean
+  for _, diagnostic in report do
+    if diagnostic.code == code then return true end
+  end
+
+  return false
+end
+
+--- One line per diagnostic, as a person reads it on stderr.
+local function text(report: Report): string
+  local lines = {}
+  for _, diagnostic in report do
+    local where = if diagnostic.where then ` ({diagnostic.where})` else ''
+    table.insert(
+      lines,
+      `{diagnostic.severity}[{diagnostic.code}]: {diagnostic.path}{where}: {diagnostic.message}`
+    )
+  end
+
+  return table.concat(lines, '\n')
+end
+
+--- The `stroggforge.diagnostics/1` document.
+local function document(command: string, report: Report, summary: { [string]: number }): string
+  local diagnostics = {}
+  for _, diagnostic in report do
+    table.insert(diagnostics, {
+      code = diagnostic.code,
+      severity = diagnostic.severity,
+      path = diagnostic.path,
+      where = diagnostic.where,
+      message = diagnostic.message,
+    })
+  end
+
+  return json.encodeTable {
+    schema = 'stroggforge.diagnostics/1',
+    command = command,
+    ok = not hasErrors(report),
+    diagnostics = diagnostics,
+    summary = summary,
+  }
+end
+
+return table.freeze {
+  Status = Status,
+  Codes = Codes,
+  new = new,
+  add = add,
+  has = has,
+  hasErrors = hasErrors,
+  text = text,
+  document = document,
+}

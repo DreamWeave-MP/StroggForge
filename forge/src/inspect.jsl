@@ -1,0 +1,206 @@
+--!strict
+-- `stroggforge.inspect/1`: the workflow and action contracts as JSON Lines. A header, then one line
+-- per file in bytewise path order. Object keys are sorted and an empty mapping is written `[]`, which
+-- is what @jess/json's table writer does and what the Rust war room's `inspect` was written to
+-- match. A step keeps its contract fields and whether it runs a script, never the script itself.
+--
+-- The Rust war room's `inspect` is the reference: docs/vnext/golden/workflow-contracts.jsonl.
+-- The two agree byte for byte on this checkout's workflows and on the fixture's. Where they can't,
+-- because a Lua table forgets what the YAML said, they differ, and the forge says so:
+--
+-- - a float with no fraction (`30.0`) is written as an integer, and other floats as Luau formats them;
+-- - `010` is the integer 10, as YAML 1.2's core schema reads it, where serde_yaml read a string;
+-- - a mapping keyed 1 to n is written as the list it decodes to;
+-- - a tagged value is written as the table @jess/yaml makes of it;
+-- - an integer past 2^53, or a key that is itself a collection, is FORGE-E057, not output.
+--
+-- Unlike the Rust, which loaded the whole war room first, this reads only .github: it works on any
+-- repository that has workflows.
+local diagnostics = require './diagnostics'
+local json = require '@jess/json'
+local workflows = require './workflows'
+
+local Schema = 'stroggforge.inspect/1'
+
+local canonical: (unknown, diagnostics.Report, string, string) -> unknown
+
+local StepKeys = table.freeze { 'id', 'name', 'uses', 'if', 'shell', 'with', 'env', 'working-directory' }
+
+-- A missing value is written as JSON null; jess.null already is one.
+local function raw(value: unknown): unknown
+  if value == nil then return jess.null end
+
+  return value
+end
+
+local function steps(value: unknown): { unknown }
+  -- Only a sequence: the Rust wrote steps given as a mapping as none, and so does check.
+  if not workflows.isSequence(value) then return {} end
+
+  local out = {}
+  for _, step in value :: { unknown } do
+    local fields = if type(step) == 'table' then step :: { [string]: unknown } else {}
+    local entry: { [string]: unknown } = {}
+    for _, key in StepKeys do
+      entry[key] = fields[key]
+    end
+    entry.run = fields.run ~= nil
+    table.insert(out, entry)
+  end
+
+  return out
+end
+
+--- The event names `on` lists, sorted, whichever of its three spellings it uses.
+local function events(on: unknown): { string }
+  local names = {}
+  if type(on) == 'string' then
+    table.insert(names, on)
+  elseif workflows.isSequence(on) then
+    for _, name in on :: { unknown } do
+      if type(name) == 'string' then table.insert(names, name) end
+    end
+  elseif type(on) == 'table' then
+    -- A mapping's string keys; the Rust skipped any other key.
+    for key in on :: { [unknown]: unknown } do
+      if type(key) == 'string' then table.insert(names, key) end
+    end
+  end
+  table.sort(names)
+
+  return names
+end
+
+local function field(document: unknown, key: string): unknown
+  if type(document) ~= 'table' then return nil end
+
+  return (document :: { [string]: unknown })[key]
+end
+
+local function unrepresentable(report: diagnostics.Report, path: string, where: string, what: string)
+  diagnostics.add(report, 'FORGE-E057', path, `{what} has no exact JSON`, if where == '' then nil else where)
+end
+
+-- What a value JSON can't hold exactly is, for the report. /yaml decodes an integer past 2^53
+-- as an integer rather than a number, and the table writer has no exact form for one.
+local function describe(value: unknown): string
+  if typeof(value) == 'integer' then return 'an integer past 2^53' end
+  if type(value) == 'table' then return 'a collection' end
+
+  return `a value of type {typeof(value)}`
+end
+
+local function scalarKey(key: unknown): string?
+  if type(key) == 'string' then return key end
+  if type(key) == 'boolean' then return tostring(key) end
+  if type(key) == 'number' and key == key and math.abs(key) ~= math.huge then return tostring(key) end
+
+  return nil
+end
+
+--- `value` as @jess/json's table writer can write it, the way serde_json writes the YAML the Rust
+--- read: a NaN or infinity is null, a mapping's scalar keys become strings. What neither can say
+--- exactly (an integer past 2^53, a key that is itself a collection) is reported, written as null,
+--- and never raised.
+function canonical(value: unknown, report: diagnostics.Report, path: string, where: string): unknown
+  if value == nil or value == jess.null or type(value) == 'string' or type(value) == 'boolean' then
+    return value
+  end
+
+  if type(value) == 'number' then
+    if value ~= value or math.abs(value) == math.huge then return jess.null end
+
+    return value
+  end
+
+  if type(value) ~= 'table' then
+    unrepresentable(report, path, where, describe(value))
+    return jess.null
+  end
+
+  local source = value :: { [unknown]: unknown }
+  local count = 0
+  for _ in source do
+    count += 1
+  end
+
+  local out: { [unknown]: unknown } = {}
+  if count == #(source :: { unknown }) then
+    for index, element in source :: { unknown } do
+      out[index] = canonical(element, report, path, `{where}[{index}]`)
+    end
+
+    return out
+  end
+
+  for key, element in source do
+    local name = scalarKey(key)
+    if not name then
+      unrepresentable(report, path, where, `a mapping key that is {describe(key)}`)
+      return jess.null
+    end
+
+    out[name] = canonical(element, report, path, if where == '' then name else `{where}.{name}`)
+  end
+
+  return out
+end
+
+local function line(workflow: workflows.Workflow, report: diagnostics.Report): string
+  local document = workflow.document
+  local out: { [string]: unknown } = {
+    id = workflow.id,
+    path = workflow.path,
+    kind = if workflow.action then 'action' else 'workflow',
+    name = workflow.name,
+    callable = workflow.callable,
+  }
+
+  if workflow.action then
+    local runs = document.runs
+    out.inputs = raw(document.inputs)
+    out.outputs = raw(document.outputs)
+    out.using = raw(field(runs, 'using'))
+    out.steps = steps(field(runs, 'steps'))
+
+    return json.encodeTable(canonical(out, report, workflow.path, ''))
+  end
+
+  local call = field(document.on, 'workflow_call')
+  out.events = events(document.on)
+  out.inputs = raw(field(call, 'inputs'))
+  out.secrets = raw(field(call, 'secrets'))
+  out.outputs = raw(field(call, 'outputs'))
+  out.permissions = raw(document.permissions)
+  out.concurrency = raw(document.concurrency)
+  out.env = raw(document.env)
+
+  local jobs: { [string]: unknown } = {}
+  for name, job in workflow.jobs do
+    local entry: { [string]: unknown } = {}
+    for key, value in job.document do
+      entry[key] = if key == 'steps' then steps(value) else value
+    end
+    jobs[name] = entry
+  end
+  out.jobs = jobs
+
+  return json.encodeTable(canonical(out, report, workflow.path, ''))
+end
+
+--- The whole document for `loaded`, newline-terminated.
+local function render(loaded: { workflows.Workflow }, report: diagnostics.Report): string
+  local lines = { json.encodeTable { schema = Schema, files = #loaded } }
+  for _, workflow in loaded do
+    table.insert(lines, line(workflow, report))
+  end
+
+  return table.concat(lines, '\n') .. '\n'
+end
+
+return table.freeze {
+  Schema = Schema,
+  render = render,
+  events = events,
+  steps = steps,
+}

@@ -1,0 +1,476 @@
+# The negative corpus: each case copies fixtures/repo, makes its edits, and must fail `check` with
+# `code`. Each edit replaces text that occurs exactly once in its file, or deletes the file. The
+# edits are TOML literal strings, so the two characters \n in `find` and `replace` stand for a line
+# break; nothing else is escaped. An edit with an empty `find` creates its file, `delete` removes it,
+# and `mkdir` makes it a folder.
+#
+# The Rust war room's verdict on the same tree is recorded in oracle.json by tests/oracle.jsl. A
+# case agrees with it unless it names a `divergence`: why the forge decides differently, on purpose.
+# `rust` is part of the reason the Rust gave, so a case cannot pass because the Rust refused the
+# tree for some other reason.
+
+[[case]]
+id = "unknown-field"
+rust = 'unknown field `colour`, expected one of `schema`, `reviewed`'
+code = "FORGE-E010"
+edits = [{ file = "war-room/ecosystem.toml", find = 'scope = "Fixture."', replace = 'scope = "Fixture."\ncolour = "red"' }]
+
+[[case]]
+id = "missing-field"
+rust = 'missing field `summary`'
+code = "FORGE-E011"
+edits = [{ file = "war-room/ecosystem.toml", find = 'summary = "Builds things."\n', replace = '' }]
+
+[[case]]
+id = "integer-for-string"
+rust = 'invalid type: integer `3`, expected a string'
+code = "FORGE-E012"
+edits = [{ file = "war-room/ecosystem.toml", find = 'scope = "Fixture."', replace = 'scope = 3' }]
+
+[[case]]
+id = "datetime-for-string"
+rust = 'invalid type: map, expected a string'
+code = "FORGE-E012"
+edits = [{ file = "war-room/ecosystem.toml", find = 'reviewed = "2026-11-12"', replace = 'reviewed = 2026-11-12' }]
+
+[[case]]
+id = "float-for-integer"
+rust = 'invalid type: floating point `1.0`, expected u32'
+code = "FORGE-E012"
+edits = [{ file = "war-room/ecosystem.toml", find = 'schema = 1', replace = 'schema = 1.0' }]
+
+[[case]]
+id = "string-for-list"
+rust = 'invalid type: string "abc1234", expected a sequence'
+code = "FORGE-E012"
+edits = [{ file = "war-room/ecosystem.toml", find = 'commits = ["abc1234"]', replace = 'commits = "abc1234"' }]
+
+[[case]]
+id = "unsupported-schema"
+rust = 'war-room/ecosystem.toml: unsupported schema 2'
+code = "FORGE-E020"
+edits = [{ file = "war-room/ecosystem.toml", find = 'schema = 1', replace = 'schema = 2' }]
+
+[[case]]
+id = "unknown-kind"
+rust = 'unknown variant `vibes`, expected one of `foundation`, `appl'
+code = "FORGE-E013"
+edits = [{ file = "war-room/ecosystem.toml", find = 'kind = "infrastructure"', replace = 'kind = "vibes"' }]
+
+[[case]]
+id = "unknown-distribution"
+rust = 'unknown variant `ftp`, expected one of `crates-io`, `github-'
+code = "FORGE-E013"
+edits = [{ file = "war-room/ecosystem.toml", find = 'distribution = ["github-pages"]', replace = 'distribution = ["ftp"]' }]
+
+[[case]]
+id = "variant-two-keys"
+rust = 'wanted exactly 1 element, more than 1 element'
+code = "FORGE-E012"
+edits = [{ file = "war-room/ecosystem.toml", find = 'successor = { platform = "linux-x64" }', replace = 'successor = { platform = "linux-x64", project = "tool" }' }]
+
+[[case]]
+id = "variant-unknown-key"
+rust = 'unknown variant `planet`, expected `project` or `platform`'
+code = "FORGE-E013"
+edits = [{ file = "war-room/ecosystem.toml", find = 'successor = { platform = "linux-x64" }', replace = 'successor = { planet = "linux-x64" }' }]
+
+[[case]]
+id = "not-a-leap-year"
+rust = 'invalid date "2026-02-29"; expected YYYY-MM-DD'
+code = "FORGE-E021"
+edits = [{ file = "war-room/ecosystem.toml", find = 'reviewed = "2026-11-12"', replace = 'reviewed = "2026-02-29"' }]
+
+[[case]]
+id = "unpadded-date"
+rust = 'invalid date "2026-11-1"; expected YYYY-MM-DD'
+code = "FORGE-E021"
+edits = [{ file = "war-room/plans.toml", find = 'reviewed = "2026-11-01"', replace = 'reviewed = "2026-11-1"' }]
+
+[[case]]
+id = "impossible-target-date"
+rust = 'invalid date "2027-02-30"; expected YYYY-MM-DD'
+code = "FORGE-E021"
+edits = [{ file = "war-room/plans.toml", find = 'target_date = "2027-02-28"', replace = 'target_date = "2027-02-30"' }]
+
+[[case]]
+id = "signed-date"
+code = "FORGE-E021"
+divergence = "Rust parses each date part with u32::from_str, which takes a leading +; a date is digits."
+edits = [{ file = "war-room/toolchains.toml", find = 'reviewed = "2026-11-03"', replace = 'reviewed = "2026-+1-03"' }]
+
+[[case]]
+id = "uppercase-id"
+rust = 'invalid project/retired ID "Old-image"; use lowercase letter'
+code = "FORGE-E022"
+edits = [{ file = "war-room/ecosystem.toml", find = 'id = "old-image"', replace = 'id = "Old-image"' }]
+
+[[case]]
+id = "duplicate-project"
+rust = 'duplicate project/retired ID tool'
+code = "FORGE-E023"
+edits = [{ file = "war-room/ecosystem.toml", find = 'id = "old-image"', replace = 'id = "tool"' }]
+
+[[case]]
+id = "duplicate-requirement"
+rust = 'duplicate requirement ID proof'
+code = "FORGE-E023"
+edits = [{ file = "war-room/plans.toml", find = 'id = "config"', replace = 'id = "proof"' }]
+
+[[case]]
+id = "calls-a-plain-workflow"
+rust = 'project tool: notify is not a reusable StroggForge workflow'
+code = "FORGE-E030"
+edits = [{ file = "war-room/ecosystem.toml", find = 'stroggforge = ["build"]', replace = 'stroggforge = ["notify"]' }]
+
+[[case]]
+id = "calls-a-missing-workflow"
+rust = 'project tool: deployToMars is not a reusable StroggForge wor'
+code = "FORGE-E030"
+edits = [{ file = "war-room/ecosystem.toml", find = 'stroggforge = ["build"]', replace = 'stroggforge = ["deployToMars"]' }]
+
+[[case]]
+id = "relationship-to-nowhere"
+rust = 'relationship: unknown project nowhere'
+code = "FORGE-E031"
+edits = [{ file = "war-room/ecosystem.toml", find = 'to = "forge"', replace = 'to = "nowhere"' }]
+
+[[case]]
+id = "relationship-to-itself"
+rust = 'relationship tool -> tool points at itself'
+code = "FORGE-E032"
+edits = [{ file = "war-room/ecosystem.toml", find = 'to = "forge"', replace = 'to = "tool"' }]
+
+[[case]]
+id = "duplicate-relationship"
+rust = 'duplicate relationship tool -> forge'
+code = "FORGE-E033"
+edits = [{ file = "war-room/ecosystem.toml", find = 'label = "built by"', replace = 'label = "built by"\n\n[[relationships]]\nfrom = "tool"\nto = "forge"\nkind = "documentation"\nlabel = "again"' }]
+
+[[case]]
+id = "successor-of-a-current-project"
+rust = 'old-tool has a successor but is not superseded or archived'
+code = "FORGE-E034"
+edits = [{ file = "war-room/ecosystem.toml", find = 'lifecycle = "superseded"', replace = 'lifecycle = "active"' }]
+
+[[case]]
+id = "successor-cycle"
+rust = 'successor cycle among [("old-tool", "tool"), ("tool", "old-t'
+code = "FORGE-E035"
+edits = [
+  { file = "war-room/ecosystem.toml", find = 'summary = "Uses the forge."\nlanguages = ["Rust"]\nlifecycle = "active"', replace = 'summary = "Uses the forge."\nlanguages = ["Rust"]\nlifecycle = "archived"' },
+  { file = "war-room/ecosystem.toml", find = 'label = "replaced by"', replace = 'label = "replaced by"\n\n[[relationships]]\nfrom = "tool"\nto = "old-tool"\nkind = "successor"\nlabel = "and back"' },
+]
+
+[[case]]
+id = "unknown-prerequisite"
+rust = 'plan release-1: unknown prerequisite ghost'
+code = "FORGE-E040"
+edits = [{ file = "war-room/plans.toml", find = 'depends_on = []\nplatforms = []', replace = 'depends_on = ["ghost"]\nplatforms = []' }]
+
+[[case]]
+id = "ready-before-prerequisite"
+rust = 'plan release-1 is Ready but prerequisite rollout is not fini'
+code = "FORGE-E041"
+edits = [{ file = "war-room/plans.toml", find = 'state = "active"\nreviewed = "2026-11-02"\ntarget_date = "2027-02-28"\ndepends_on = []', replace = 'state = "ready"\nreviewed = "2026-11-02"\ntarget_date = "2027-02-28"\ndepends_on = ["rollout"]' }]
+
+[[case]]
+id = "blocked-without-a-blocker"
+rust = 'plan release-1: a plan is blocked exactly when a requirement'
+code = "FORGE-E042"
+edits = [{ file = "war-room/plans.toml", find = 'state = "active"\nreviewed = "2026-11-02"', replace = 'state = "blocked"\nreviewed = "2026-11-02"' }]
+
+[[case]]
+id = "active-with-a-blocker"
+rust = 'plan rollout: a plan is blocked exactly when a requirement o'
+code = "FORGE-E042"
+edits = [{ file = "war-room/plans.toml", find = 'state = "blocked"\nreviewed = "2026-11-01"', replace = 'state = "active"\nreviewed = "2026-11-01"' }]
+
+[[case]]
+id = "done-with-work-left"
+rust = 'plan rollout is Done with unfinished requirements'
+code = "FORGE-E043"
+edits = [
+  { file = "war-room/plans.toml", find = 'state = "blocked"\nreviewed = "2026-11-01"', replace = 'state = "done"\nreviewed = "2026-11-01"' },
+  { file = "war-room/plans.toml", find = 'state = "blocked"\ndetail = "Nobody has."', replace = 'state = "todo"\ndetail = "Nobody has."' },
+]
+
+[[case]]
+id = "prerequisite-cycle"
+rust = 'plan prerequisite cycle among [("rollout", "release-1"), ("r'
+code = "FORGE-E035"
+edits = [
+  { file = "war-room/plans.toml", find = 'state = "blocked"\nreviewed = "2026-11-01"\ndepends_on = []', replace = 'state = "blocked"\nreviewed = "2026-11-01"\ndepends_on = ["release-1"]' },
+  { file = "war-room/plans.toml", find = 'state = "active"\nreviewed = "2026-11-02"\ntarget_date = "2027-02-28"\ndepends_on = []', replace = 'state = "blocked"\nreviewed = "2026-11-02"\ntarget_date = "2027-02-28"\ndepends_on = ["rollout"]' },
+]
+
+[[case]]
+id = "plan-on-an-unknown-platform"
+rust = 'plan rollout: unknown platform amiga'
+code = "FORGE-E044"
+edits = [{ file = "war-room/plans.toml", find = 'platforms = ["linux-x64"]', replace = 'platforms = ["amiga"]' }]
+
+[[case]]
+id = "retired-into-an-unknown-platform"
+rust = 'retired old-image: unknown platform amiga'
+code = "FORGE-E044"
+edits = [{ file = "war-room/ecosystem.toml", find = 'successor = { platform = "linux-x64" }', replace = 'successor = { platform = "amiga" }' }]
+
+[[case]]
+id = "update-for-an-unknown-plan"
+rust = 'update "Builds move": unknown plan ghost'
+code = "FORGE-E045"
+edits = [{ file = "war-room/ecosystem.toml", find = 'plan = "rollout"', replace = 'plan = "ghost"' }]
+
+[[case]]
+id = "workflow-without-a-name"
+rust = 'workflow/action requires a name'
+code = "FORGE-E050"
+edits = [{ file = ".github/workflows/build.yml", find = 'name: Build\n', replace = '' }]
+
+[[case]]
+id = "needs-a-missing-job"
+rust = 'build/release: missing needed job tset'
+code = "FORGE-E051"
+edits = [{ file = ".github/workflows/build.yml", find = 'needs: test', replace = 'needs: tset' }]
+
+[[case]]
+id = "needs-a-mapping"
+rust = 'unsupported job needs value: Mapping {"job": String("test")}'
+code = "FORGE-E052"
+edits = [{ file = ".github/workflows/build.yml", find = 'needs: test', replace = 'needs: { job: test }' }]
+
+[[case]]
+id = "platform-on-a-missing-job"
+rust = 'platform linux-x64: no job build/ship'
+code = "FORGE-E053"
+edits = [{ file = "war-room/toolchains.toml", find = 'job = "release"', replace = 'job = "ship"' }]
+
+[[case]]
+id = "notes-for-a-missing-workflow"
+rust = 'war-room/workflows.toml: notes for unknown workflow deploy'
+code = "FORGE-E054"
+edits = [{ file = "war-room/workflows.toml", find = '[workflow.build]', replace = '[workflow.deploy]' }]
+
+[[case]]
+id = "stage-on-a-missing-job"
+rust = '"build/ship": build has no job named "ship"'
+code = "FORGE-E055"
+edits = [{ file = "war-room/workflows.toml", find = '"build/release"', replace = '"build/ship"' }]
+
+[[case]]
+id = "stage-on-a-missing-step"
+rust = '"setup/Install it": setup has no step named "Install it"'
+code = "FORGE-E055"
+edits = [{ file = "war-room/workflows.toml", find = '"setup/Install the toolchain"', replace = '"setup/Install it"' }]
+
+[[case]]
+id = "stage-reference-without-a-slash"
+rust = '"build": expected <workflow>/<job> or <action>/<step>'
+code = "FORGE-E055"
+edits = [{ file = "war-room/workflows.toml", find = '"build/release"', replace = '"build"' }]
+
+[[case]]
+id = "toml-syntax"
+rust = 'string values must be quoted, expected literal string'
+code = "FORGE-E002"
+edits = [{ file = "war-room/ecosystem.toml", find = 'scope = "Fixture."', replace = 'scope = ' }]
+
+[[case]]
+id = "yaml-syntax"
+rust = "did not find expected ',' or ']'"
+code = "FORGE-E002"
+edits = [{ file = ".github/workflows/notify.yaml", find = 'on: [push, workflow_dispatch]', replace = 'on: [push' }]
+
+[[case]]
+id = "missing-plans"
+rust = 'read <root>/war-room/plans.toml Caused by: No such file'
+code = "FORGE-E001"
+edits = [{ file = "war-room/plans.toml", delete = true }]
+
+[[case]]
+id = "empty-table-for-list"
+rust = 'commits = {} | ^^ invalid type: map, expected a sequence'
+code = "FORGE-E012"
+edits = [{ file = "war-room/ecosystem.toml", find = 'commits = ["abc1234"]', replace = 'commits = {}' }]
+
+[[case]]
+id = "empty-table-for-requirements"
+rust = 'requirements = {} | ^^ invalid type: map, expected a sequence'
+code = "FORGE-E012"
+edits = [{ file = "war-room/plans.toml", find = 'requirements = []', replace = 'requirements = {}' }]
+
+[[case]]
+id = "stage-as-a-table"
+rust = '[stage] | ^^^^^^^ invalid type: map, expected a sequence'
+code = "FORGE-E012"
+edits = [{ file = "war-room/workflows.toml", find = '[[stage]]', replace = '[stage]' }]
+
+[[case]]
+id = "notes-as-a-list"
+rust = 'workflow = [] | ^^ invalid type: sequence, expected a map'
+code = "FORGE-E012"
+edits = [{ file = "war-room/workflows.toml", find = '[workflow.build]\npurpose = "Build."\nintended_for = "Tools."\nrelease_behavior = "Releases."\nartifacts = ["archives"]\nassumptions = []\nfailures = []\nexample = "See the template."\n', replace = 'workflow = []\n' }]
+
+[[case]]
+id = "jobs-as-a-list"
+rust = 'invalid type: sequence, expected a map'
+code = "FORGE-E056"
+edits = [{ file = ".github/workflows/notify.yaml", find = 'jobs:\n', replace = 'jobs: [a, b]\nunused:\n' }]
+
+[[case]]
+id = "jobs-as-a-string"
+rust = 'invalid type: string "hello", expected a map'
+code = "FORGE-E056"
+edits = [{ file = ".github/workflows/notify.yaml", find = 'jobs:\n', replace = 'jobs: hello\nunused:\n' }]
+
+[[case]]
+id = "job-as-a-number"
+rust = 'invalid type: integer `5`, expected struct Job'
+code = "FORGE-E056"
+edits = [{ file = ".github/workflows/notify.yaml", find = '  say:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo said\n', replace = '  say: 5\n' }]
+
+[[case]]
+id = "job-named-by-a-number"
+rust = 'invalid type: integer `1`, expected a string'
+code = "FORGE-E056"
+edits = [{ file = ".github/workflows/notify.yaml", find = '  say:\n', replace = '  1:\n' }]
+
+[[case]]
+id = "steps-as-a-mapping"
+rust = 'invalid type: map, expected a sequence'
+code = "FORGE-E056"
+edits = [{ file = ".github/workflows/notify.yaml", find = '    steps:\n      - run: echo said\n', replace = '    steps:\n      a: 1\n' }]
+
+[[case]]
+id = "inputs-as-a-string"
+rust = 'invalid type: string "hello", expected a map'
+code = "FORGE-E056"
+edits = [{ file = ".github/workflows/build.yml", find = '    inputs:\n      names:', replace = '    inputs: hello\n    unused:\n      names:' }]
+
+[[case]]
+id = "action-inputs-as-a-list"
+rust = 'invalid type: sequence, expected a map'
+code = "FORGE-E056"
+edits = [{ file = ".github/actions/setup/action.yml", find = 'inputs:\n  toolchain:\n    description: Which one\n    default: stable\n', replace = 'inputs: [a]\n' }]
+
+[[case]]
+id = "action-steps-as-a-mapping"
+rust = '"setup/Install the toolchain": setup has no step named "Inst'
+code = "FORGE-E055"
+edits = [
+  { file = ".github/actions/setup/action.yml", find = '    - name: Report\n      shell: bash\n      run: echo done\n', replace = '' },
+  { file = ".github/actions/setup/action.yml", find = '  steps:\n    - name: Install the toolchain\n      id: install\n      shell: bash\n      run: |\n        echo "path=/opt" >> "$GITHUB_OUTPUT"\n', replace = '  steps:\n    first:\n      name: Install the toolchain\n' },
+]
+
+[[case]]
+id = "folder-named-like-a-workflow"
+rust = 'Is a directory (os error 21)'
+code = "FORGE-E001"
+edits = [{ file = ".github/workflows/folder.yml", mkdir = true }]
+
+# Trees the Rust war room accepts, which the forge must accept too. A `divergence` here is a tree
+# the Rust refused and the forge accepts, with the reason it can't or shouldn't refuse it.
+
+[[accept]]
+id = "reusable-action"
+edits = [
+  { file = ".github/actions/setup/action.yml", find = 'name: Setup\n', replace = 'name: Setup\non:\n  workflow_call:\n' },
+  { file = "war-room/ecosystem.toml", find = 'stroggforge = ["build"]', replace = 'stroggforge = ["build", "setup"]' },
+]
+
+[[accept]]
+id = "null-contract"
+edits = [{ file = ".github/workflows/build.yml", find = '    secrets:\n      TOKEN:\n        required: false\n', replace = '    secrets: ~\n' }]
+
+[[accept]]
+id = "no-jobs"
+edits = [{ file = ".github/workflows/notify.yaml", find = 'jobs:\n  say:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo said\n', replace = 'jobs: ~\n' }]
+
+[[accept]]
+id = "empty-needs"
+edits = [{ file = ".github/workflows/build.yml", find = 'needs: test', replace = 'needs: []' }]
+
+[[accept]]
+id = "steps-of-anything"
+edits = [{ file = ".github/workflows/notify.yaml", find = '      - run: echo said\n', replace = '      - run: echo said\n      - 5\n' }]
+
+[[accept]]
+id = "hex-schema"
+edits = [{ file = "war-room/ecosystem.toml", find = 'schema = 1', replace = 'schema = 0x1' }]
+
+[[accept]]
+id = "empty-mapping-for-needs"
+rust = 'unsupported job needs value: Mapping {}'
+divergence = "@jess/yaml decodes {} and [] to the same empty Lua table; the forge reads it as no needs."
+edits = [{ file = ".github/workflows/build.yml", find = 'needs: test', replace = 'needs: {}' }]
+
+[[accept]]
+id = "needs-keyed-by-integer"
+rust = 'unsupported job needs value: Mapping {1: String("test")}'
+divergence = "@jess/yaml decodes {1: test} to the Lua table the sequence [test] decodes to; the forge reads it as that sequence."
+edits = [{ file = ".github/workflows/build.yml", find = 'needs: test', replace = 'needs: {1: test}' }]
+
+[[accept]]
+id = "lone-actions-file"
+edits = [{ file = ".github/actions/README.md", find = '', replace = 'Not an action.\n' }]
+
+# The Rust read the document, `on`, `workflow_call` and `runs` with Value::get, which ignores keys
+# that aren't strings. So does the forge.
+
+[[accept]]
+id = "document-with-an-integer-key"
+edits = [{ file = ".github/workflows/notify.yaml", find = 'name: Notify\n', replace = 'name: Notify\n1: x\n' }]
+
+[[accept]]
+id = "on-with-an-integer-key"
+edits = [{ file = ".github/workflows/build.yml", find = 'on:\n  workflow_call:', replace = 'on:\n  1: x\n  workflow_call:' }]
+
+[[accept]]
+id = "runs-with-an-integer-key"
+edits = [{ file = ".github/actions/setup/action.yml", find = 'runs:\n  using: composite', replace = 'runs:\n  1: x\n  using: composite' }]
+
+# The rest of the family behind the needs divergences: an empty YAML {} or [], and a mapping keyed
+# 1 to n, are the same Lua tables as their opposites, so the forge can't refuse what serde refused.
+
+[[accept]]
+id = "empty-list-for-jobs"
+rust = 'invalid type: sequence, expected a map'
+divergence = "@jess/yaml decodes [] to the empty Lua table {} decodes to; the forge reads no jobs."
+edits = [{ file = ".github/workflows/notify.yaml", find = 'jobs:\n  say:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo said\n', replace = 'jobs: []\n' }]
+
+[[accept]]
+id = "empty-list-for-a-job"
+rust = 'invalid type: sequence, expected struct Job'
+divergence = "@jess/yaml decodes [] to the empty Lua table {} decodes to; the forge reads an empty job."
+edits = [{ file = ".github/workflows/notify.yaml", find = '  say:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo said\n', replace = '  say: []\n' }]
+
+[[accept]]
+id = "empty-mapping-for-steps"
+rust = 'invalid type: map, expected a sequence'
+divergence = "@jess/yaml decodes {} to the empty Lua table [] decodes to; the forge reads no steps."
+edits = [{ file = ".github/workflows/notify.yaml", find = '    steps:\n      - run: echo said\n', replace = '    steps: {}\n' }]
+
+[[accept]]
+id = "steps-keyed-by-integer"
+rust = 'invalid type: map, expected a sequence'
+divergence = "@jess/yaml decodes {1: step} to the Lua table [step] decodes to; the forge reads that list."
+edits = [{ file = ".github/workflows/notify.yaml", find = '    steps:\n      - run: echo said\n', replace = '    steps: {1: {run: x}}\n' }]
+
+[[accept]]
+id = "empty-list-for-secrets"
+rust = 'workflow contract must be a mapping'
+divergence = "@jess/yaml decodes [] to the empty Lua table {} decodes to; the forge reads no secrets."
+edits = [{ file = ".github/workflows/build.yml", find = '    secrets:\n      TOKEN:\n        required: false\n', replace = '    secrets: []\n' }]
+
+[[accept]]
+id = "empty-list-for-action-outputs"
+rust = 'workflow contract must be a mapping'
+divergence = "@jess/yaml decodes [] to the empty Lua table {} decodes to; the forge reads no outputs."
+edits = [{ file = ".github/actions/setup/action.yml", find = 'outputs:\n  path:\n    description: Where\n    value: ${{ steps.install.outputs.path }}\n', replace = 'outputs: []\n' }]
+
+[[accept]]
+id = "action-steps-keyed-by-integer"
+rust = 'setup has no step named "Install the toolchain"'
+divergence = "@jess/yaml decodes {1: step} to the Lua table [step] decodes to; the forge finds the step there."
+edits = [{ file = ".github/actions/setup/action.yml", find = '  steps:\n    - name: Install the toolchain\n      id: install\n      shell: bash\n      run: |\n        echo "path=/opt" >> "$GITHUB_OUTPUT"\n    - name: Report\n      shell: bash\n      run: echo done\n', replace = '  steps:\n    1: {name: Install the toolchain}\n' }]

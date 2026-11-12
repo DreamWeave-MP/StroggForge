@@ -1,0 +1,242 @@
+--!strict
+-- Closed TOML records. A record names every field it has; a field it doesn't name is an error,
+-- as is a missing one that isn't optional, a value of the wrong type, and a word outside a closed
+-- set. That is serde's `deny_unknown_fields` with enums, which the Rust war room relied on, written
+-- down as data so the reader and the rules can't drift apart.
+--
+-- TOML has datetimes and floats that Lua tables forget; the decoder's layout remembers them, so an
+-- unquoted date where a string belongs and `1.0` where an integer belongs are refused as serde
+-- refused them.
+local diagnostics = require './diagnostics'
+local toml = require '@jess/data/toml'
+
+export type Kind = 'string' | 'integer' | 'strings' | 'enum' | 'enums' | 'records' | 'map' | 'variant'
+
+export type Field = {
+  name: string,
+  kind: Kind,
+  optional: boolean?,
+  -- The closed set of an enum, enums or variant field.
+  values: { string }?,
+  -- The record each element of a records or map field is.
+  record: Spec?,
+}
+
+export type Spec = { Field }
+
+export type Record = { [string]: unknown }
+
+export type Context = {
+  report: diagnostics.Report,
+  path: string,
+  layout: toml.Layout,
+}
+
+type Entry = { keys: { string }?, floats: { [unknown]: boolean }?, datetimes: { [unknown]: boolean }? }
+
+local function entry(context: Context, value: unknown): Entry
+  local found = (context.layout :: any)[value]
+
+  return (found or {}) :: Entry
+end
+
+-- Whether the decoder read `value` as an array, or as a table. A Lua table can't say which an empty
+-- one was; the layout can: a TOML table's entry lists its keys, an array's doesn't.
+local function isList(context: Context, value: unknown): boolean
+  return type(value) == 'table' and (context.layout :: any)[value] ~= nil and entry(context, value).keys == nil
+end
+
+local function isTable(context: Context, value: unknown): boolean
+  return type(value) == 'table' and entry(context, value).keys ~= nil
+end
+
+--- The keys of a decoded table, sorted, so a report lists its findings in the same order every run.
+local function sortedKeys(value: { [string]: unknown }): { string }
+  local keys = {}
+  for key in value do
+    table.insert(keys, key)
+  end
+  table.sort(keys)
+
+  return keys
+end
+
+local function oneOf(values: { string }, value: unknown): boolean
+  return type(value) == 'string' and table.find(values, value) ~= nil
+end
+
+local function wrongType(context: Context, where: string, expected: string)
+  diagnostics.add(context.report, 'FORGE-E012', context.path, `expected {expected}`, where)
+end
+
+local function outside(context: Context, where: string, value: unknown, values: { string })
+  diagnostics.add(
+    context.report,
+    'FORGE-E013',
+    context.path,
+    `{tostring(value)} is not one of {table.concat(values, ', ')}`,
+    where
+  )
+end
+
+-- A string that the TOML wrote as a string, not a datetime the decoder turned into one.
+local function isString(context: Context, owner: unknown, key: unknown, value: unknown): boolean
+  local datetimes = entry(context, owner).datetimes
+
+  return type(value) == 'string' and not (datetimes and datetimes[key])
+end
+
+local decode: (unknown, Spec, Context, string) -> Record?
+
+local function decodeField(context: Context, owner: unknown, field: Field, value: unknown, where: string): unknown
+  local kind = field.kind
+  if kind == 'string' then
+    if not isString(context, owner, field.name, value) then wrongType(context, where, 'a string') end
+
+    return value
+  end
+
+  if kind == 'integer' then
+    local floats = entry(context, owner).floats
+    local whole = type(value) == 'number' and math.floor(value) == value and value >= 0
+    if not whole or (floats and floats[field.name]) then
+      wrongType(context, where, 'a non-negative integer')
+    end
+
+    return value
+  end
+
+  if kind == 'enum' then
+    local values = field.values :: { string }
+    if not isString(context, owner, field.name, value) then
+      wrongType(context, where, 'a string')
+    elseif not oneOf(values, value) then
+      outside(context, where, value, values)
+    end
+
+    return value
+  end
+
+  if kind == 'variant' then
+    -- An externally tagged enum: `{ project = "x" }`, one key from the closed set.
+    local values = field.values :: { string }
+    if not isTable(context, value) then
+      wrongType(context, where, `a table with one of {table.concat(values, ', ')}`)
+      return value
+    end
+
+    local variant = value :: { [string]: unknown }
+    local keys = 0
+    for _, key in sortedKeys(variant) do
+      local inner = variant[key]
+      keys += 1
+      if not oneOf(values, key) then
+        outside(context, where, key, values)
+      elseif not isString(context, value, key, inner) then
+        wrongType(context, `{where}.{key}`, 'a string')
+      end
+    end
+
+    if keys ~= 1 then wrongType(context, where, `exactly one of {table.concat(values, ', ')}`) end
+
+    return value
+  end
+
+  if kind == 'map' then
+    if not isTable(context, value) then
+      wrongType(context, where, 'a table')
+      return value
+    end
+
+    local record = field.record :: Spec
+    local entries = value :: { [string]: unknown }
+    for _, key in sortedKeys(entries) do
+      decode(entries[key], record, context, `{where}.{key}`)
+    end
+
+    return value
+  end
+
+  if not isList(context, value) then
+    wrongType(context, where, 'an array')
+    return value
+  end
+
+  local list = value :: { unknown }
+  for index, element in list do
+    local at = `{where}[{index}]`
+    if kind == 'strings' then
+      if not isString(context, list, index, element) then wrongType(context, at, 'a string') end
+    elseif kind == 'enums' then
+      local values = field.values :: { string }
+      if not isString(context, list, index, element) then
+        wrongType(context, at, 'a string')
+      elseif not oneOf(values, element) then
+        outside(context, at, element, values)
+      end
+    else
+      decode(element, field.record :: Spec, context, at)
+    end
+  end
+
+  return value
+end
+
+--- Checks `value` against `spec`, reporting every problem found. Returns the record when it is a
+--- table at all; its fields are trustworthy only when the report gained no errors.
+function decode(value: unknown, spec: Spec, context: Context, where: string): Record?
+  if not isTable(context, value) then
+    wrongType(context, where, 'a table')
+    return nil
+  end
+
+  local record = value :: Record
+  local known: { [string]: boolean } = {}
+  for _, entry in spec do
+    known[entry.name] = true
+    local at = if where == '' then entry.name else `{where}.{entry.name}`
+    local found = record[entry.name]
+    if found == nil then
+      if not entry.optional then
+        diagnostics.add(context.report, 'FORGE-E011', context.path, `missing field {entry.name}`, at)
+      end
+    else
+      decodeField(context, record, entry, found, at)
+    end
+  end
+
+  -- Sorted, so the same file reports the same unknown fields in the same order every run.
+  for _, key in sortedKeys(record) do
+    if known[key] then continue end
+
+    local at = if where == '' then key else `{where}.{key}`
+    diagnostics.add(context.report, 'FORGE-E010', context.path, `unknown field {key}`, at)
+  end
+
+  return record
+end
+
+--- Reads and decodes the TOML document at `root`/`path` against `spec`. nil when the file can't be
+--- read or parsed, or isn't a table; check the report for whether its fields can be trusted.
+local function load(report: diagnostics.Report, root: string, path: string, spec: Spec): Record?
+  local fs = require '@dream/fs'
+  local text, problem = fs.readFileString(fs.join(root, path))
+  if not text then
+    diagnostics.add(report, 'FORGE-E001', path, problem or 'unreadable')
+    return nil
+  end
+
+  -- toml.decode raises on a document that isn't TOML; that's a finding, not a crash.
+  local parsed, document, layout = pcall(toml.decode, text, nil)
+  if not parsed then
+    diagnostics.add(report, 'FORGE-E002', path, tostring(document))
+    return nil
+  end
+
+  return decode(document, spec, { report = report, path = path, layout = layout :: toml.Layout }, '')
+end
+
+return table.freeze {
+  decode = decode,
+  load = load,
+}
