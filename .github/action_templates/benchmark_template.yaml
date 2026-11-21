@@ -28,7 +28,7 @@ permissions:
 
 jobs:
   benchmarks:
-    uses: DreamWeave-MP/StroggForge/.github/workflows/benchmarks.yml@v72
+    uses: DreamWeave-MP/StroggForge/.github/workflows/benchmarks.yml@v73
     with:
       os: ${{ inputs.os }}
       filter: ${{ inputs.filter }}
