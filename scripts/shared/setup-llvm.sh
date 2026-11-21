@@ -106,16 +106,18 @@ install_linux() {
     return
   fi
   if command -v dnf >/dev/null 2>&1; then
-    # The EL9 builder image (CentOS Stream 9) ships clang and lld from AppStream; they are
+    # The EL9 builder image (CentOS Stream 9) ships clang, lld and llvm from AppStream; they are
     # installed in the image, and this makes a plain EL9 container work too. When the stream's
     # major trails rustc's (it did when rustc moved to LLVM 23 and the stream was still at 22),
     # conda-forge's clang, clang++ and lld of rustc's major take over, through a standalone
     # micromamba, as Intel macOS does below: the official LLVM tarballs can't run on EL9, and
     # conda-forge's builds carry their own libstdc++ and need only glibc 2.17. What they build
     # links the stream's GCC 11 libstdc++, the ABI the glibc 2.34 target promises.
-    # clang and lld are AppStream's and bzip2, which micromamba's tarball needs, is BaseOS's, so
-    # EPEL's mirrors, which have failed whole builds on metadata timeouts, stay out of it.
-    dnf --disablerepo='epel*' install -y clang lld bzip2
+    # llvm carries llvm-ar, which a build script archiving LTO bitcode needs from clang's own
+    # release (dream-net's refuses to build without it), as the apt branch installs it above.
+    # clang, lld and llvm are AppStream's and bzip2, which micromamba's tarball needs, is BaseOS's,
+    # so EPEL's mirrors, which have failed whole builds on metadata timeouts, stay out of it.
+    dnf --disablerepo='epel*' install -y clang lld llvm bzip2
     local stream_major
     stream_major=$(clang --version 2>/dev/null | sed -n 's/.*clang version \([0-9]*\).*/\1/p' | head -1)
     if [[ "$stream_major" == "$llvm_major" ]]; then

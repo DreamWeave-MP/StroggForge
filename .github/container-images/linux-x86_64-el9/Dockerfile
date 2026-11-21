@@ -1,7 +1,7 @@
 FROM quay.io/centos/centos:stream9
 
 LABEL org.opencontainers.image.title="StroggForge Native Linux EL9 Release Builder" \
-      org.opencontainers.image.description="Native Linux x86_64 release builder for StroggForge targeting glibc 2.34 (RHEL/AlmaLinux 9) compatibility, with the clang and lld the EL9 stream ships for the LLVM toolchain policy." \
+      org.opencontainers.image.description="Native Linux x86_64 release builder for StroggForge targeting glibc 2.34 (RHEL/AlmaLinux 9) compatibility, with the clang, lld and LLVM binutils the EL9 stream ships for the LLVM toolchain policy." \
       org.opencontainers.image.source="https://github.com/DreamWeave-MP/StroggForge" \
       org.opencontainers.image.vendor="DreamWeave-MP" \
       org.opencontainers.image.licenses="MIT"
@@ -19,6 +19,7 @@ RUN dnf install -y epel-release \
         gcc-c++ \
         clang \
         lld \
+        llvm \
         make \
         gettext \
         glibc-devel \
